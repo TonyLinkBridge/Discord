@@ -41,6 +41,10 @@ const formatLabels = Object.fromEntries(
   contentFormats.map((format) => [format.value, format.label]),
 ) as Record<ContentEntry["format"], string>;
 
+const noEligibleSlotsMessage =
+  "No scheduled post slots are available. Published and draft posts cannot be replaced here.";
+const ineligibleSelectionStatus = "Selected post is no longer eligible";
+
 function formatPublishDate(value: string): string {
   return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
@@ -89,9 +93,12 @@ export function ContentEditor({
     let active = true;
     provider.getState().then((state) => {
       if (!active) return;
-      setEntries(partitionContentCycles(state.content).flatMap((cycle) => cycle.entries));
+      const orderedEntries = partitionContentCycles(state.content).flatMap((cycle) => cycle.entries);
+      setEntries(orderedEntries);
       setSlotsLoaded(true);
-      setStatus("");
+      setStatus(orderedEntries.some((entry) => entry.status === "scheduled")
+        ? ""
+        : "No eligible replacement targets");
     }).catch(() => {
       if (!active) return;
       setSlotLoadError(true);
@@ -100,12 +107,18 @@ export function ContentEditor({
     return () => { active = false; };
   }, [provider]);
 
+  useEffect(() => {
+    if (status !== ineligibleSelectionStatus) return;
+    const target = formRef.current?.elements.namedItem("targetId");
+    if (target instanceof HTMLElement) target.focus();
+  }, [status]);
+
   function updateField<Field extends ContentField>(field: Field, value: ContentFormValues[Field]) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
   function selectTarget(targetId: string) {
-    const target = entries.find((entry) => entry.id === targetId);
+    const target = entries.find((entry) => entry.id === targetId && entry.status === "scheduled");
     if (!target) {
       setValues(emptyValues);
       return;
@@ -145,6 +158,16 @@ export function ContentEditor({
     setPending(true);
     setStatus("Scheduling post…");
     try {
+      const currentTarget = await provider.getContentEntry(values.targetId);
+      if (currentTarget.status !== "scheduled") {
+        const issue = "Only scheduled posts can be replaced. Choose another slot";
+        const state = await provider.getState();
+        setEntries(partitionContentCycles(state.content).flatMap((cycle) => cycle.entries));
+        setValues(emptyValues);
+        setErrors({ targetId: issue });
+        setStatus(ineligibleSelectionStatus);
+        return;
+      }
       const updated = await provider.updateContentEntry(values.targetId, {
         ctas: [values.cta.trim()],
         conversionLevel: values.conversionLevel as ContentEntry["conversionLevel"],
@@ -171,11 +194,14 @@ export function ContentEditor({
 
   const errorSummary = fieldOrder.filter((field) => errors[field]);
   const cycles = partitionContentCycles(entries);
-  const selectedPosition = cycles.flatMap((cycle) => cycle.entries.map((entry, index) => ({
+  const positions = cycles.flatMap((cycle) => cycle.entries.map((entry, index) => ({
     cycle: cycle.number,
     entry,
     slot: index + 1,
-  }))).find((position) => position.entry.id === values.targetId);
+  })));
+  const eligiblePositions = positions.filter((position) => position.entry.status === "scheduled");
+  const selectedPosition = eligiblePositions.find((position) => position.entry.id === values.targetId);
+  const hasEligibleSlots = eligiblePositions.length > 0;
 
   return (
     <section aria-labelledby="content-editor-title" className={styles.editorPanel}>
@@ -205,22 +231,26 @@ export function ContentEditor({
             <select
               aria-describedby={errors.targetId ? "content-target-error" : "content-target-help"}
               aria-invalid={Boolean(errors.targetId)}
-              disabled={pending}
+              disabled={pending || !hasEligibleSlots}
               id="content-target"
               name="targetId"
               onChange={(event) => selectTarget(event.target.value)}
               value={values.targetId}
             >
               <option disabled value="">Choose a scheduled post</option>
-              {cycles.flatMap((cycle) => cycle.entries.map((entry, index) => (
-                <option key={entry.id} value={entry.id}>
-                  {`Cycle ${cycle.number} · Slot ${index + 1} · ${formatPublishDate(entry.publishAt)} · ${entry.title}`}
+              {eligiblePositions.map((position) => (
+                <option key={position.entry.id} value={position.entry.id}>
+                  {`Cycle ${position.cycle} · Slot ${position.slot} · ${formatPublishDate(position.entry.publishAt)} · ${position.entry.title}`}
                 </option>
-              )))}
+              ))}
             </select>
             {errors.targetId
               ? <span className={styles.fieldError} id="content-target-error">{errors.targetId}</span>
-              : <span className={styles.fieldHelp} id="content-target-help">Select the existing scheduled post that this draft will replace.</span>}
+              : <span className={styles.fieldHelp} id="content-target-help">
+                {hasEligibleSlots
+                  ? "Select the existing scheduled post that this draft will replace."
+                  : noEligibleSlotsMessage}
+              </span>}
           </div>
         ) : (
           <p className={slotLoadError ? styles.inlineLoadError : styles.fieldHelp}>
@@ -313,7 +343,11 @@ export function ContentEditor({
           />
           {errors.cta ? <span className={styles.fieldError} id="content-cta-error">{errors.cta}</span> : null}
         </div>
-        <button className={styles.primaryButton} disabled={pending} type="submit">
+        <button
+          className={styles.primaryButton}
+          disabled={pending || slotLoadError || (slotsLoaded && !hasEligibleSlots)}
+          type="submit"
+        >
           <PaperPlaneTilt aria-hidden size={16} weight="bold" />
           {pending ? "Scheduling post…" : "Schedule post"}
         </button>

@@ -77,6 +77,88 @@ test("sorts slots independently of provider order and discloses the selected rep
   });
 });
 
+test("offers scheduled slots only and leaves published and draft records unchanged", async () => {
+  const user = userEvent.setup();
+  const mixedStatusSeed: AdminState = structuredClone(localAdminSeed);
+  mixedStatusSeed.content = mixedStatusSeed.content.map((entry, index) => ({
+    ...entry,
+    status: index === 0 ? "scheduled" : index % 2 ? "published" : "draft",
+  }));
+  const provider = createLocalAdminDataProvider(mixedStatusSeed);
+  renderAdmin(<ContentEditor />, { provider });
+
+  const target = await screen.findByLabelText("Post slot to replace");
+  expect(within(target).getAllByRole("option").map((option) => option.getAttribute("value")))
+    .toEqual(["", "market-pulse-aug-22"]);
+
+  await user.selectOptions(target, "market-pulse-aug-22");
+  await user.clear(screen.getByLabelText("Title"));
+  await user.type(screen.getByLabelText("Title"), "Eligible scheduled replacement");
+  await user.click(screen.getByRole("button", { name: "Schedule post" }));
+
+  expect(await provider.getContentEntry("market-pulse-aug-22")).toMatchObject({
+    status: "scheduled",
+    title: "Eligible scheduled replacement",
+  });
+  expect(await provider.getContentEntry("domain-101-aug-23")).toMatchObject({
+    status: "published",
+    title: "Domain 101: preparing a transfer",
+  });
+  expect(await provider.getContentEntry("name-battle-aug-24")).toMatchObject({
+    status: "draft",
+    title: "Name Battle: exact match or brandable",
+  });
+  expect((await provider.getActivity()).map((event) => event.entityId))
+    .toEqual(["market-pulse-aug-22"]);
+});
+
+test("rechecks eligibility before writing a slot that became published", async () => {
+  const user = userEvent.setup();
+  const { provider } = renderAdmin(<ContentEditor />);
+  const target = await screen.findByLabelText("Post slot to replace");
+  await user.selectOptions(target, "market-pulse-aug-22");
+  await provider.updateContentEntry(
+    "market-pulse-aug-22",
+    { status: "published", title: "Published historical post" },
+    "publisher",
+  );
+
+  await user.clear(screen.getByLabelText("Title"));
+  await user.type(screen.getByLabelText("Title"), "Attempted overwrite");
+  await user.click(screen.getByRole("button", { name: "Schedule post" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Only scheduled posts can be replaced. Choose another slot",
+  );
+  expect(target).toHaveFocus();
+  expect(await provider.getContentEntry("market-pulse-aug-22")).toMatchObject({
+    status: "published",
+    title: "Published historical post",
+  });
+  expect((await provider.getActivity()).map((event) => event.actorId)).toEqual(["publisher"]);
+});
+
+test("explains and disables scheduling when no eligible slots exist", async () => {
+  const noEligibleSeed: AdminState = structuredClone(localAdminSeed);
+  noEligibleSeed.content = noEligibleSeed.content.map((entry, index) => ({
+    ...entry,
+    status: index % 2 ? "published" : "draft",
+  }));
+  const provider = createLocalAdminDataProvider(noEligibleSeed);
+  renderAdmin(<ContentEditor />, { provider });
+
+  const target = await screen.findByLabelText("Post slot to replace");
+  expect(target).toBeDisabled();
+  expect(within(target).getAllByRole("option").map((option) => option.getAttribute("value")))
+    .toEqual([""]);
+  expect(target).toHaveAccessibleDescription(
+    "No scheduled post slots are available. Published and draft posts cannot be replaced here.",
+  );
+  expect(screen.getByRole("button", { name: "Schedule post" })).toBeDisabled();
+  expect(screen.getByRole("status")).toHaveTextContent("No eligible replacement targets");
+  expect(await provider.getActivity()).toHaveLength(0);
+});
+
 test("requires a disclosed target and focuses the slot selector", async () => {
   const user = userEvent.setup();
   const { provider } = renderAdmin(<ContentEditor />);
