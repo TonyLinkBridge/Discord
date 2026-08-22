@@ -27,6 +27,11 @@ export type ContentUpdatePrecondition = {
   expectedStatus: ContentEntry["status"];
 };
 
+export interface MemberVerificationResult {
+  member: Member;
+  status: "verified" | "already-verified";
+}
+
 export class ContentUpdateConflictError extends Error {
   readonly name = "ContentUpdateConflictError";
 
@@ -60,6 +65,7 @@ export interface AdminDataProvider {
   updateLeadAction(leadId: string, action: LeadAction, actorId: string): Promise<void>;
   completeLeadAction(leadId: string, action: LeadAction, actorId: string): Promise<Lead>;
   updateMember(memberId: string, patch: MemberPatch, actorId: string): Promise<Member>;
+  verifyMember(memberId: string, actorId: string): Promise<MemberVerificationResult>;
   recordMemberAction(memberId: string, action: MemberAction, actorId: string): Promise<void>;
   createTrackedLink(input: TrackingInput, actorId: string): Promise<TrackedLink>;
   createCampaign(input: CampaignInput, actorId: string): Promise<Campaign>;

@@ -78,20 +78,12 @@ export function BotAutomationsScreen() {
     setPending("verification");
     setStatus(`Verifying ${verificationTarget.displayName}`);
     try {
-      const member = await provider.getMember(verificationTarget.id);
-      if (!member.verified) {
-        const roles = member.roles.includes("Verified") ? member.roles : [...member.roles, "Verified"];
-        await provider.updateMember(member.id, {
-          customerStatus: "Verified customer",
-          roles,
-          verified: true,
-        }, "local-ray");
-      }
+      const result = await provider.verifyMember(verificationTarget.id, "local-ray");
       const refreshedState = await provider.getState();
       setVerificationQueue(refreshedState.members.filter((item) => !item.verified));
-      setStatus(member.verified
-        ? `${member.displayName} was already verified`
-        : `${member.displayName} verified manually`);
+      setStatus(result.status === "already-verified"
+        ? `${result.member.displayName} was already verified`
+        : `${result.member.displayName} verified manually`);
     } catch {
       setStatus(`Unable to verify ${verificationTarget.displayName}`);
     } finally {

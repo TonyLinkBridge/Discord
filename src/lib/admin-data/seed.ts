@@ -34,6 +34,34 @@ const overviewFunnel = [
   { label: "Paid Customers", value: 168, conversionRate: 51.5, delta: 11.3 },
 ];
 
+const historicalAnalyticsCampaign = {
+  id: "early-august-portfolio",
+  name: "Early August Portfolio Push",
+  objective: "Convert early August portfolio demand",
+  audience: "Domain investors",
+  channel: "Discord",
+  destination: "https://www.rayname.com/domain/search",
+  startDate: "2026-08-01",
+  endDate: "2026-08-15",
+  status: "completed",
+  visitors: 1250,
+  verifiedCustomers: 30,
+  conversions: 25,
+  revenue: 4560,
+};
+
+const campaignAttributionEvents = [
+  { campaignId: "early-august-portfolio", date: "2026-08-10", visitors: 1250, verifiedCustomers: 30, conversions: 25, revenue: 4560 },
+  { campaignId: "com-transfer-week", date: "2026-08-16", visitors: 338, verifiedCustomers: 8, conversions: 8, revenue: 2025 },
+  { campaignId: "com-transfer-week", date: "2026-08-18", visitors: 2504, verifiedCustomers: 60, conversions: 60, revenue: 7395 },
+  { campaignId: "new-member-welcome", date: "2026-08-16", visitors: 230, verifiedCustomers: 4, conversions: 4, revenue: 671 },
+  { campaignId: "new-member-welcome", date: "2026-08-18", visitors: 1706, verifiedCustomers: 30, conversions: 30, revenue: 2449 },
+  { campaignId: "investor-outreach", date: "2026-08-16", visitors: 134, verifiedCustomers: 2, conversions: 2, revenue: 656 },
+  { campaignId: "investor-outreach", date: "2026-08-18", visitors: 990, verifiedCustomers: 19, conversions: 19, revenue: 2394 },
+  { campaignId: "renewal-reminder", date: "2026-08-16", visitors: 275, verifiedCustomers: 5, conversions: 5, revenue: 608 },
+  { campaignId: "renewal-reminder", date: "2026-08-18", visitors: 2035, verifiedCustomers: 40, conversions: 40, revenue: 2222 },
+] as const;
+
 export const localAdminSeed: AdminState = {
   overview: {
     metrics: [
@@ -164,6 +192,7 @@ export const localAdminSeed: AdminState = {
     offerPerformance: [{ label: ".com transfer offer", value: 68 }],
     retentionRate: 91.4,
   },
+  analyticsEvents: campaignAttributionEvents.map((event) => ({ ...event })),
   workspaceSettings: {
     workspace: { name: "RayName Discord Community", timezone: "UTC" },
     discord: { serverName: "RayName", configured: true },
@@ -178,4 +207,7 @@ export const localAdminSeed: AdminState = {
 
 localAdminSeed.leads = structuredClone(localAdminSeed.overview.leads);
 localAdminSeed.campaigns = structuredClone(localAdminSeed.overview.campaigns);
-localAdminSeed.analytics.campaignAttribution = structuredClone(localAdminSeed.overview.campaigns);
+localAdminSeed.analytics.campaignAttribution = [
+  structuredClone(historicalAnalyticsCampaign),
+  ...structuredClone(localAdminSeed.overview.campaigns),
+];

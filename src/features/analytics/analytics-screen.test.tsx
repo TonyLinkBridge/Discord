@@ -26,6 +26,40 @@ test("applies one date range to every analytics section", async () => {
   ).toHaveTextContent("$7,395");
 });
 
+test("renders 5, 7, and 22 trend points on one responsive chronological axis", async () => {
+  const user = userEvent.setup();
+  renderAdmin(<AnalyticsScreen />);
+
+  const rangeButton = await screen.findByRole("button", { name: "Date range" });
+  const getTrend = () => screen.getByRole("img", {
+    name: /Registration, transfer, and renewal trend/,
+  });
+  const getScroller = () => screen.getByRole("region", { name: "Conversion trend axis" });
+
+  expect(getTrend()).toHaveAttribute("data-point-count", "7");
+  expect(getTrend()).toHaveStyle({ gridTemplateColumns: "repeat(7, minmax(44px, 1fr))" });
+  expect(getScroller()).toHaveAttribute("data-overflow", "fit");
+
+  await user.click(rangeButton);
+  await user.click(screen.getByRole("option", { name: "Aug 18–22, 2026" }));
+  expect(await screen.findByRole("img", { name: /Aug 18–22, 2026/ }))
+    .toHaveAttribute("data-point-count", "5");
+  expect(getTrend()).toHaveStyle({ gridTemplateColumns: "repeat(5, minmax(44px, 1fr))" });
+  expect(getScroller()).toHaveAttribute("data-overflow", "fit");
+
+  await user.click(rangeButton);
+  await user.click(screen.getByRole("option", { name: "Aug 1–22, 2026" }));
+  expect(await screen.findByRole("img", { name: /Aug 1–22, 2026/ }))
+    .toHaveAttribute("data-point-count", "22");
+  expect(getTrend()).toHaveStyle({
+    gridTemplateColumns: "repeat(22, minmax(44px, 1fr))",
+    minWidth: "1144px",
+  });
+  expect(getTrend()).toHaveProperty("children.length", 22);
+  expect(getScroller()).toHaveAttribute("data-overflow", "horizontal");
+  expect(getScroller()).toHaveAttribute("tabindex", "0");
+});
+
 test("never relabels the previous snapshot while the selected range is loading", async () => {
   const user = userEvent.setup();
   const provider = createLocalAdminDataProvider();

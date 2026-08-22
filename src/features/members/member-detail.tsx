@@ -84,16 +84,11 @@ export function MemberDetail({
 
   async function verifyCustomer() {
     try {
-      const roles = member.roles.includes("Verified")
-        ? member.roles
-        : [...member.roles, "Verified"];
-      const updated = await provider.updateMember(member.id, {
-        customerStatus: "Verified customer",
-        roles,
-        verified: true,
-      }, "local-ray");
-      onChange(updated);
-      setStatus("Customer verified manually");
+      const result = await provider.verifyMember(member.id, "local-ray");
+      onChange(result.member);
+      setStatus(result.status === "already-verified"
+        ? "Customer was already verified"
+        : "Customer verified manually");
     } catch {
       setStatus("Unable to verify customer");
     }

@@ -232,6 +232,15 @@ export interface AnalyticsSnapshot {
   retentionRate: number;
 }
 
+export interface CampaignAttributionEvent {
+  campaignId: string;
+  conversions: number;
+  date: string;
+  revenue: number;
+  verifiedCustomers: number;
+  visitors: number;
+}
+
 export interface WorkspaceSettings {
   workspace: { name: string; timezone: string };
   discord: { serverName: string; configured: boolean };
@@ -255,6 +264,7 @@ export interface AdminState {
   community: CommunitySnapshot;
   systemHealth: SystemHealth;
   analytics: Omit<AnalyticsSnapshot, "range">;
+  analyticsEvents: CampaignAttributionEvent[];
   workspaceSettings: WorkspaceSettings;
 }
 

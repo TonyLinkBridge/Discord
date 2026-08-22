@@ -1,11 +1,21 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
 import { renderAdmin } from "@/test/render";
 import { MembersScreen } from "./members-screen";
 
 test("filters unverified VIP signals and manually verifies one member", async () => {
   const user = userEvent.setup();
-  const { provider } = renderAdmin(<MembersScreen />);
+  const backingProvider = createLocalAdminDataProvider();
+  let verificationCalls = 0;
+  const provider = {
+    ...backingProvider,
+    async verifyMember(memberId: string, actorId: string) {
+      verificationCalls += 1;
+      return backingProvider.verifyMember(memberId, actorId);
+    },
+  };
+  renderAdmin(<MembersScreen />, { provider });
   const verificationFilter = await screen.findByLabelText("Verification");
   await user.selectOptions(verificationFilter, "unverified");
   await user.selectOptions(screen.getByLabelText("VIP signal"), "candidate");
@@ -27,6 +37,7 @@ test("filters unverified VIP signals and manually verifies one member", async ()
     actorId: "local-ray",
     entityId: "domainnomad",
   });
+  expect(verificationCalls).toBe(1);
   expect(screen.queryByRole("button", { name: "Open DomainNomad" })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Close member details" }));

@@ -199,17 +199,34 @@ export function AnalyticsScreen() {
           <h2><ChartLineUp aria-hidden size={18} />Conversion trend</h2>
           <span>{selectedRange.label}</span>
         </header>
-        <div aria-label={`Registration, transfer, and renewal trend for ${selectedRange.label}`} className={styles.trendChart} role="img">
-          {filteredTrend.map((point) => (
-            <div className={styles.trendColumn} key={point.date}>
-              <div className={styles.trendBars}>
-                <span className={styles.registrationBar} style={{ height: `${(point.registrations / maximumRegistrations) * 100}%` }} />
-                <span className={styles.transferBar} style={{ height: `${(point.transfers / maximumRegistrations) * 100}%` }} />
-                <span className={styles.renewalBar} style={{ height: `${(point.renewals / maximumRegistrations) * 100}%` }} />
+        <div
+          aria-label="Conversion trend axis"
+          className={styles.trendScroller}
+          data-overflow={filteredTrend.length > 7 ? "horizontal" : "fit"}
+          role="region"
+          tabIndex={filteredTrend.length > 7 ? 0 : undefined}
+        >
+          <div
+            aria-label={`Registration, transfer, and renewal trend for ${selectedRange.label}`}
+            className={styles.trendChart}
+            data-point-count={filteredTrend.length}
+            role="img"
+            style={{
+              gridTemplateColumns: `repeat(${filteredTrend.length}, minmax(44px, 1fr))`,
+              minWidth: filteredTrend.length > 7 ? `${filteredTrend.length * 52}px` : "100%",
+            }}
+          >
+            {filteredTrend.map((point) => (
+              <div className={styles.trendColumn} key={point.date}>
+                <div className={styles.trendBars}>
+                  <span className={styles.registrationBar} style={{ height: `${(point.registrations / maximumRegistrations) * 100}%` }} />
+                  <span className={styles.transferBar} style={{ height: `${(point.transfers / maximumRegistrations) * 100}%` }} />
+                  <span className={styles.renewalBar} style={{ height: `${(point.renewals / maximumRegistrations) * 100}%` }} />
+                </div>
+                <span>{dateLabel(point.date)}</span>
               </div>
-              <span>{dateLabel(point.date)}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         <div className={styles.legend}>
           <span>Registrations</span><span>Transfers</span><span>Renewals</span>

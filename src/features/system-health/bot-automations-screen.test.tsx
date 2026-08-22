@@ -7,7 +7,16 @@ import { BotAutomationsScreen } from "./bot-automations-screen";
 
 test("keeps provider-backed manual operations available while RayName API access is pending", async () => {
   const user = userEvent.setup();
-  const { provider } = renderAdmin(<BotAutomationsScreen />);
+  const backingProvider = createLocalAdminDataProvider();
+  let verificationCalls = 0;
+  const provider = {
+    ...backingProvider,
+    async verifyMember(memberId: string, actorId: string) {
+      verificationCalls += 1;
+      return backingProvider.verifyMember(memberId, actorId);
+    },
+  };
+  renderAdmin(<BotAutomationsScreen />, { provider });
 
   expect(await screen.findAllByText("Healthy")).toHaveLength(3);
   expect(screen.getByText("Awaiting access")).toBeVisible();
@@ -45,6 +54,7 @@ test("keeps provider-backed manual operations available while RayName API access
     "member.updated",
     "tracking.link.created",
   ]);
+  expect(verificationCalls).toBe(1);
 });
 
 test.each(["operational", "degraded"] satisfies ServiceStatus[])(

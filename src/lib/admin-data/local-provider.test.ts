@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { EntityNotFoundError, createLocalAdminDataProvider } from "./local-provider";
 import { ContentUpdateConflictError } from "./provider";
+import { localAdminSeed } from "./seed";
 
 describe("local admin data provider", () => {
   test("returns the approved overview totals for Aug 16–22", async () => {
@@ -77,6 +78,38 @@ describe("local admin data provider", () => {
     ]);
   });
 
+  test("verifies a member atomically once while preserving concurrent role additions", async () => {
+    const provider = createLocalAdminDataProvider(localAdminSeed);
+
+    const firstVerification = provider.verifyMember("domainnomad", "local-ray");
+    const roleUpdate = provider.updateMember(
+      "domainnomad",
+      { roles: ["Flipper", "VIP"] },
+      "role-editor",
+    );
+    const duplicateVerification = provider.verifyMember("domainnomad", "local-ray");
+    const [first, , duplicate] = await Promise.all([
+      firstVerification,
+      roleUpdate,
+      duplicateVerification,
+    ]);
+
+    expect([first.status, duplicate.status]).toEqual(["verified", "already-verified"]);
+    expect(await provider.getMember("domainnomad")).toMatchObject({
+      customerStatus: "Verified customer",
+      roles: ["Flipper", "Verified", "VIP"],
+      verified: true,
+    });
+    expect(
+      (await provider.getActivity())
+        .filter((event) => event.entityId === "domainnomad")
+        .map((event) => [event.actorId, event.action]),
+    ).toEqual([
+      ["role-editor", "member.updated"],
+      ["local-ray", "member.updated"],
+    ]);
+  });
+
   test("persists one completed lead action across canonical and overview state", async () => {
     const provider = createLocalAdminDataProvider();
 
@@ -137,6 +170,7 @@ describe("local admin data provider", () => {
   test("computes distinct analytics aggregates for every approved date range", async () => {
     const provider = createLocalAdminDataProvider();
 
+    const preLaunch = await provider.getAnalytics({ from: "2026-08-01", to: "2026-08-15" });
     const monthToDate = await provider.getAnalytics({ from: "2026-08-01", to: "2026-08-22" });
     const approvedWeek = await provider.getAnalytics({ from: "2026-08-16", to: "2026-08-22" });
     const recentFiveDays = await provider.getAnalytics({ from: "2026-08-18", to: "2026-08-22" });
@@ -152,12 +186,27 @@ describe("local admin data provider", () => {
     });
     expect(recentFiveDays.funnel.map((step) => step.value)).toEqual([7701, 287, 148]);
     expect(recentFiveDays.trend).toHaveLength(5);
-    expect(monthToDate.campaignAttribution[0].revenue).toBeGreaterThan(9420);
+    expect(preLaunch.campaignAttribution).toEqual([
+      expect.objectContaining({
+        endDate: "2026-08-15",
+        id: "early-august-portfolio",
+        revenue: 4560,
+        startDate: "2026-08-01",
+      }),
+    ]);
+    expect(preLaunch.campaignAttribution.some((campaign) => campaign.id === "com-transfer-week"))
+      .toBe(false);
+    expect(monthToDate.campaignAttribution.find((campaign) => campaign.id === "com-transfer-week"))
+      .toMatchObject({ revenue: 9420, visitors: 2842 });
+    expect(monthToDate.campaignAttribution.reduce((sum, campaign) => sum + campaign.revenue, 0))
+      .toBe(22980);
+    expect(approvedWeek.campaignAttribution.some((campaign) => campaign.id === "early-august-portfolio"))
+      .toBe(false);
     expect(monthToDate.funnel[0].value).toBeGreaterThan(8742);
     expect(new Set([
-      monthToDate.campaignAttribution[0].revenue,
-      approvedWeek.campaignAttribution[0].revenue,
-      recentFiveDays.campaignAttribution[0].revenue,
+      monthToDate.campaignAttribution.reduce((sum, campaign) => sum + campaign.revenue, 0),
+      approvedWeek.campaignAttribution.reduce((sum, campaign) => sum + campaign.revenue, 0),
+      recentFiveDays.campaignAttribution.reduce((sum, campaign) => sum + campaign.revenue, 0),
     ]).size).toBe(3);
   });
 

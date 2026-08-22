@@ -163,6 +163,22 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
           ? Number(((step.value / previousValue) * 100).toFixed(1))
           : 0;
       });
+      const campaignAttribution = state.analytics.campaignAttribution.flatMap((campaign) => {
+        const events = state.analyticsEvents.filter((event) =>
+          event.campaignId === campaign.id
+          && inRange(event.date, range)
+          && event.date >= campaign.startDate
+          && event.date <= campaign.endDate,
+        );
+        if (!events.length) return [];
+        return [{
+          ...campaign,
+          visitors: sumBy(events, (event) => event.visitors),
+          verifiedCustomers: sumBy(events, (event) => event.verifiedCustomers),
+          conversions: sumBy(events, (event) => event.conversions),
+          revenue: sumBy(events, (event) => event.revenue),
+        }];
+      });
       const analytics: AnalyticsSnapshot = {
         range: clone(range),
         funnel,
@@ -170,13 +186,7 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
           ...item,
           value: scaledCount(item.value, revenueRatio),
         })),
-        campaignAttribution: state.analytics.campaignAttribution.map((campaign) => ({
-          ...campaign,
-          visitors: scaledCount(campaign.visitors, activityRatio),
-          verifiedCustomers: scaledCount(campaign.verifiedCustomers, activityRatio),
-          conversions: scaledCount(campaign.conversions, activityRatio),
-          revenue: scaledCount(campaign.revenue, revenueRatio),
-        })),
+        campaignAttribution,
         conversionBySegment: state.analytics.conversionBySegment.map((item) => ({
           ...item,
           value: scaledCount(item.value, activityRatio),
@@ -311,9 +321,26 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
 
     async updateMember(memberId, patch, actorId) {
       const member = memberById(memberId);
-      Object.assign(member, clone(patch));
+      const nextPatch = clone(patch);
+      if (nextPatch.roles) {
+        nextPatch.roles = [...new Set([...member.roles, ...nextPatch.roles])];
+      }
+      Object.assign(member, nextPatch);
       recordActivity(actorId, memberId, "member.updated");
       return clone(member);
+    },
+
+    async verifyMember(memberId, actorId) {
+      const member = memberById(memberId);
+      if (member.verified) {
+        return { member: clone(member), status: "already-verified" };
+      }
+
+      member.verified = true;
+      member.customerStatus = "Verified customer";
+      member.roles = [...new Set([...member.roles, "Verified"])];
+      recordActivity(actorId, memberId, "member.updated");
+      return { member: clone(member), status: "verified" };
     },
 
     async recordMemberAction(memberId, action, actorId) {
