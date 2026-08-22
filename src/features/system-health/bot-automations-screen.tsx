@@ -61,7 +61,7 @@ export function BotAutomationsScreen() {
         destination: "https://www.rayname.com/domain/search",
         medium: "community",
         source: "discord",
-      }, "local-ray");
+      });
       setStatus("Tracked link created");
     } catch {
       setStatus("Unable to create tracked link");
@@ -78,7 +78,7 @@ export function BotAutomationsScreen() {
     setPending("verification");
     setStatus(`Verifying ${verificationTarget.displayName}`);
     try {
-      const result = await provider.verifyMember(verificationTarget.id, "local-ray");
+      const result = await provider.verifyMember(verificationTarget.id);
       const refreshedState = await provider.getState();
       setVerificationQueue(refreshedState.members.filter((item) => !item.verified));
       setStatus(result.status === "already-verified"

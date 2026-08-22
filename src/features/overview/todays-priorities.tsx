@@ -58,7 +58,7 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
 
   async function completePriority(priority: Priority) {
     try {
-      await provider.completePriority(priority.id, "local-ray");
+      await provider.completePriority(priority.id);
       setPriorities((items) => items.filter((item) => item.id !== priority.id));
       setStatus("Priority completed");
     } catch {

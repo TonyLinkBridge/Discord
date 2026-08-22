@@ -198,7 +198,7 @@ export function OfferForm({
         startsAt: `${result.data.startDate}T00:00:00Z`,
         status: lifecycle,
         title: result.data.title,
-      }, "local-ray");
+      });
       setSavedOffer(updated);
       setValues((current) => ({ ...current, status: lifecycle }));
       setStatusMessage(`Offer saved and ${lifecycleLabels[updated.status].toLocaleLowerCase()}`);

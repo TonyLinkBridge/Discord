@@ -1,16 +1,22 @@
 import { render, type RenderOptions } from "@testing-library/react";
 import { RayNameThemeProvider } from "@/components/theme/theme-provider";
 import { AdminDataProvider } from "@/lib/admin-data/context";
+import { createAuthorizedAdminDataProvider } from "@/lib/admin-data/authorized-provider";
 import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
-import type { AdminDataProvider as AdminDataProviderType } from "@/lib/admin-data/provider";
+import { adminMutationCommandSchema } from "@/lib/admin-data/mutation-command";
+import type { ActorAwareAdminDataStore } from "@/lib/admin-data/provider";
 import { ReportingRangeProvider } from "@/lib/reporting-range";
 
 type RenderAdminOptions = Omit<RenderOptions, "wrapper"> & {
-  provider?: AdminDataProviderType;
+  provider?: ActorAwareAdminDataStore;
 };
 
 export function renderAdmin(ui: React.ReactNode, options: RenderAdminOptions = {}) {
-  const { provider = createLocalAdminDataProvider(), ...renderOptions } = options;
+  const { provider: store = createLocalAdminDataProvider(), ...renderOptions } = options;
+  const provider = createAuthorizedAdminDataProvider(store, async (input) => ({
+    actorId: "local-ray",
+    command: adminMutationCommandSchema.parse(input),
+  }));
   const result = render(
     <RayNameThemeProvider>
       <AdminDataProvider provider={provider}>
@@ -20,5 +26,5 @@ export function renderAdmin(ui: React.ReactNode, options: RenderAdminOptions = {
     renderOptions,
   );
 
-  return { ...result, provider };
+  return { ...result, provider: store };
 }

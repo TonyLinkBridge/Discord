@@ -47,7 +47,7 @@ export class ContentUpdateConflictError extends Error {
   }
 }
 
-export interface AdminDataProvider {
+export interface AdminDataReader {
   getState(): Promise<AdminState>;
   getOverview(range: DateRange): Promise<OverviewSnapshot>;
   getCommunity(): Promise<CommunitySnapshot>;
@@ -62,6 +62,29 @@ export interface AdminDataProvider {
   getTrackedLink(trackedLinkId: string): Promise<TrackedLink>;
   getContentEntry(entryId: string): Promise<ContentEntry>;
   search(query: string): Promise<SearchResult[]>;
+}
+
+export interface AdminDataProvider extends AdminDataReader {
+  completePriority(priorityId: string): Promise<void>;
+  updateLeadAction(leadId: string, action: LeadAction): Promise<void>;
+  completeLeadAction(leadId: string, action: LeadAction): Promise<Lead>;
+  updateMember(memberId: string, patch: MemberPatch): Promise<Member>;
+  verifyMember(memberId: string): Promise<MemberVerificationResult>;
+  recordMemberAction(memberId: string, action: MemberAction): Promise<void>;
+  createTrackedLink(input: TrackingInput): Promise<TrackedLink>;
+  createCampaignWithTrackedLink(
+    input: CampaignInput,
+    tracking: TrackingInput,
+  ): Promise<CampaignCreationResult>;
+  updateOffer(offerId: string, patch: OfferPatch): Promise<Offer>;
+  updateContentEntry(
+    entryId: string,
+    patch: ContentPatch,
+    precondition?: ContentUpdatePrecondition,
+  ): Promise<ContentEntry>;
+}
+
+export interface ActorAwareAdminDataStore extends AdminDataReader {
   completePriority(priorityId: string, actorId: string): Promise<void>;
   updateLeadAction(leadId: string, action: LeadAction, actorId: string): Promise<void>;
   completeLeadAction(leadId: string, action: LeadAction, actorId: string): Promise<Lead>;

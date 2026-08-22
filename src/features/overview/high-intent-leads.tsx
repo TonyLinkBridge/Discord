@@ -43,7 +43,7 @@ export function HighIntentLeads({ leads: initialLeads }: Readonly<{ leads?: Lead
 
   async function updateLeadAction(lead: Lead, action: LeadAction) {
     try {
-      await provider.updateLeadAction(lead.id, action, "local-ray");
+      await provider.updateLeadAction(lead.id, action);
       setLeads((items) => items.map((item) => (
         item.id === lead.id ? { ...item, completedAction: null, nextAction: action } : item
       )));

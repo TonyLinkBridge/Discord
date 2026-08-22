@@ -123,7 +123,7 @@ export function LeadDetail({
     setStatus(`Completing ${actionLabels[completedAction]} for ${lead.name}`);
 
     try {
-      const updated = await provider.completeLeadAction(lead.id, completedAction, "local-ray");
+      const updated = await provider.completeLeadAction(lead.id, completedAction);
       onChange(updated);
       setStatus(`${actionLabels[completedAction]} completed for ${lead.name}`);
       setAction("");
@@ -147,7 +147,7 @@ export function LeadDetail({
         destination: campaign.destination,
         medium: "community",
         source: lead.source.toLocaleLowerCase().replaceAll(" ", "-"),
-      }, "local-ray");
+      });
       setTrackedUrl(link.url);
       setStatus("Tracked registration link created");
     } catch {

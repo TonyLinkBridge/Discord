@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
 import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
-import type { AdminDataProvider } from "@/lib/admin-data/provider";
+import type { ActorAwareAdminDataStore } from "@/lib/admin-data/provider";
 import { localAdminSeed } from "@/lib/admin-data/seed";
 import type { AdminState, ContentEntry } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
@@ -143,7 +143,7 @@ test.each(["published", "draft"] as const)(
   async (status) => {
     const user = userEvent.setup();
     const baseProvider = createLocalAdminDataProvider();
-    const provider: AdminDataProvider = {
+    const provider: ActorAwareAdminDataStore = {
       ...baseProvider,
       async updateContentEntry(entryId, patch, actorId, precondition) {
         if (actorId === "local-ray") {
@@ -188,7 +188,7 @@ test.each(["published", "draft"] as const)(
       status: index === 0 ? "scheduled" : index % 2 ? "published" : "draft",
     }));
     const baseProvider = createLocalAdminDataProvider(finalSlotSeed);
-    const provider: AdminDataProvider = {
+    const provider: ActorAwareAdminDataStore = {
       ...baseProvider,
       async updateContentEntry(entryId, patch, actorId, precondition) {
         if (actorId === "local-ray") {
@@ -387,7 +387,7 @@ test("reports compliance per selected cycle and identifies an incomplete cycle",
 test("refreshes the calendar from provider state after an editor update", async () => {
   const user = userEvent.setup();
   const baseProvider = createLocalAdminDataProvider();
-  const provider: AdminDataProvider = {
+  const provider: ActorAwareAdminDataStore = {
     ...baseProvider,
     async updateContentEntry(entryId, patch, actorId, precondition) {
       const updated = await baseProvider.updateContentEntry(entryId, patch, actorId, precondition);

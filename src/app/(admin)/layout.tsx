@@ -3,6 +3,7 @@ import { LocalAdminDataProvider } from "@/components/admin-shell/admin-data-prov
 import { evaluateAdminAccess } from "@/features/auth/access-policy";
 import { getAdminAuthEnvironment, getAuthenticatedDiscordUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { authorizeAdminMutation } from "./admin-mutation-actions";
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const authEnvironment = getAdminAuthEnvironment();
@@ -32,7 +33,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   }
 
   return (
-    <LocalAdminDataProvider>
+    <LocalAdminDataProvider mutationGate={authorizeAdminMutation}>
       <AdminShell>{children}</AdminShell>
     </LocalAdminDataProvider>
   );

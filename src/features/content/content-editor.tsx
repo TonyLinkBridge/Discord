@@ -189,7 +189,7 @@ export function ContentEditor({
         publishAt: `${values.publishDate}T13:00:00Z`,
         status: "scheduled",
         title: values.title.trim(),
-      }, "local-ray", { expectedStatus: "scheduled" });
+      }, { expectedStatus: "scheduled" });
       const state = await provider.getState();
       const cycles = partitionContentCycles(state.content);
       const selectedCycle = cycles.find((cycle) =>

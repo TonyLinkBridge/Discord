@@ -1,5 +1,5 @@
 import { buildTrackedRayNameUrl } from "../tracking";
-import { ContentUpdateConflictError, type AdminDataProvider } from "./provider";
+import { ContentUpdateConflictError, type ActorAwareAdminDataStore } from "./provider";
 import { localAdminSeed } from "./seed";
 import type {
   ActivityEvent,
@@ -84,7 +84,9 @@ const previousRange = (range: { from: string; to: string }) => {
 const percentageChange = (current: number, previous: number) =>
   previous ? Number((((current - previous) / previous) * 100).toFixed(1)) : null;
 
-export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed): AdminDataProvider {
+export function createLocalAdminDataProvider(
+  seed: AdminState = localAdminSeed,
+): ActorAwareAdminDataStore {
   const state = clone(seed);
 
   const recordActivity = (actorId: string, entityId: string, action: string): void => {

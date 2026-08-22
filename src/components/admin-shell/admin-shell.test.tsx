@@ -5,8 +5,14 @@ import AdminLayout from "@/app/(admin)/layout";
 import { RayNameThemeProvider } from "@/components/theme/theme-provider";
 import { AdminShell } from "./admin-shell";
 import { renderAdmin } from "@/test/render";
+import { TodaysPriorities } from "@/features/overview/todays-priorities";
+import { adminMutationCommandSchema } from "@/lib/admin-data/mutation-command";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
+const authorizeAdminMutation = vi.hoisted(() => vi.fn(async (input: unknown) => ({
+  actorId: "42",
+  command: input,
+})));
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -22,6 +28,8 @@ vi.mock("@/lib/auth", () => ({
   }),
   getAuthenticatedDiscordUserId: vi.fn(),
 }));
+
+vi.mock("@/app/(admin)/admin-mutation-actions", () => ({ authorizeAdminMutation }));
 
 test("renders the approved navigation in order", () => {
   renderAdmin(
@@ -58,6 +66,26 @@ test("mounts the local provider in the production admin layout", async () => {
   await user.type(screen.getByRole("searchbox"), "alex");
 
   expect(await screen.findByRole("option", { name: /Alex Chen.*Lead/i })).toBeVisible();
+});
+
+test("routes a production-layout mutation through the Server Action gate", async () => {
+  authorizeAdminMutation.mockImplementationOnce(async (input: unknown) => ({
+    actorId: "42",
+    command: adminMutationCommandSchema.parse(input),
+  }));
+  const user = userEvent.setup();
+  const layout = await AdminLayout({ children: <TodaysPriorities /> });
+  render(<RayNameThemeProvider>{layout}</RayNameThemeProvider>);
+
+  expect(await screen.findByText("Verify 12 new members")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Review Verify 12 new members" }));
+  await user.click(screen.getByRole("menuitem", { name: "Mark complete" }));
+
+  expect(screen.queryByText("Verify 12 new members")).not.toBeInTheDocument();
+  expect(authorizeAdminMutation).toHaveBeenCalledWith({
+    kind: "complete-priority",
+    priorityId: "verify-new-members",
+  });
 });
 
 test("shows the current workspace and complete command-bar controls", async () => {

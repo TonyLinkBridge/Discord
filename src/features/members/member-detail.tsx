@@ -84,7 +84,7 @@ export function MemberDetail({
 
   async function verifyCustomer() {
     try {
-      const result = await provider.verifyMember(member.id, "local-ray");
+      const result = await provider.verifyMember(member.id);
       onChange(result.member);
       setStatus(result.status === "already-verified"
         ? "Customer was already verified"
@@ -104,7 +104,6 @@ export function MemberDetail({
       const updated = await provider.updateMember(
         member.id,
         { roles: [...member.roles, role] },
-        "local-ray",
       );
       onChange(updated);
       setStatus(`${role} role assigned`);
@@ -115,7 +114,7 @@ export function MemberDetail({
 
   async function reviewVip() {
     try {
-      await provider.recordMemberAction(member.id, "review-vip", "local-ray");
+      await provider.recordMemberAction(member.id, "review-vip");
       setStatus("VIP review queued");
     } catch {
       setStatus("Unable to queue VIP review");
@@ -124,7 +123,7 @@ export function MemberDetail({
 
   async function openTicket() {
     try {
-      await provider.recordMemberAction(member.id, "open-ticket", "local-ray");
+      await provider.recordMemberAction(member.id, "open-ticket");
       setStatus("Private support ticket opened");
     } catch {
       setStatus("Unable to open support ticket");
@@ -142,7 +141,6 @@ export function MemberDetail({
       const updated = await provider.updateMember(
         member.id,
         { notes: [...member.notes, nextNote] },
-        "local-ray",
       );
       onChange(updated);
       setNote("");
@@ -160,7 +158,7 @@ export function MemberDetail({
         destination: "https://www.rayname.com/domain/search",
         medium: "community",
         source: "discord",
-      }, "local-ray");
+      });
       setTrackedUrl(link.url);
       setStatus("Tracked RayName link created");
     } catch {

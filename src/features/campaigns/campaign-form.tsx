@@ -109,7 +109,6 @@ export function CampaignForm({
           medium: result.data.channel === "discord" ? "community" : "campaign",
           source: result.data.channel,
         },
-        "local-ray",
       );
       setTrackedUrl(creation.trackedLink.url);
       setStatus(`${creation.campaign.name} campaign created`);
