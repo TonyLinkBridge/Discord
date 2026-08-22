@@ -63,7 +63,7 @@ export const localAdminSeed: AdminState = {
   leads: [],
   campaigns: [],
   offers: [
-    { id: "com-transfer-offer", title: ".com transfer offer", description: "Transfer eligible .com domains to RayName before Aug 24.", audience: "Domain investors", destination: "https://www.rayname.com/domain/transfer", startsAt: "2026-08-16T00:00:00Z", endsAt: "2026-08-24T23:59:59Z", cta: "Start a transfer", campaignId: "com-transfer-week", status: "active" },
+    { id: "com-transfer-offer", title: ".com transfer offer", description: "Transfer eligible .com domains to RayName before Aug 24.", audience: "Domain investors", destination: "https://www.rayname.com/domain/transfer", startsAt: "2026-08-17T00:00:00Z", endsAt: "2026-08-24T23:59:59Z", cta: "Start a transfer", campaignId: "com-transfer-week", status: "active" },
   ],
   content: [
     { id: "market-pulse-aug-22", title: "Market Pulse: .com transfer signals", format: "market-pulse", conversionLevel: "education", publishAt: "2026-08-22T13:00:00Z", ctas: ["Read the transfer guide"], status: "scheduled" },

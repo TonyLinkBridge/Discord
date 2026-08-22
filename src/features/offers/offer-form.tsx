@@ -5,19 +5,15 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Offer } from "@/lib/admin-data/types";
+import { rayNameDestinationError } from "@/lib/tracking";
 import styles from "./offers-screen.module.css";
 
 const offerStatuses = ["draft", "scheduled", "active", "expired"] as const;
 
-const rayNameDestination = z.string().trim().url("Enter a valid destination URL").refine((value) => {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:"
-      && (url.hostname === "rayname.com" || url.hostname.endsWith(".rayname.com"));
-  } catch {
-    return false;
-  }
-}, "Use an HTTPS RayName destination");
+const rayNameDestination = z.string().trim().superRefine((value, context) => {
+  const message = rayNameDestinationError(value);
+  if (message) context.addIssue({ code: "custom", message });
+});
 
 const offerSchema = z.object({
   audience: z.string().trim().min(1, "Enter an eligible audience"),
@@ -61,6 +57,18 @@ const lifecycleLabels: Record<Offer["status"], string> = {
   scheduled: "Scheduled",
 };
 
+export function deriveOfferLifecycle(
+  selectedStatus: Offer["status"],
+  startDate: string,
+  endDate: string,
+  today: string,
+): Offer["status"] {
+  if (selectedStatus === "draft") return "draft";
+  if (today < startDate) return "scheduled";
+  if (today > endDate) return "expired";
+  return "active";
+}
+
 function dateRangeLabel(startDate: string, endDate: string): string {
   if (!startDate || !endDate) return "Validity dates pending";
   const start = new Date(`${startDate}T12:00:00Z`);
@@ -79,8 +87,10 @@ function dateRangeLabel(startDate: string, endDate: string): string {
 export function OfferForm({
   offerId,
   onUpdated,
-}: Readonly<{ offerId: string; onUpdated?: (offer: Offer) => void }>) {
+  today,
+}: Readonly<{ offerId: string; onUpdated?: (offer: Offer) => void; today?: string }>) {
   const provider = useAdminData();
+  const todayValue = today ?? new Date().toISOString().slice(0, 10);
   const formRef = useRef<HTMLFormElement>(null);
   const touched = useRef(new Set<OfferField>());
   const [recordId, setRecordId] = useState("");
@@ -103,16 +113,18 @@ export function OfferForm({
         return;
       }
 
-      const isCampaignAlias = offer.id !== offerId;
+      const startDate = offer.startsAt.slice(0, 10);
+      const endDate = offer.endsAt.slice(0, 10);
+      const loadedStatus = deriveOfferLifecycle(offer.status, startDate, endDate, todayValue);
       const loadedValues: OfferFormValues = {
         audience: offer.audience,
         campaignId: offer.campaignId,
         cta: offer.cta,
         description: offer.description,
         destination: offer.destination,
-        endDate: offer.endsAt.slice(0, 10),
-        startDate: isCampaignAlias ? "2026-08-17" : offer.startsAt.slice(0, 10),
-        status: offer.status,
+        endDate,
+        startDate,
+        status: loadedStatus,
         title: offer.title,
       };
       setRecordId(offer.id);
@@ -127,7 +139,7 @@ export function OfferForm({
         status: touched.current.has("status") ? current.status : loadedValues.status,
         title: touched.current.has("title") ? current.title : loadedValues.title,
       }));
-      setSavedOffer(offer);
+      setSavedOffer({ ...offer, status: loadedStatus });
       setLoading(false);
       setStatusMessage("");
     }).catch(() => {
@@ -137,7 +149,7 @@ export function OfferForm({
       }
     });
     return () => { active = false; };
-  }, [offerId, provider]);
+  }, [offerId, provider, todayValue]);
 
   function updateField<Field extends OfferField>(field: Field, value: OfferFormValues[Field]) {
     touched.current.add(field);
@@ -170,6 +182,12 @@ export function OfferForm({
     setPending(true);
     setStatusMessage("Saving offer…");
     try {
+      const lifecycle = deriveOfferLifecycle(
+        result.data.status,
+        result.data.startDate,
+        result.data.endDate,
+        todayValue,
+      );
       const updated = await provider.updateOffer(recordId, {
         audience: result.data.audience,
         campaignId: result.data.campaignId,
@@ -178,10 +196,11 @@ export function OfferForm({
         destination: result.data.destination,
         endsAt: `${result.data.endDate}T23:59:59Z`,
         startsAt: `${result.data.startDate}T00:00:00Z`,
-        status: result.data.status,
+        status: lifecycle,
         title: result.data.title,
       }, "local-ray");
       setSavedOffer(updated);
+      setValues((current) => ({ ...current, status: lifecycle }));
       setStatusMessage(`Offer saved and ${lifecycleLabels[updated.status].toLocaleLowerCase()}`);
       onUpdated?.(updated);
     } catch {

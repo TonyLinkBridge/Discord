@@ -5,25 +5,30 @@ import { useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Campaign } from "@/lib/admin-data/types";
-import { buildTrackedRayNameUrl } from "@/lib/tracking";
+import { buildTrackedRayNameUrl, rayNameDestinationError } from "@/lib/tracking";
 import styles from "./campaigns-screen.module.css";
 
-const rayNameDestination = z.string().trim().url("Enter a valid destination URL").refine((value) => {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:"
-      && (url.hostname === "rayname.com" || url.hostname.endsWith(".rayname.com"));
-  } catch {
-    return false;
-  }
-}, "Use an HTTPS RayName destination");
+const rayNameDestination = z.string().trim().superRefine((value, context) => {
+  const message = rayNameDestinationError(value);
+  if (message) context.addIssue({ code: "custom", message });
+});
+
+const slugify = (value: string) => value
+  .normalize("NFKC")
+  .trim()
+  .toLocaleLowerCase()
+  .replace(/[^\p{L}\p{N}]+/gu, "-")
+  .replace(/(^-|-$)/g, "");
 
 const campaignSchema = z.object({
   audience: z.string().trim().min(1, "Enter an audience"),
   channel: z.enum(["discord", "email", "community", "partner"]),
   destination: rayNameDestination,
   endDate: z.iso.date("Enter an end date"),
-  name: z.string().trim().min(1, "Enter a campaign name"),
+  name: z.string().trim().min(1, "Enter a campaign name").refine(
+    (value) => slugify(value).length > 0,
+    "Campaign name must include a letter or number",
+  ),
   objective: z.string().trim().min(1, "Enter an objective"),
   startDate: z.iso.date("Enter a start date"),
 }).refine((input) => input.endDate >= input.startDate, {
@@ -43,12 +48,6 @@ const fieldOrder: readonly CampaignField[] = [
   "startDate",
   "endDate",
 ];
-
-const slugify = (value: string) => value
-  .trim()
-  .toLocaleLowerCase()
-  .replace(/[^a-z0-9]+/g, "-")
-  .replace(/(^-|-$)/g, "");
 
 const deriveCampaignStatus = (startDate: string, endDate: string) => {
   const today = new Date().toISOString().slice(0, 10);

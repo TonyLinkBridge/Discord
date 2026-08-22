@@ -31,3 +31,13 @@ test("rejects insecure and non-RayName tracking destinations", () => {
     "Tracking destinations must use HTTPS on a RayName domain.",
   );
 });
+
+test("rejects a RayName destination containing credentials", () => {
+  expect(() => buildTrackedRayNameUrl({
+    campaign: "renewal-rescue",
+    content: "campaign-form",
+    destination: "https://attacker:secret@www.rayname.com/domain/search",
+    medium: "community",
+    source: "discord",
+  })).toThrow("Tracking destinations must use HTTPS on a RayName domain without credentials.");
+});
