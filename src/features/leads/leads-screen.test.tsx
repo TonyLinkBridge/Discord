@@ -13,3 +13,10 @@ test("shows only high-intent investors after filtering", async () => {
   expect(await screen.findByText("Alex Chen")).toBeVisible();
   expect(screen.queryByText("Web3Builder")).not.toBeInTheDocument();
 });
+
+test("opens the requested lead in the canonical leads workflow", async () => {
+  renderAdmin(<LeadsScreen initialSelectedLeadId="alex-chen" />);
+
+  expect(await screen.findByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Lead pipeline" })).toBeVisible();
+});

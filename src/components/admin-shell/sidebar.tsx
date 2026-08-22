@@ -1,9 +1,11 @@
 "use client";
 
-import { Buildings, CaretDown, CheckCircle } from "@phosphor-icons/react";
+import { Buildings, CheckCircle } from "@phosphor-icons/react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import rayNameMark from "../../../assets/brand/rayname-server-icon.png";
 import { navItems } from "./nav-items";
 import { useAdminData } from "@/lib/admin-data/context";
 import styles from "./admin-shell.module.css";
@@ -20,9 +22,13 @@ export function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <Link className={styles.brand} href="/" aria-label="RayName Admin home">
-        <span className={styles.brandMark} aria-hidden>
-          R
-        </span>
+        <Image
+          alt="RayName mark"
+          className={styles.brandMark}
+          height={27}
+          src={rayNameMark}
+          width={27}
+        />
         <span className={styles.brandName}>RayName <strong>Admin</strong></span>
       </Link>
 
@@ -65,11 +71,6 @@ export function Sidebar() {
             <strong>Aug 22, 2026</strong>
           </div>
         </div>
-        <button className={styles.operator} type="button" aria-label="Operator menu">
-          <span className={styles.avatar} aria-hidden>R</span>
-          <span className={styles.operatorDetails}><strong>Ray</strong><small>Operator</small></span>
-          <CaretDown aria-hidden className={styles.operatorCaret} size={14} />
-        </button>
       </div>
     </aside>
   );

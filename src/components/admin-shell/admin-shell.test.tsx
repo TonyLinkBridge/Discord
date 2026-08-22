@@ -76,6 +76,7 @@ test("shows the current workspace and complete command-bar controls", async () =
   const commandBar = screen.getByRole("banner");
   const operatorMenu = within(commandBar).getByRole("button", { name: "Operator menu" });
   expect(operatorMenu).toBeVisible();
+  expect(screen.getAllByRole("button", { name: "Operator menu" })).toHaveLength(1);
   expect(within(commandBar).getByRole("button", { name: "Notifications" })).toBeVisible();
   expect(screen.getByLabelText("System status: All systems operational")).toHaveAttribute(
     "title",
@@ -84,6 +85,19 @@ test("shows the current workspace and complete command-bar controls", async () =
 
   await user.click(operatorMenu);
   expect(screen.getByRole("menuitem", { name: "Account settings" })).toBeVisible();
+});
+
+test("renders the official RayName mark with a one-line brand lockup", async () => {
+  renderAdmin(
+    <AdminShell title="Overview">
+      <div />
+    </AdminShell>,
+  );
+
+  await screen.findByText("RayName Discord Community");
+  const brand = screen.getByRole("link", { name: "RayName Admin home" });
+  expect(within(brand).getByRole("img", { name: "RayName mark" })).toBeVisible();
+  expect(brand).toHaveTextContent("RayName Admin");
 });
 
 test("derives the command-bar title and automation destination from the route", () => {

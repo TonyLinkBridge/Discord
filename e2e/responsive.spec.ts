@@ -23,8 +23,12 @@ for (const viewport of [
     await page.goto("/");
 
     const navigation = page.getByRole("navigation", { name: "Primary" });
+    const brand = page.getByRole("link", { name: "RayName Admin home" });
+    const brandMark = brand.getByRole("img", { name: "RayName mark" });
     await expect(navigation).toBeVisible();
+    await expect(brandMark).toBeVisible();
     await expect(page.getByRole("button", { name: /theme/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Operator menu" })).toHaveCount(1);
     await expect(page.getByRole("main")).toBeVisible();
     expect(await page.evaluate(() => (
       document.documentElement.scrollWidth <= document.documentElement.clientWidth
@@ -37,12 +41,20 @@ for (const viewport of [
     expect(contentFitsViewport).toBe(true);
 
     if (viewport.width === 1440) {
+      const brandName = brand.getByText("RayName Admin");
+      await expect(brandName).toBeVisible();
+      const [brandMarkBox, brandNameBox] = await Promise.all([
+        brandMark.boundingBox(),
+        brandName.boundingBox(),
+      ]);
+      expect(brandNameBox?.height).toBeLessThanOrEqual(brandMarkBox?.height ?? 0);
       for (const label of navLabels) {
         await expect(navigation.getByRole("link", { name: label }).locator("span").last()).toBeVisible();
       }
     }
 
     if (viewport.width === 1180) {
+      await expect(brand.getByText("RayName Admin")).toBeHidden();
       const navigationBounds = await navigation.boundingBox();
       expect(navigationBounds?.width).toBeLessThanOrEqual(64);
       for (const label of navLabels) {

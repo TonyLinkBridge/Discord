@@ -147,7 +147,7 @@ describe("local admin data provider", () => {
         type: "Lead",
         primary: "Alex Chen",
         secondary: "Investor · Very High intent",
-        href: "/leads/alex-chen",
+        href: "/leads?lead=alex-chen",
       },
     ]);
   });

@@ -24,7 +24,14 @@
   text-decoration: none;
 }
 
-.brandMark,
+.brandMark {
+  display: block;
+  flex: 0 0 auto;
+  height: 27px;
+  object-fit: contain;
+  width: 27px;
+}
+
 .avatar {
   align-items: center;
   background: var(--accent);
@@ -37,6 +44,7 @@
   width: 27px;
 }
 
+.brandName { white-space: nowrap; }
 .brandName strong { color: var(--accent); font-weight: 500; }
 .navigation { display: grid; gap: 5px; }
 
@@ -67,12 +75,7 @@
 .healthDetails strong { color: var(--text-primary); font-size: 12px; font-weight: 500; }
 .railOnly { display: none; }
 
-.operator { align-items: center; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; display: flex; gap: 8px; margin: 13px 3px 0; padding: 6px 0; text-align: left; width: 100%; }
 .avatar { border-radius: 50%; height: 30px; width: 30px; }
-.operatorDetails { display: grid; font-size: 12px; gap: 1px; }
-.operatorDetails strong { font-weight: 600; }
-.operatorDetails small { color: var(--text-secondary); font-size: 10px; }
-.operatorCaret { margin-left: auto; }
 
 .contentColumn { min-width: 0; }
 .commandBar { align-items: center; background: var(--bg-canvas); display: flex; gap: 12px; min-height: 76px; padding: 16px 22px; }
@@ -117,13 +120,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .shell { grid-template-columns: 64px minmax(0, 1fr); }
   .sidebar { align-items: center; padding: 24px 8px 12px; }
   .brand { margin-left: 0; margin-right: 0; }
-  .brandName, .navLabel, .workspaceName, .healthStatus, .healthDetails, .operatorDetails, .operatorCaret { display: none; }
+  .brandName, .navLabel, .workspaceName, .healthStatus, .healthDetails { display: none; }
   .navigation { width: 100%; }
   .navLink { border-left-width: 2px; justify-content: center; padding: 0; }
   .railOnly { display: block; }
   .healthCard { border: 0; padding: 7px; }
   .workspace { justify-content: center; margin: 18px 0 0; }
-  .operator { justify-content: center; }
   .commandBar h1 { margin-right: 4px; }
   .dateControl span, .systemStatus { display: none; }
 }

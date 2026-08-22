@@ -267,7 +267,7 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
           type: "Lead" as const,
           primary: lead.name,
           secondary: `${lead.segment} · ${lead.intent} intent`,
-          href: `/leads/${lead.id}`,
+          href: `/leads?lead=${encodeURIComponent(lead.id)}`,
         }));
       const campaigns = state.campaigns
         .filter((campaign) =>

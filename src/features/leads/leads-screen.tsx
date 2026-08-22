@@ -13,12 +13,14 @@ type LeadView = "table" | "pipeline";
 
 const normalize = (value: string) => value.toLocaleLowerCase().replaceAll(" ", "-");
 
-export function LeadsScreen() {
+export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
+  initialSelectedLeadId?: string | null;
+}>) {
   const provider = useAdminData();
   const segmentFilterRef = useRef<HTMLSelectElement>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedLeadId);
   const [view, setView] = useState<LeadView>("table");
   const [segment, setSegment] = useState("all");
   const [intent, setIntent] = useState("all");

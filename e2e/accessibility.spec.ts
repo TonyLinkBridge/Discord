@@ -60,6 +60,49 @@ test("global search supports keyboard discovery and dismissal", async ({ page })
   await expect(page.getByRole("dialog", { name: "Global search" })).toBeHidden();
 });
 
+test("global search activates Alex Chen in the canonical lead dialog", async ({ page }) => {
+  await page.goto("/");
+  await page.keyboard.press("Control+k");
+
+  const search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Alex");
+  await page.getByRole("option", { name: /Alex Chen.*Lead/i }).click();
+
+  await expect(page).toHaveURL(/\/leads\?lead=alex-chen$/);
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+});
+
+test("every Overview chart tab shows seven non-overlapping date labels at 1440px", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1024 });
+  await page.goto("/");
+
+  for (const metric of ["Registrations", "Transfers", "Renewals"]) {
+    await page.getByRole("tab", { name: metric }).click();
+    const chart = page.getByRole("img", {
+      name: `${metric} line chart for Aug 16–22, 2026`,
+    });
+    const labels = chart.locator("svg text").filter({ hasText: /^Aug \d{2}/ });
+
+    await expect(labels).toHaveCount(7);
+    expect(await labels.allTextContents()).toEqual([
+      "Aug 16Sun",
+      "Aug 17Mon",
+      "Aug 18Tue",
+      "Aug 19Wed",
+      "Aug 20Thu",
+      "Aug 21Fri",
+      "Aug 22Sat",
+    ]);
+    const boxes = await labels.evaluateAll((elements) => elements.map((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { left: bounds.left, right: bounds.right };
+    }));
+    for (let index = 1; index < boxes.length; index += 1) {
+      expect(boxes[index - 1].right).toBeLessThanOrEqual(boxes[index].left);
+    }
+  }
+});
+
 test("theme menu supports keyboard selection", async ({ page }) => {
   await loadTheme(page, "/", "light");
   const trigger = page.getByRole("button", { name: /theme/i });

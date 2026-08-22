@@ -85,6 +85,7 @@ export function AccessibleLineChart({
               axisLine={{ stroke: "var(--border-subtle)" }}
               dataKey="date"
               height={48}
+              interval={0}
               tick={<DateAxisTick />}
               tickLine={false}
             />
