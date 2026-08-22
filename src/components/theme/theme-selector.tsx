@@ -1,12 +1,16 @@
 "use client";
 
 import { Desktop, Moon, Sun } from "@phosphor-icons/react";
+import { useSyncExternalStore } from "react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { useTheme } from "next-themes";
 import type { ThemeMode } from "@/lib/admin-data/types";
 import styles from "./theme-selector.module.css";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
+const subscribeToNothing = () => () => undefined;
+const getClientMountState = () => true;
+const getServerMountState = () => false;
 
 function isThemeMode(value: string | undefined): value is ThemeMode {
   return value !== undefined && themeModes.includes(value as ThemeMode);
@@ -14,12 +18,21 @@ function isThemeMode(value: string | undefined): value is ThemeMode {
 
 export function ThemeSelector() {
   const { resolvedTheme, setTheme, theme } = useTheme();
+  const isMounted = useSyncExternalStore(
+    subscribeToNothing,
+    getClientMountState,
+    getServerMountState,
+  );
   const selectedTheme = isThemeMode(theme) ? theme : "system";
+  const isDark = isMounted && resolvedTheme === "dark";
+  const themeLabel = isMounted && resolvedTheme
+    ? `Theme settings, current: ${resolvedTheme}`
+    : "Theme settings";
 
   return (
     <MenuTrigger>
-      <Button className={styles.trigger} aria-label="Theme settings">
-        {resolvedTheme === "dark" ? <Moon aria-hidden size={18} /> : <Sun aria-hidden size={18} />}
+      <Button className={styles.trigger} aria-label={themeLabel}>
+        {isDark ? <Moon aria-hidden size={18} /> : <Sun aria-hidden size={18} />}
       </Button>
       <Popover className={styles.popover} placement="bottom end" offset={8}>
         <Menu
