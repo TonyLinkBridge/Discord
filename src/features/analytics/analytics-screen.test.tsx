@@ -37,15 +37,23 @@ test("renders 5, 7, and 22 trend points on one responsive chronological axis", a
   const getScroller = () => screen.getByRole("region", { name: "Conversion trend axis" });
 
   expect(getTrend()).toHaveAttribute("data-point-count", "7");
-  expect(getTrend()).toHaveStyle({ gridTemplateColumns: "repeat(7, minmax(44px, 1fr))" });
+  expect(getTrend()).toHaveStyle({
+    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+    minWidth: "100%",
+  });
   expect(getScroller()).toHaveAttribute("data-overflow", "fit");
+  expect(getScroller()).not.toHaveAttribute("tabindex");
 
   await user.click(rangeButton);
   await user.click(screen.getByRole("option", { name: "Aug 18–22, 2026" }));
   expect(await screen.findByRole("img", { name: /Aug 18–22, 2026/ }))
     .toHaveAttribute("data-point-count", "5");
-  expect(getTrend()).toHaveStyle({ gridTemplateColumns: "repeat(5, minmax(44px, 1fr))" });
+  expect(getTrend()).toHaveStyle({
+    gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+    minWidth: "100%",
+  });
   expect(getScroller()).toHaveAttribute("data-overflow", "fit");
+  expect(getScroller()).not.toHaveAttribute("tabindex");
 
   await user.click(rangeButton);
   await user.click(screen.getByRole("option", { name: "Aug 1–22, 2026" }));

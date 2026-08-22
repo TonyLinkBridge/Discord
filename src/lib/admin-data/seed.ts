@@ -50,17 +50,73 @@ const historicalAnalyticsCampaign = {
   revenue: 4560,
 };
 
+const campaignEvents = (
+  campaignId: string,
+  daily: readonly (readonly [string, number, number, number, number])[],
+) => daily.map(([date, visitors, verifiedCustomers, conversions, revenue]) => ({
+  campaignId,
+  conversions,
+  date,
+  revenue,
+  verifiedCustomers,
+  visitors,
+}));
+
 const campaignAttributionEvents = [
-  { campaignId: "early-august-portfolio", date: "2026-08-10", visitors: 1250, verifiedCustomers: 30, conversions: 25, revenue: 4560 },
-  { campaignId: "com-transfer-week", date: "2026-08-16", visitors: 338, verifiedCustomers: 8, conversions: 8, revenue: 2025 },
-  { campaignId: "com-transfer-week", date: "2026-08-18", visitors: 2504, verifiedCustomers: 60, conversions: 60, revenue: 7395 },
-  { campaignId: "new-member-welcome", date: "2026-08-16", visitors: 230, verifiedCustomers: 4, conversions: 4, revenue: 671 },
-  { campaignId: "new-member-welcome", date: "2026-08-18", visitors: 1706, verifiedCustomers: 30, conversions: 30, revenue: 2449 },
-  { campaignId: "investor-outreach", date: "2026-08-16", visitors: 134, verifiedCustomers: 2, conversions: 2, revenue: 656 },
-  { campaignId: "investor-outreach", date: "2026-08-18", visitors: 990, verifiedCustomers: 19, conversions: 19, revenue: 2394 },
-  { campaignId: "renewal-reminder", date: "2026-08-16", visitors: 275, verifiedCustomers: 5, conversions: 5, revenue: 608 },
-  { campaignId: "renewal-reminder", date: "2026-08-18", visitors: 2035, verifiedCustomers: 40, conversions: 40, revenue: 2222 },
-] as const;
+  ...campaignEvents("early-august-portfolio", [
+    ["2026-08-01", 45, 1, 1, 150],
+    ["2026-08-02", 50, 1, 1, 180],
+    ["2026-08-03", 55, 2, 1, 210],
+    ["2026-08-04", 70, 2, 2, 260],
+    ["2026-08-05", 55, 1, 1, 180],
+    ["2026-08-06", 80, 2, 2, 300],
+    ["2026-08-07", 90, 2, 2, 340],
+    ["2026-08-08", 60, 1, 1, 220],
+    ["2026-08-09", 75, 2, 2, 280],
+    ["2026-08-10", 85, 2, 2, 320],
+    ["2026-08-11", 90, 2, 2, 350],
+    ["2026-08-12", 105, 3, 2, 400],
+    ["2026-08-13", 80, 2, 1, 280],
+    ["2026-08-14", 130, 3, 2, 500],
+    ["2026-08-15", 180, 4, 3, 590],
+  ]),
+  ...campaignEvents("com-transfer-week", [
+    ["2026-08-16", 150, 4, 4, 900],
+    ["2026-08-17", 188, 4, 4, 1125],
+    ["2026-08-18", 250, 6, 6, 1350],
+    ["2026-08-19", 280, 7, 7, 1600],
+    ["2026-08-20", 200, 5, 5, 950],
+    ["2026-08-21", 330, 8, 8, 1700],
+    ["2026-08-22", 1444, 34, 34, 1795],
+  ]),
+  ...campaignEvents("new-member-welcome", [
+    ["2026-08-16", 100, 2, 2, 300],
+    ["2026-08-17", 130, 2, 2, 371],
+    ["2026-08-18", 170, 3, 3, 450],
+    ["2026-08-19", 190, 3, 3, 520],
+    ["2026-08-20", 135, 2, 2, 320],
+    ["2026-08-21", 225, 4, 4, 550],
+    ["2026-08-22", 986, 18, 18, 609],
+  ]),
+  ...campaignEvents("investor-outreach", [
+    ["2026-08-16", 60, 1, 1, 300],
+    ["2026-08-17", 74, 2, 2, 356],
+    ["2026-08-18", 100, 2, 2, 450],
+    ["2026-08-19", 110, 2, 2, 520],
+    ["2026-08-20", 80, 1, 1, 320],
+    ["2026-08-21", 130, 3, 3, 550],
+    ["2026-08-22", 570, 10, 10, 554],
+  ]),
+  ...campaignEvents("renewal-reminder", [
+    ["2026-08-16", 140, 2, 2, 300],
+    ["2026-08-17", 135, 3, 3, 308],
+    ["2026-08-18", 180, 4, 4, 420],
+    ["2026-08-19", 220, 5, 5, 480],
+    ["2026-08-20", 155, 4, 4, 300],
+    ["2026-08-21", 265, 5, 5, 500],
+    ["2026-08-22", 1215, 22, 22, 522],
+  ]),
+];
 
 export const localAdminSeed: AdminState = {
   overview: {

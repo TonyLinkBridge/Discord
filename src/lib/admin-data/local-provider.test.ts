@@ -210,6 +210,83 @@ describe("local admin data provider", () => {
     ]).size).toBe(3);
   });
 
+  test("returns genuine single-day campaign activity at historical and current boundaries", async () => {
+    const provider = createLocalAdminDataProvider();
+    const cases = [
+      ["2026-08-01", "early-august-portfolio", 45, 1, 150],
+      ["2026-08-08", "early-august-portfolio", 60, 1, 220],
+      ["2026-08-15", "early-august-portfolio", 180, 3, 590],
+      ["2026-08-16", "com-transfer-week", 150, 4, 900],
+      ["2026-08-19", "com-transfer-week", 280, 7, 1600],
+      ["2026-08-22", "com-transfer-week", 1444, 34, 1795],
+    ] as const;
+
+    for (const [date, campaignId, visitors, conversions, revenue] of cases) {
+      const snapshot = await provider.getAnalytics({ from: date, to: date });
+      const campaign = snapshot.campaignAttribution.find((item) => item.id === campaignId);
+      expect(campaign, `${campaignId} on ${date}`).toMatchObject({
+        conversions,
+        revenue,
+        visitors,
+      });
+      expect(campaign?.conversions).toBeLessThanOrEqual(snapshot.trend[0].registrations);
+      expect(campaign?.revenue).toBeLessThanOrEqual(snapshot.trend[0].revenue);
+    }
+
+    expect((await provider.getAnalytics({ from: "2026-08-15", to: "2026-08-15" }))
+      .campaignAttribution.some((campaign) => campaign.id === "com-transfer-week")).toBe(false);
+    expect((await provider.getAnalytics({ from: "2026-08-16", to: "2026-08-16" }))
+      .campaignAttribution.some((campaign) => campaign.id === "early-august-portfolio")).toBe(false);
+    expect((await provider.getAnalytics({ from: "2026-08-25", to: "2026-08-25" }))
+      .campaignAttribution.some((campaign) => campaign.id === "com-transfer-week")).toBe(false);
+
+    for (let day = 16; day <= 22; day += 1) {
+      const date = `2026-08-${day}`;
+      const snapshot = await provider.getAnalytics({ from: date, to: date });
+      const attributed = snapshot.campaignAttribution.reduce(
+        (totals, campaign) => ({
+          conversions: totals.conversions + campaign.conversions,
+          revenue: totals.revenue + campaign.revenue,
+          visitors: totals.visitors + campaign.visitors,
+        }),
+        { conversions: 0, revenue: 0, visitors: 0 },
+      );
+      expect(attributed.conversions).toBe(snapshot.trend[0].registrations);
+      expect(attributed.revenue).toBe(snapshot.trend[0].revenue);
+      expect(attributed.visitors).toBeLessThanOrEqual(snapshot.funnel[0].value);
+    }
+  });
+
+  test("reconciles the sum of daily campaign activity with the month-to-date range", async () => {
+    const provider = createLocalAdminDataProvider();
+    const rangeSnapshot = await provider.getAnalytics({
+      from: "2026-08-01",
+      to: "2026-08-22",
+    });
+    const dailyTotals = { conversions: 0, revenue: 0, visitors: 0 };
+
+    for (let day = 1; day <= 22; day += 1) {
+      const date = `2026-08-${String(day).padStart(2, "0")}`;
+      const snapshot = await provider.getAnalytics({ from: date, to: date });
+      for (const campaign of snapshot.campaignAttribution) {
+        dailyTotals.conversions += campaign.conversions;
+        dailyTotals.revenue += campaign.revenue;
+        dailyTotals.visitors += campaign.visitors;
+      }
+    }
+
+    const rangeTotals = rangeSnapshot.campaignAttribution.reduce(
+      (totals, campaign) => ({
+        conversions: totals.conversions + campaign.conversions,
+        revenue: totals.revenue + campaign.revenue,
+        visitors: totals.visitors + campaign.visitors,
+      }),
+      { conversions: 0, revenue: 0, visitors: 0 },
+    );
+    expect(dailyTotals).toEqual({ conversions: 193, revenue: 22980, visitors: 9462 });
+    expect(rangeTotals).toEqual(dailyTotals);
+  });
+
   test("throws a typed error when a requested entity does not exist", async () => {
     const provider = createLocalAdminDataProvider();
 

@@ -122,6 +122,7 @@ export function AnalyticsScreen() {
     (point) => point.date >= selectedRange.from && point.date <= selectedRange.to,
   ) ?? [];
   const maximumRegistrations = Math.max(...filteredTrend.map((point) => point.registrations), 1);
+  const trendNeedsOverflow = filteredTrend.length > 7;
 
   return (
     <main className={styles.screen}>
@@ -202,9 +203,9 @@ export function AnalyticsScreen() {
         <div
           aria-label="Conversion trend axis"
           className={styles.trendScroller}
-          data-overflow={filteredTrend.length > 7 ? "horizontal" : "fit"}
+          data-overflow={trendNeedsOverflow ? "horizontal" : "fit"}
           role="region"
-          tabIndex={filteredTrend.length > 7 ? 0 : undefined}
+          tabIndex={trendNeedsOverflow ? 0 : undefined}
         >
           <div
             aria-label={`Registration, transfer, and renewal trend for ${selectedRange.label}`}
@@ -212,8 +213,8 @@ export function AnalyticsScreen() {
             data-point-count={filteredTrend.length}
             role="img"
             style={{
-              gridTemplateColumns: `repeat(${filteredTrend.length}, minmax(44px, 1fr))`,
-              minWidth: filteredTrend.length > 7 ? `${filteredTrend.length * 52}px` : "100%",
+              gridTemplateColumns: `repeat(${filteredTrend.length}, minmax(${trendNeedsOverflow ? "44px" : "0"}, 1fr))`,
+              minWidth: trendNeedsOverflow ? `${filteredTrend.length * 52}px` : "100%",
             }}
           >
             {filteredTrend.map((point) => (
