@@ -43,6 +43,7 @@ export function LeadDetail({
   onClose: () => void;
 }>) {
   const provider = useAdminData();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const [action, setAction] = useState<LeadAction | "">(lead.nextAction ?? "");
@@ -66,14 +67,24 @@ export function LeadDetail({
     };
   }, [focusFallbackRef]);
 
+  useEffect(() => {
+    if (pending) closeButtonRef.current?.focus();
+  }, [pending]);
+
+  function requestClose() {
+    if (pending) {
+      setStatus("Wait for the current operation to finish before closing");
+      closeButtonRef.current?.focus();
+      return;
+    }
+
+    onClose();
+  }
+
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
-      if (pending) {
-        setStatus("Wait for the current operation to finish before closing");
-        return;
-      }
-      onClose();
+      requestClose();
       return;
     }
 
@@ -169,7 +180,14 @@ export function LeadDetail({
             <p>{lead.segment} · {lead.intent} intent</p>
             <h2 id="lead-detail-title">{lead.name}</h2>
           </div>
-          <button aria-label="Close lead details" className={styles.iconButton} disabled={pending !== null} onClick={onClose} type="button">
+          <button
+            aria-disabled={pending !== null}
+            aria-label="Close lead details"
+            className={styles.iconButton}
+            onClick={requestClose}
+            ref={closeButtonRef}
+            type="button"
+          >
             <X aria-hidden size={18} weight="bold" />
           </button>
         </header>

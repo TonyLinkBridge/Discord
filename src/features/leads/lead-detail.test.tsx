@@ -70,6 +70,7 @@ test("keeps the delayed mutation lock across dismissal attempts", async () => {
   };
   renderAdmin(<LeadsScreen />, { provider: delayedProvider });
 
+  const backgroundViewButton = await screen.findByRole("button", { name: "Table" });
   await user.click(await screen.findByRole("button", { name: "Open Alex Chen" }));
   await user.selectOptions(screen.getByLabelText("Next action"), "follow-up");
   const completeButton = screen.getByRole("button", { name: "Mark follow-up complete" });
@@ -79,11 +80,19 @@ test("keeps the delayed mutation lock across dismissal attempts", async () => {
 
   expect(completeButton).toBeDisabled();
   expect(createLinkButton).toBeDisabled();
-  expect(closeButton).toBeDisabled();
+  expect(closeButton).toHaveAttribute("aria-disabled", "true");
+  expect(closeButton).toHaveFocus();
   expect(screen.getByRole("status")).toHaveTextContent("Completing follow-up for Alex Chen");
-  await user.click(completeButton);
-  await user.click(closeButton);
+  await user.tab();
+  expect(closeButton).toHaveFocus();
+  expect(backgroundViewButton).not.toHaveFocus();
+  await user.tab({ shift: true });
+  expect(closeButton).toHaveFocus();
+  expect(backgroundViewButton).not.toHaveFocus();
   await user.keyboard("{Escape}");
+  expect(screen.getByRole("status")).toHaveTextContent("Wait for the current operation to finish before closing");
+  expect(closeButton).toHaveFocus();
+  await user.click(closeButton);
   expect(screen.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
   releaseCompletion();
 
@@ -95,6 +104,7 @@ test("keeps the delayed mutation lock across dismissal attempts", async () => {
     "lead.action.completed",
   ]);
   expect(closeButton).toBeEnabled();
+  expect(closeButton).toHaveAttribute("aria-disabled", "false");
   await user.click(closeButton);
   expect(screen.queryByRole("dialog", { name: "Alex Chen" })).not.toBeInTheDocument();
 });

@@ -197,7 +197,8 @@
   padding: 6px 10px;
 }
 
-.drawer button:disabled { cursor: not-allowed; opacity: .5; }
+.drawer button:disabled,
+.drawer button[aria-disabled="true"] { cursor: not-allowed; opacity: .5; }
 
 .iconButton {
   border-color: var(--border-subtle) !important;
