@@ -1,7 +1,7 @@
 import { expectTypeOf, test } from "vitest";
 
 import type { AdminDataProvider, ContentUpdatePrecondition } from "./provider";
-import type { CampaignInput, ContentPatch, TrackingInput } from "./types";
+import type { CampaignInput, ContentPatch, Member, MemberPatch, TrackingInput } from "./types";
 
 test("keeps caller-controlled actor IDs out of the browser provider contract", () => {
   expectTypeOf<Parameters<AdminDataProvider["completePriority"]>>()
@@ -16,4 +16,11 @@ test("keeps caller-controlled actor IDs out of the browser provider contract", (
       patch: ContentPatch,
       precondition?: ContentUpdatePrecondition,
     ]>();
+});
+
+test("keeps verification out of the generic member patch contract", () => {
+  expectTypeOf<MemberPatch>().toEqualTypeOf<Partial<Pick<
+    Member,
+    "segment" | "roles" | "customerStatus" | "vipSignal" | "notes"
+  >>>();
 });

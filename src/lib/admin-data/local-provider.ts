@@ -13,6 +13,7 @@ import type {
   Lead,
   LeadAction,
   Member,
+  MemberPatch,
   ModeledSemantics,
   Offer,
   Priority,
@@ -32,6 +33,33 @@ export class EntityNotFoundError extends Error {
 }
 
 const clone = <Value>(value: Value): Value => structuredClone(value);
+
+const normalizedLabel = (value: string) => value.trim().toLocaleLowerCase();
+
+const assertGenericMemberPatchCannotVerify = (patch: MemberPatch) => {
+  if (Object.prototype.hasOwnProperty.call(patch, "verified")) {
+    throw new Error("Only verifyMember may change member verification.");
+  }
+  if (patch.roles?.some((role) => normalizedLabel(role) === "verified")) {
+    throw new Error("Only verifyMember may assign the Verified role.");
+  }
+  if (patch.customerStatus && normalizedLabel(patch.customerStatus) === "verified customer") {
+    throw new Error("Only verifyMember may assign the verified customer status.");
+  }
+};
+
+const assertValidContentCtaPatch = (patch: { ctas?: unknown }) => {
+  if (!Object.prototype.hasOwnProperty.call(patch, "ctas")) return;
+
+  if (
+    !Array.isArray(patch.ctas)
+    || patch.ctas.length !== 1
+    || typeof patch.ctas[0] !== "string"
+    || !patch.ctas[0].trim()
+  ) {
+    throw new Error("Each content entry must have exactly one nonblank CTA.");
+  }
+};
 
 const requiredEntity = <Value>(
   entity: Value | undefined,
@@ -473,6 +501,7 @@ export function createLocalAdminDataProvider(
     },
 
     async updateMember(memberId, patch, actorId) {
+      assertGenericMemberPatchCannotVerify(patch);
       const member = memberById(memberId);
       const nextPatch = clone(patch);
       if (nextPatch.roles) {
@@ -548,6 +577,7 @@ export function createLocalAdminDataProvider(
     },
 
     async updateContentEntry(entryId, patch, actorId, precondition) {
+      assertValidContentCtaPatch(patch);
       const entry = contentById(entryId);
       if (precondition && entry.status !== precondition.expectedStatus) {
         throw new ContentUpdateConflictError(

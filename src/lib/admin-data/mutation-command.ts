@@ -17,6 +17,8 @@ const leadActionSchema = z.enum([
   "mark-converted",
 ]);
 const contentStatusSchema = z.enum(["draft", "scheduled", "published"]);
+const isReservedVerificationValue = (value: string, reserved: string) =>
+  value.toLocaleLowerCase() === reserved.toLocaleLowerCase();
 
 const trackingInputSchema = z.object({
   campaign: identifierSchema,
@@ -31,9 +33,28 @@ const memberPatchSchema = z.object({
   notes: z.array(longTextSchema).max(100).optional(),
   roles: z.array(textSchema).max(50).optional(),
   segment: textSchema.optional(),
-  verified: z.boolean().optional(),
   vipSignal: z.enum(["none", "candidate", "vip"]).optional(),
-}).strict().refine((patch) => Object.keys(patch).length > 0, "Member patch cannot be empty.");
+}).strict()
+  .refine((patch) => Object.keys(patch).length > 0, "Member patch cannot be empty.")
+  .superRefine((patch, context) => {
+    if (
+      patch.customerStatus
+      && isReservedVerificationValue(patch.customerStatus, "Verified customer")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Only verifyMember may assign the verified customer status.",
+        path: ["customerStatus"],
+      });
+    }
+    if (patch.roles?.some((role) => isReservedVerificationValue(role, "Verified"))) {
+      context.addIssue({
+        code: "custom",
+        message: "Only verifyMember may assign the Verified role.",
+        path: ["roles"],
+      });
+    }
+  });
 
 const campaignInputSchema = z.object({
   audience: textSchema,
@@ -60,7 +81,7 @@ const offerPatchSchema = z.object({
 
 const contentPatchSchema = z.object({
   conversionLevel: z.enum(["education", "soft", "direct"]).optional(),
-  ctas: z.array(textSchema).max(20).optional(),
+  ctas: z.array(textSchema).length(1).optional(),
   format: z.enum([
     "market-pulse",
     "domain-101",

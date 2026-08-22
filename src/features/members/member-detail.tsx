@@ -103,7 +103,7 @@ export function MemberDetail({
     try {
       const updated = await provider.updateMember(
         member.id,
-        { roles: [...member.roles, role] },
+        { roles: [role] },
       );
       onChange(updated);
       setStatus(`${role} role assigned`);

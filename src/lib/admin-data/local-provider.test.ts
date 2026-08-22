@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { EntityNotFoundError, createLocalAdminDataProvider } from "./local-provider";
 import { ContentUpdateConflictError } from "./provider";
 import { localAdminSeed } from "./seed";
+import type { MemberPatch } from "./types";
 
 describe("local admin data provider", () => {
   test("returns the approved overview totals for Aug 16–22", async () => {
@@ -110,12 +111,12 @@ describe("local admin data provider", () => {
 
     await provider.updateLeadAction("alex-chen", "mark-converted", "local-ray");
     const member = await provider.updateMember(
-      "alex-chen",
-      { verified: true, notes: ["Verified after registration"] },
+      "domainnomad",
+      { notes: ["Registration reviewed"] },
       "local-ray",
     );
 
-    expect(member).toMatchObject({ verified: true, notes: ["Verified after registration"] });
+    expect(member).toMatchObject({ verified: false, notes: ["Registration reviewed"] });
     expect((await provider.getState()).leads.find((lead) => lead.id === "alex-chen")).toMatchObject({
       stage: "converted",
       nextAction: "mark-converted",
@@ -124,6 +125,40 @@ describe("local admin data provider", () => {
       "member.updated",
       "lead.action.updated",
     ]);
+  });
+
+  test.each([
+    { label: "verified flag", patch: { verified: true } },
+    { label: "Verified role", patch: { roles: ["Verified"] } },
+    { label: "verified customer status", patch: { customerStatus: "Verified customer" } },
+  ])("rejects a generic member patch that bypasses verification via $label", async ({ patch }) => {
+    const provider = createLocalAdminDataProvider();
+    const before = await provider.getMember("domainnomad");
+
+    await expect(
+      provider.updateMember(
+        "domainnomad",
+        patch as unknown as MemberPatch,
+        "untrusted-operator",
+      ),
+    ).rejects.toThrow();
+
+    expect(await provider.getMember("domainnomad")).toEqual(before);
+    expect(await provider.getActivity()).toEqual([]);
+  });
+
+  test("allows normal role edits on a verified member without resubmitting the reserved role", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const member = await provider.updateMember("alex-chen", { roles: ["VIP"] }, "role-editor");
+
+    expect(member.roles).toEqual(["Investor", "Verified", "VIP"]);
+    expect(member).toMatchObject({ verified: true, customerStatus: "Verified customer" });
+    expect((await provider.getActivity())[0]).toMatchObject({
+      actorId: "role-editor",
+      entityId: "alex-chen",
+      action: "member.updated",
+    });
   });
 
   test("verifies a member atomically once while preserving concurrent role additions", async () => {
@@ -629,6 +664,24 @@ describe("local admin data provider", () => {
       entityId: "market-pulse-aug-22",
       action: "content.updated",
     });
+  });
+
+  test.each([
+    { ctas: [] },
+    { ctas: ["Read", "Transfer"] },
+    { ctas: ["   "] },
+  ])("rejects a content patch with invalid CTA cardinality: $ctas", async ({ ctas }) => {
+    const provider = createLocalAdminDataProvider();
+    const before = await provider.getContentEntry("market-pulse-aug-22");
+
+    await expect(provider.updateContentEntry(
+      "market-pulse-aug-22",
+      { ctas },
+      "content-editor",
+    )).rejects.toThrow("exactly one nonblank CTA");
+
+    expect(await provider.getContentEntry("market-pulse-aug-22")).toEqual(before);
+    expect(await provider.getActivity()).toEqual([]);
   });
 
   test.each(["published", "draft"] as const)(

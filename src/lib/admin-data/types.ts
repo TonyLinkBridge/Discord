@@ -72,7 +72,7 @@ export interface Member {
 export type MemberPatch = Partial<
   Pick<
     Member,
-    "verified" | "segment" | "roles" | "customerStatus" | "vipSignal" | "notes"
+    "segment" | "roles" | "customerStatus" | "vipSignal" | "notes"
   >
 >;
 export type MemberAction = "open-ticket" | "review-vip";

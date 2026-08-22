@@ -107,4 +107,48 @@ describe("adminMutationCommandSchema", () => {
   ])("rejects the invalid $kind command", (command) => {
     expect(() => adminMutationCommandSchema.parse(command)).toThrow();
   });
+
+  test.each([
+    { label: "verified flag", patch: { verified: true } },
+    { label: "Verified role", patch: { roles: ["Verified"] } },
+    { label: "verified customer status", patch: { customerStatus: "Verified customer" } },
+  ])("rejects a generic member patch that manufactures verification via $label", ({ patch }) => {
+    expect(() => adminMutationCommandSchema.parse({
+      kind: "update-member",
+      memberId: "domainnomad",
+      patch,
+    })).toThrow();
+  });
+
+  test("accepts a normal member patch without a verification transition", () => {
+    const command = {
+      kind: "update-member",
+      memberId: "alex-chen",
+      patch: { notes: ["Follow up next week"], roles: ["VIP"] },
+    };
+
+    expect(adminMutationCommandSchema.parse(command)).toEqual(command);
+  });
+
+  test.each([
+    { ctas: [] },
+    { ctas: ["Read", "Transfer"] },
+    { ctas: ["   "] },
+  ])("rejects a content CTA patch that is not exactly one nonblank CTA: $ctas", ({ ctas }) => {
+    expect(() => adminMutationCommandSchema.parse({
+      kind: "update-content-entry",
+      entryId: "market-pulse-aug-22",
+      patch: { ctas },
+    })).toThrow();
+  });
+
+  test("accepts a content patch with exactly one nonblank CTA", () => {
+    const command = {
+      kind: "update-content-entry",
+      entryId: "market-pulse-aug-22",
+      patch: { ctas: ["Open the transfer guide"] },
+    };
+
+    expect(adminMutationCommandSchema.parse(command)).toEqual(command);
+  });
 });
