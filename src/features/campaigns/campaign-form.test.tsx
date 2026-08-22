@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { vi } from "vitest";
@@ -14,7 +14,7 @@ test("focuses a requested campaign in the canonical campaign workflow", async ()
   renderAdmin(<CampaignsScreen initialSelectedCampaignId="com-transfer-week" />);
 
   const campaignRow = await screen.findByRole("row", { name: /.com Transfer Week/i });
-  expect(campaignRow).toHaveFocus();
+  await waitFor(() => expect(campaignRow).toHaveFocus());
 });
 
 test("retains campaign selection while consuming and repeating a query activation", async () => {
