@@ -7,4 +7,4 @@ playwright-report/
 test-results/
 .env*
 !.env.example
-
+*.tsbuildinfo
