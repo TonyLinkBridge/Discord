@@ -6,7 +6,8 @@ import { MembersScreen } from "./members-screen";
 test("filters unverified VIP signals and manually verifies one member", async () => {
   const user = userEvent.setup();
   const { provider } = renderAdmin(<MembersScreen />);
-  await user.selectOptions(await screen.findByLabelText("Verification"), "unverified");
+  const verificationFilter = await screen.findByLabelText("Verification");
+  await user.selectOptions(verificationFilter, "unverified");
   await user.selectOptions(screen.getByLabelText("VIP signal"), "candidate");
 
   expect(await screen.findByText("DomainNomad")).toBeVisible();
@@ -26,6 +27,11 @@ test("filters unverified VIP signals and manually verifies one member", async ()
     actorId: "local-ray",
     entityId: "domainnomad",
   });
+  expect(screen.queryByRole("button", { name: "Open DomainNomad" })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Close member details" }));
+
+  expect(verificationFilter).toHaveFocus();
 });
 
 test("keeps the Verified role exclusive to the complete verification transition", async () => {

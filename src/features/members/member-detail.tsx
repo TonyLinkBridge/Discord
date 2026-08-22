@@ -9,7 +9,7 @@ import {
   UserCircleCheck,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Member } from "@/lib/admin-data/types";
 import styles from "./members-screen.module.css";
@@ -25,10 +25,12 @@ const focusableSelector = [
 ].join(",");
 
 export function MemberDetail({
+  focusFallbackRef,
   member,
   onChange,
   onClose,
 }: Readonly<{
+  focusFallbackRef: RefObject<HTMLElement | null>;
   member: Member;
   onChange: (member: Member) => void;
   onClose: () => void;
@@ -42,13 +44,20 @@ export function MemberDetail({
   const [trackedUrl, setTrackedUrl] = useState("");
 
   useEffect(() => {
+    const focusFallback = focusFallbackRef.current;
     openerRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
     dialogRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus();
 
-    return () => openerRef.current?.focus();
-  }, []);
+    return () => {
+      if (openerRef.current?.isConnected) {
+        openerRef.current.focus();
+      } else {
+        focusFallback?.focus();
+      }
+    };
+  }, [focusFallbackRef]);
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Escape") {

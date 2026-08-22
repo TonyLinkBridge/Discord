@@ -1,7 +1,7 @@
 "use client";
 
 import { MagnifyingGlass, User } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Member } from "@/lib/admin-data/types";
@@ -12,6 +12,7 @@ const normalize = (value: string) => value.toLocaleLowerCase().replaceAll(" ", "
 
 export function MembersScreen() {
   const provider = useAdminData();
+  const verificationFilterRef = useRef<HTMLSelectElement>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,7 +93,7 @@ export function MembersScreen() {
 
         <div aria-label="Member filters" className={styles.filters} role="group">
           <label>Verification
-            <select onChange={(event) => setVerification(event.target.value)} value={verification}>
+            <select onChange={(event) => setVerification(event.target.value)} ref={verificationFilterRef} value={verification}>
               <option value="all">All</option><option value="verified">Verified</option><option value="unverified">Unverified</option>
             </select>
           </label>
@@ -124,7 +125,12 @@ export function MembersScreen() {
       </section>
 
       {selectedMember ? (
-        <MemberDetail member={selectedMember} onChange={replaceMember} onClose={() => setSelectedId(null)} />
+        <MemberDetail
+          focusFallbackRef={verificationFilterRef}
+          member={selectedMember}
+          onChange={replaceMember}
+          onClose={() => setSelectedId(null)}
+        />
       ) : null}
     </main>
   );
