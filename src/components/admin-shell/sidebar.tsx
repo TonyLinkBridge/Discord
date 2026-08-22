@@ -1,13 +1,21 @@
 "use client";
 
-import { CaretDown, CheckCircle } from "@phosphor-icons/react";
+import { Buildings, CaretDown, CheckCircle } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "./nav-items";
+import { useAdminData } from "@/lib/admin-data/context";
 import styles from "./admin-shell.module.css";
 
 export function Sidebar() {
+  const provider = useAdminData();
   const pathname = usePathname() ?? "/";
+  const [workspace, setWorkspace] = useState("RayName");
+
+  useEffect(() => {
+    void provider.getWorkspaceSettings().then((settings) => setWorkspace(settings.workspace.name));
+  }, [provider]);
 
   return (
     <aside className={styles.sidebar}>
@@ -38,8 +46,18 @@ export function Sidebar() {
         })}
       </nav>
 
+      <div className={styles.workspace} aria-label={`Workspace: ${workspace}`} title={workspace}>
+        <Buildings aria-hidden size={17} weight="regular" />
+        <span className={styles.workspaceName}>{workspace}</span>
+      </div>
+
       <div className={styles.sidebarFooter}>
-        <div className={styles.healthCard}>
+        <div
+          aria-label="System status: All systems operational"
+          className={styles.healthCard}
+          role="status"
+          title="All systems operational"
+        >
           <span className={styles.healthStatus}><CheckCircle aria-hidden size={14} weight="fill" /> All systems operational</span>
           <span className={styles.railOnly} aria-hidden><CheckCircle size={18} weight="fill" /></span>
           <div className={styles.healthDetails}>

@@ -26,7 +26,7 @@ export const navItems: NavItem[] = [
   { href: "/campaigns", icon: Megaphone, label: "Campaigns" },
   { href: "/offers", icon: Tag, label: "Offers" },
   { href: "/content", icon: Package, label: "Content" },
-  { href: "/automations", icon: Robot, label: "Bot & Automations" },
+  { href: "/bot-automations", icon: Robot, label: "Bot & Automations" },
   { href: "/analytics", icon: ChartBar, label: "Analytics" },
   { href: "/settings", icon: GearSix, label: "Settings" },
 ];

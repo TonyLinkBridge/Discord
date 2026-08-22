@@ -56,6 +56,9 @@
 .navLink:hover { background: var(--bg-subtle); }
 .navLinkActive { background: var(--accent-muted); border-left-color: var(--accent); color: var(--accent); }
 
+.workspace { align-items: center; color: var(--text-secondary); display: flex; font-size: 11px; gap: 8px; margin: 18px 11px 0; min-width: 0; }
+.workspaceName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .sidebarFooter { margin-top: auto; }
 .healthCard { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px; padding: 13px 14px; }
 .healthStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 11px; gap: 7px; }
@@ -84,6 +87,12 @@
 .systemStatus i { background: var(--positive); border-radius: 50%; height: 9px; width: 9px; }
 .iconButton { justify-content: center; height: 40px; position: relative; width: 40px; }
 .notificationCount { align-items: center; background: var(--accent); border: 2px solid var(--bg-canvas); border-radius: 50%; color: #fff; display: flex; font-size: 9px; font-weight: 700; height: 17px; justify-content: center; position: absolute; right: -5px; top: -5px; width: 17px; }
+.commandOperator { align-items: center; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; display: flex; font: inherit; gap: 7px; padding: 0; }
+.commandOperatorName { font-size: 13px; font-weight: 600; }
+.operatorPopover { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); box-shadow: var(--shadow-panel); min-width: 148px; padding: 4px; }
+.operatorMenu { outline: 0; }
+.operatorMenu [role="menuitem"] { border-radius: 4px; color: var(--text-primary); cursor: pointer; font-size: 13px; outline: 0; padding: 8px 10px; }
+.operatorMenu [role="menuitem"][data-focused] { background: var(--accent-muted); }
 
 .routeContent { padding: 0 22px 30px; }
 .searchBackdrop { align-items: flex-start; background: rgb(7 16 24 / 38%); display: flex; inset: 0; justify-content: center; padding-top: 14vh; position: fixed; z-index: 10; }
@@ -108,11 +117,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .shell { grid-template-columns: 64px minmax(0, 1fr); }
   .sidebar { align-items: center; padding: 24px 8px 12px; }
   .brand { margin-left: 0; margin-right: 0; }
-  .brandName, .navLabel, .healthStatus, .healthDetails, .operatorDetails, .operatorCaret { display: none; }
+  .brandName, .navLabel, .workspaceName, .healthStatus, .healthDetails, .operatorDetails, .operatorCaret { display: none; }
   .navigation { width: 100%; }
   .navLink { border-left-width: 2px; justify-content: center; padding: 0; }
   .railOnly { display: block; }
   .healthCard { border: 0; padding: 7px; }
+  .workspace { justify-content: center; margin: 18px 0 0; }
   .operator { justify-content: center; }
   .commandBar h1 { margin-right: 4px; }
   .dateControl span, .systemStatus { display: none; }

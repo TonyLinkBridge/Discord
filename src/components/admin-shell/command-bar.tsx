@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, CalendarBlank, CaretDown, MagnifyingGlass } from "@phosphor-icons/react";
+import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { ThemeSelector } from "@/components/theme/theme-selector";
 import styles from "./admin-shell.module.css";
 
@@ -24,6 +25,19 @@ export function CommandBar({ onSearch, title }: Readonly<{ onSearch: () => void;
         <Bell aria-hidden size={21} weight="regular" />
         <span className={styles.notificationCount}>7</span>
       </button>
+      <MenuTrigger>
+        <Button className={styles.commandOperator} aria-label="Operator menu">
+          <span className={styles.avatar} aria-hidden>R</span>
+          <span className={styles.commandOperatorName}>Ray</span>
+          <CaretDown aria-hidden size={14} />
+        </Button>
+        <Popover className={styles.operatorPopover} placement="bottom end" offset={8}>
+          <Menu aria-label="Operator menu" className={styles.operatorMenu}>
+            <MenuItem id="account">Account settings</MenuItem>
+            <MenuItem id="sign-out">Sign out</MenuItem>
+          </Menu>
+        </Popover>
+      </MenuTrigger>
     </header>
   );
 }

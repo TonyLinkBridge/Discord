@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { CommandBar } from "./command-bar";
 import { GlobalSearch } from "./global-search";
+import { navItems } from "./nav-items";
 import { Sidebar } from "./sidebar";
 import styles from "./admin-shell.module.css";
 
-export function AdminShell({ children, title }: Readonly<{ children: React.ReactNode; title: string }>) {
+export function AdminShell({ children, title }: Readonly<{ children: React.ReactNode; title?: string }>) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const pathname = usePathname() ?? "/";
+  const derivedTitle = navItems.find((item) =>
+    item.href === "/" ? pathname === "/" : pathname.startsWith(item.href),
+  )?.label ?? "Overview";
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -28,7 +34,7 @@ export function AdminShell({ children, title }: Readonly<{ children: React.React
     <div className={styles.shell}>
       <Sidebar />
       <div className={styles.contentColumn}>
-        <CommandBar onSearch={() => setSearchOpen(true)} title={title} />
+        <CommandBar onSearch={() => setSearchOpen(true)} title={title ?? derivedTitle} />
         <div className={styles.routeContent}>{children}</div>
       </div>
       {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
