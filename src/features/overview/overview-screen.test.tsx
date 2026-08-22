@@ -48,6 +48,16 @@ test.each(["light", "dark"])(
     expect(screen.getByText("8,742")).toBeVisible();
     expect(screen.getByText("Alex Chen")).toBeVisible();
     expect(screen.getByText(".com Transfer Week")).toBeVisible();
+    expect(screen.getAllByText("Very High")).toHaveLength(2);
+
+    for (const destination of [
+      "View all priorities",
+      "View full funnel",
+      "View all leads",
+      "View all campaigns",
+    ]) {
+      expect(screen.getByRole("link", { name: destination })).toBeVisible();
+    }
 
     expect(
       [...container.querySelectorAll("h2")].map((heading) => heading.textContent),

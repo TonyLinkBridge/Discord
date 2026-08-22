@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  ArrowRight,
   ArrowsClockwise,
   ChatCircleDots,
   CheckCircle,
+  Fire,
   Tag,
   UserCircleCheck,
 } from "@phosphor-icons/react";
@@ -42,7 +44,9 @@ function PrioritySummary({ priorities }: Readonly<{ priorities: Priority[] }>) {
           </div>
         ))}
       </div>
-      <span className={styles.panelFooter}>View all priorities&nbsp; →</span>
+      <a className={styles.panelFooter} href="/priorities">
+        View all priorities <ArrowRight aria-hidden size={13} weight="bold" />
+      </a>
     </section>
   );
 }
@@ -67,7 +71,12 @@ function HighIntentLeads({ leads }: Readonly<{ leads: Lead[] }>) {
               <tr key={lead.id}>
                 <td><span className={styles.leadName}><i />{lead.name}</span></td>
                 <td>{lead.segment}</td>
-                <td><span className={lead.intent === "Very High" ? styles.intentCritical : styles.intentHigh}>● {lead.intent}</span></td>
+                <td>
+                  <span className={lead.intent === "Very High" ? styles.intentCritical : styles.intentHigh}>
+                    <Fire aria-hidden size={12} weight="fill" />
+                    {lead.intent}
+                  </span>
+                </td>
                 <td>{lead.lastActivity}</td>
                 <td><span className={styles.actionLabel}>{actionLabels[lead.nextAction]}</span></td>
               </tr>
@@ -75,7 +84,9 @@ function HighIntentLeads({ leads }: Readonly<{ leads: Lead[] }>) {
           </tbody>
         </table>
       </div>
-      <span className={styles.panelFooter}>View all leads&nbsp; →</span>
+      <a className={styles.panelFooter} href="/leads">
+        View all leads <ArrowRight aria-hidden size={13} weight="bold" />
+      </a>
     </section>
   );
 }

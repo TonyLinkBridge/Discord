@@ -1,3 +1,4 @@
+import { ArrowRight } from "@phosphor-icons/react";
 import type { Campaign } from "@/lib/admin-data/types";
 import styles from "./overview-screen.module.css";
 
@@ -61,7 +62,9 @@ export function CampaignPerformance({ campaigns }: Readonly<{ campaigns: Campaig
           </tfoot>
         </table>
       </div>
-      <span className={styles.panelFooter}>View all campaigns&nbsp; →</span>
+      <a className={styles.panelFooter} href="/campaigns">
+        View all campaigns <ArrowRight aria-hidden size={13} weight="bold" />
+      </a>
     </section>
   );
 }

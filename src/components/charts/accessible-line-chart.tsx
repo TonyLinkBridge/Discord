@@ -4,6 +4,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,13 +17,47 @@ export interface AccessibleLinePoint {
   value: number;
 }
 
-const dayLabel = (date: string) =>
-  new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-    weekday: "short",
-  }).format(new Date(`${date}T00:00:00Z`));
+const dateParts = (date: string) => {
+  const value = new Date(`${date}T00:00:00Z`);
+  return {
+    date: new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    }).format(value),
+    weekday: new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      weekday: "short",
+    }).format(value),
+  };
+};
+
+const dayLabel = (date: string) => {
+  const parts = dateParts(date);
+  return `${parts.weekday}, ${parts.date}`;
+};
+
+function DateAxisTick({
+  payload,
+  x = 0,
+  y = 0,
+}: Readonly<{
+  payload?: { value: string };
+  x?: number;
+  y?: number;
+}>) {
+  if (!payload) return null;
+  const parts = dateParts(payload.value);
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text fill="var(--text-secondary)" fontSize={10} textAnchor="middle">
+        <tspan x="0" dy="1em">{parts.date}</tspan>
+        <tspan x="0" dy="1.45em">{parts.weekday}</tspan>
+      </text>
+    </g>
+  );
+}
 
 export function AccessibleLineChart({
   data,
@@ -38,7 +73,7 @@ export function AccessibleLineChart({
     <>
       <div aria-label={`${label} line chart for Aug 16–22, 2026`} className={styles.chartRegion} role="img">
         <ResponsiveContainer height="100%" width="100%">
-          <AreaChart data={data} margin={{ bottom: 4, left: -22, right: 12, top: 18 }}>
+          <AreaChart data={data} margin={{ bottom: 0, left: -22, right: 12, top: 22 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.34} />
@@ -49,15 +84,16 @@ export function AccessibleLineChart({
             <XAxis
               axisLine={{ stroke: "var(--border-subtle)" }}
               dataKey="date"
-              tick={{ fill: "var(--text-secondary)", fontSize: 10 }}
-              tickFormatter={dayLabel}
+              height={48}
+              tick={<DateAxisTick />}
               tickLine={false}
             />
             <YAxis
               axisLine={false}
-              domain={[0, "dataMax + 16"]}
+              domain={[0, 100]}
               tick={{ fill: "var(--text-secondary)", fontSize: 10 }}
               tickLine={false}
+              ticks={[0, 20, 40, 60, 80, 100]}
             />
             <Tooltip
               contentStyle={{
@@ -78,7 +114,15 @@ export function AccessibleLineChart({
               stroke="var(--chart-1)"
               strokeWidth={2}
               type="linear"
-            />
+            >
+              <LabelList
+                dataKey="value"
+                fill="var(--text-primary)"
+                fontSize={11}
+                offset={9}
+                position="top"
+              />
+            </Area>
           </AreaChart>
         </ResponsiveContainer>
       </div>

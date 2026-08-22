@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "@phosphor-icons/react";
+import { ArrowDown, ArrowRight, ArrowUp } from "@phosphor-icons/react";
 import type { FunnelStep } from "@/lib/admin-data/types";
 import styles from "./overview-screen.module.css";
 
@@ -31,7 +31,9 @@ export function ConversionFunnel({ funnel }: Readonly<{ funnel: FunnelStep[] }>)
           );
         })}
       </div>
-      <span className={styles.panelFooter}>View full funnel&nbsp; →</span>
+      <a className={styles.panelFooter} href="/analytics">
+        View full funnel <ArrowRight aria-hidden size={13} weight="bold" />
+      </a>
     </section>
   );
 }
