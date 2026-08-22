@@ -55,10 +55,15 @@
 
 .item[data-selected] {
   background: var(--accent-muted);
-  color: var(--accent);
+  color: var(--text-primary);
 }
 
-.item[data-focused],
+.item[data-focused] {
+  background: var(--bg-subtle);
+  outline: 2px solid var(--text-primary);
+  outline-offset: -2px;
+}
+
 .item[data-hovered] {
   background: var(--bg-subtle);
 }
