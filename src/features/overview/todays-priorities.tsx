@@ -29,6 +29,7 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
   const [priorities, setPriorities] = useState<Priority[]>(initialPriorities ?? []);
   const [status, setStatus] = useState("");
   const prioritySectionRef = useRef<HTMLElement>(null);
+  const priorityFocusIndex = useRef<number | null>(null);
   const restorePriorityFocus = useRef(false);
 
   useEffect(() => {
@@ -44,10 +45,13 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
   useEffect(() => {
     if (!restorePriorityFocus.current) return;
 
-    const nextAction = prioritySectionRef.current?.querySelector<HTMLButtonElement>(
+    const nextActions = prioritySectionRef.current?.querySelectorAll<HTMLButtonElement>(
       '[data-action-menu-trigger="true"]',
     );
+    const index = priorityFocusIndex.current ?? 0;
+    const nextAction = nextActions?.[index] ?? nextActions?.[index - 1];
     (nextAction ?? prioritySectionRef.current)?.focus();
+    priorityFocusIndex.current = null;
     restorePriorityFocus.current = false;
   }, [priorities]);
 
@@ -61,7 +65,8 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
     }
   }
 
-  function focusNextPriorityAction() {
+  function focusPriorityAfterCompletion(priorityId: string) {
+    priorityFocusIndex.current = priorities.findIndex((priority) => priority.id === priorityId);
     restorePriorityFocus.current = true;
   }
 
@@ -79,7 +84,7 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
             <ActionMenu
               buttonLabel={`${priority.actionLabel} ${priority.title}`}
               items={[{ label: "Mark complete", onSelect: () => completePriority(priority) }]}
-              onActionComplete={focusNextPriorityAction}
+              onActionComplete={() => focusPriorityAfterCompletion(priority.id)}
             />
           </div>
         ))}

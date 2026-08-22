@@ -1,5 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { localAdminSeed } from "@/lib/admin-data/seed";
 import { renderAdmin } from "@/test/render";
 import { TodaysPriorities } from "./todays-priorities";
 
@@ -37,4 +39,26 @@ test("supports completing a priority with keyboard menu navigation", async () =>
 
   expect(screen.queryByText("Verify 12 new members")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Open leads Follow up with 7 high-intent leads" })).toHaveFocus();
+});
+
+test("moves focus to the next priority after completing a middle row", async () => {
+  const user = userEvent.setup();
+  renderAdmin(<TodaysPriorities />);
+
+  await user.click(await screen.findByRole("button", { name: "Open leads Follow up with 7 high-intent leads" }));
+  await user.click(screen.getByRole("menuitem", { name: "Mark complete" }));
+
+  expect(screen.getByRole("button", { name: "View offer Promote .com transfer offer" })).toHaveFocus();
+});
+
+test("moves focus to the priority section after completing the final row", async () => {
+  const user = userEvent.setup();
+  const seed = structuredClone(localAdminSeed);
+  seed.overview.priorities = [seed.overview.priorities[0]];
+  renderAdmin(<TodaysPriorities />, { provider: createLocalAdminDataProvider(seed) });
+
+  await user.click(await screen.findByRole("button", { name: "Review Verify 12 new members" }));
+  await user.click(screen.getByRole("menuitem", { name: "Mark complete" }));
+
+  expect(screen.getByRole("heading", { name: "Today's priorities" }).closest("section")).toHaveFocus();
 });
