@@ -1,0 +1,129 @@
+.shell {
+  display: grid;
+  grid-template-columns: 204px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 24px 12px 12px;
+}
+
+.brand {
+  align-items: center;
+  color: var(--text-primary);
+  display: flex;
+  font-size: 19px;
+  font-weight: 650;
+  gap: 9px;
+  margin: 0 4px 28px;
+  text-decoration: none;
+}
+
+.brandMark,
+.avatar {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 10px;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 800;
+  height: 27px;
+  justify-content: center;
+  width: 27px;
+}
+
+.brandName strong { color: var(--accent); font-weight: 500; }
+.navigation { display: grid; gap: 5px; }
+
+.navLink {
+  align-items: center;
+  border-left: 3px solid transparent;
+  border-radius: 0 6px 6px 0;
+  color: var(--text-primary);
+  display: flex;
+  font-size: 14px;
+  gap: 15px;
+  min-height: 47px;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+.navLink:hover { background: var(--bg-subtle); }
+.navLinkActive { background: var(--accent-muted); border-left-color: var(--accent); color: var(--accent); }
+
+.sidebarFooter { margin-top: auto; }
+.healthCard { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px; padding: 13px 14px; }
+.healthStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 11px; gap: 7px; }
+.healthStatus svg, .railOnly svg { color: var(--positive); }
+.healthDetails { border-top: 1px solid var(--border-subtle); display: grid; gap: 6px; margin-top: 12px; padding-top: 12px; }
+.healthDetails strong { color: var(--text-primary); font-size: 12px; font-weight: 500; }
+.railOnly { display: none; }
+
+.operator { align-items: center; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; display: flex; gap: 8px; margin: 13px 3px 0; padding: 6px 0; text-align: left; width: 100%; }
+.avatar { border-radius: 50%; height: 30px; width: 30px; }
+.operatorDetails { display: grid; font-size: 12px; gap: 1px; }
+.operatorDetails strong { font-weight: 600; }
+.operatorDetails small { color: var(--text-secondary); font-size: 10px; }
+.operatorCaret { margin-left: auto; }
+
+.contentColumn { min-width: 0; }
+.commandBar { align-items: center; background: var(--bg-canvas); display: flex; gap: 12px; min-height: 76px; padding: 16px 22px; }
+.commandBar h1 { font-size: 24px; letter-spacing: -0.03em; margin: 0 30px 0 0; white-space: nowrap; }
+.searchTrigger, .dateControl, .iconButton { align-items: center; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; display: flex; font: inherit; }
+.searchTrigger { flex: 1; gap: 12px; height: 40px; max-width: 450px; padding: 0 11px; text-align: left; }
+.searchTrigger span { flex: 1; font-size: 13px; }
+.keyHint { background: var(--bg-subtle); border-radius: 4px; color: var(--text-secondary); font-family: inherit; font-size: 11px; padding: 3px 5px; }
+.dateControl { color: var(--text-primary); gap: 10px; height: 40px; padding: 0 12px; white-space: nowrap; }
+.dateControl span { font-size: 13px; }
+.systemStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 12px; gap: 7px; white-space: nowrap; }
+.systemStatus i { background: var(--positive); border-radius: 50%; height: 9px; width: 9px; }
+.iconButton { justify-content: center; height: 40px; position: relative; width: 40px; }
+.notificationCount { align-items: center; background: var(--accent); border: 2px solid var(--bg-canvas); border-radius: 50%; color: #fff; display: flex; font-size: 9px; font-weight: 700; height: 17px; justify-content: center; position: absolute; right: -5px; top: -5px; width: 17px; }
+
+.routeContent { padding: 0 22px 30px; }
+.searchBackdrop { align-items: flex-start; background: rgb(7 16 24 / 38%); display: flex; inset: 0; justify-content: center; padding-top: 14vh; position: fixed; z-index: 10; }
+.searchDialog { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: 0 20px 60px rgb(0 0 0 / 24%); overflow: hidden; width: min(620px, calc(100vw - 40px)); }
+.searchInput { align-items: center; border-bottom: 1px solid var(--border-subtle); display: flex; gap: 12px; padding: 15px; }
+.searchInput input { background: transparent; border: 0; color: var(--text-primary); flex: 1; font: inherit; outline: 0; }
+.searchInput input::placeholder { color: var(--text-secondary); }
+.results { max-height: 450px; overflow-y: auto; padding: 8px; }
+.resultGroup { padding: 5px 0; }
+.resultGroup > p { color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .06em; margin: 6px 9px; text-transform: uppercase; }
+.result { align-items: center; border-radius: var(--radius-sm); color: var(--text-primary); display: flex; justify-content: space-between; padding: 10px; text-decoration: none; }
+.result:hover, .resultActive { background: var(--accent-muted); }
+.result span { display: grid; gap: 3px; }
+.result strong { font-size: 14px; font-weight: 600; }
+.result small { color: var(--text-secondary); font-size: 12px; }
+.result em { color: var(--accent); font-size: 12px; font-style: normal; }
+.emptyResults { color: var(--text-secondary); font-size: 13px; margin: 0; padding: 24px 10px; text-align: center; }
+
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 1179px) {
+  .shell { grid-template-columns: 64px minmax(0, 1fr); }
+  .sidebar { align-items: center; padding: 24px 8px 12px; }
+  .brand { margin-left: 0; margin-right: 0; }
+  .brandName, .navLabel, .healthStatus, .healthDetails, .operatorDetails, .operatorCaret { display: none; }
+  .navigation { width: 100%; }
+  .navLink { border-left-width: 2px; justify-content: center; padding: 0; }
+  .railOnly { display: block; }
+  .healthCard { border: 0; padding: 7px; }
+  .operator { justify-content: center; }
+  .commandBar h1 { margin-right: 4px; }
+  .dateControl span, .systemStatus { display: none; }
+}
+
+@media (max-width: 760px) {
+  .commandBar { gap: 8px; padding: 14px; }
+  .commandBar h1 { font-size: 20px; }
+  .searchTrigger span, .searchTrigger kbd { display: none; }
+  .searchTrigger { flex: 0 0 40px; justify-content: center; padding: 0; }
+  .dateControl { width: 40px; justify-content: center; padding: 0; }
+  .dateControl svg:last-child { display: none; }
+  .routeContent { padding: 0 14px 24px; }
+}
