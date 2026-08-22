@@ -138,6 +138,46 @@ test("rechecks eligibility before writing a slot that became published", async (
   expect((await provider.getActivity()).map((event) => event.actorId)).toEqual(["publisher"]);
 });
 
+test.each(["published", "draft"] as const)(
+  "preserves a post that becomes %s during the conditional update",
+  async (status) => {
+    const user = userEvent.setup();
+    const baseProvider = createLocalAdminDataProvider();
+    const provider: AdminDataProvider = {
+      ...baseProvider,
+      async updateContentEntry(entryId, patch, actorId, precondition) {
+        if (actorId === "local-ray") {
+          await baseProvider.updateContentEntry(
+            entryId,
+            { status, title: `${status} during scheduling` },
+            "publisher",
+          );
+        }
+        return baseProvider.updateContentEntry(entryId, patch, actorId, precondition);
+      },
+    };
+    renderAdmin(<ContentEditor />, { provider });
+
+    const target = await screen.findByLabelText("Post slot to replace");
+    await user.selectOptions(target, "market-pulse-aug-22");
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Attempted racing replacement");
+    await user.click(screen.getByRole("button", { name: "Schedule post" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Only scheduled posts can be replaced. Choose another slot",
+    );
+    expect(target).toHaveFocus();
+    expect(within(target).getAllByRole("option").map((option) => option.getAttribute("value")))
+      .not.toContain("market-pulse-aug-22");
+    expect(await baseProvider.getContentEntry("market-pulse-aug-22")).toMatchObject({
+      status,
+      title: `${status} during scheduling`,
+    });
+    expect((await baseProvider.getActivity()).map((event) => event.actorId)).toEqual(["publisher"]);
+  },
+);
+
 test("explains and disables scheduling when no eligible slots exist", async () => {
   const noEligibleSeed: AdminState = structuredClone(localAdminSeed);
   noEligibleSeed.content = noEligibleSeed.content.map((entry, index) => ({
@@ -301,8 +341,8 @@ test("refreshes the calendar from provider state after an editor update", async 
   const baseProvider = createLocalAdminDataProvider();
   const provider: AdminDataProvider = {
     ...baseProvider,
-    async updateContentEntry(entryId, patch, actorId) {
-      const updated = await baseProvider.updateContentEntry(entryId, patch, actorId);
+    async updateContentEntry(entryId, patch, actorId, precondition) {
+      const updated = await baseProvider.updateContentEntry(entryId, patch, actorId, precondition);
       await baseProvider.updateContentEntry(
         "domain-101-aug-23",
         { title: "Provider refresh marker" },

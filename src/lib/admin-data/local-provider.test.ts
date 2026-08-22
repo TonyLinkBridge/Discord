@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { EntityNotFoundError, createLocalAdminDataProvider } from "./local-provider";
+import { ContentUpdateConflictError } from "./provider";
 
 describe("local admin data provider", () => {
   test("returns the approved overview totals for Aug 16–22", async () => {
@@ -260,6 +261,7 @@ describe("local admin data provider", () => {
       "market-pulse-aug-22",
       { status: "published", ctas: ["Open the transfer guide"] },
       "local-ray",
+      { expectedStatus: "scheduled" },
     );
 
     expect(entry).toMatchObject({
@@ -273,4 +275,37 @@ describe("local admin data provider", () => {
       action: "content.updated",
     });
   });
+
+  test.each(["published", "draft"] as const)(
+    "rejects a scheduled-content update after the entry becomes %s",
+    async (status) => {
+      const provider = createLocalAdminDataProvider();
+      await provider.getContentEntry("market-pulse-aug-22");
+      await provider.updateContentEntry(
+        "market-pulse-aug-22",
+        { status, title: `${status} historical post` },
+        "publisher",
+      );
+
+      const conflictingUpdate = provider.updateContentEntry(
+        "market-pulse-aug-22",
+        { status: "scheduled", title: "Attempted stale replacement" },
+        "local-ray",
+        { expectedStatus: "scheduled" },
+      );
+      await expect(conflictingUpdate).rejects.toBeInstanceOf(ContentUpdateConflictError);
+      await expect(conflictingUpdate).rejects.toMatchObject({
+        name: "ContentUpdateConflictError",
+        entryId: "market-pulse-aug-22",
+        expectedStatus: "scheduled",
+        actualStatus: status,
+      });
+
+      expect(await provider.getContentEntry("market-pulse-aug-22")).toMatchObject({
+        status,
+        title: `${status} historical post`,
+      });
+      expect((await provider.getActivity()).map((event) => event.actorId)).toEqual(["publisher"]);
+    },
+  );
 });

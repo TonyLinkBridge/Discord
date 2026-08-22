@@ -3,6 +3,7 @@
 import { CheckCircle, PaperPlaneTilt } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
+import { ContentUpdateConflictError } from "@/lib/admin-data/provider";
 import type { ContentEntry } from "@/lib/admin-data/types";
 import { contentFormats, partitionContentCycles, validateContentEntry } from "./content-mix";
 import styles from "./content-screen.module.css";
@@ -142,6 +143,15 @@ export function ContentEditor({
     if (element instanceof HTMLElement) element.focus();
   }
 
+  async function refreshAfterConflict() {
+    const issue = "Only scheduled posts can be replaced. Choose another slot";
+    const state = await provider.getState();
+    setEntries(partitionContentCycles(state.content).flatMap((cycle) => cycle.entries));
+    setValues(emptyValues);
+    setErrors({ targetId: issue });
+    setStatus(ineligibleSelectionStatus);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
@@ -160,12 +170,7 @@ export function ContentEditor({
     try {
       const currentTarget = await provider.getContentEntry(values.targetId);
       if (currentTarget.status !== "scheduled") {
-        const issue = "Only scheduled posts can be replaced. Choose another slot";
-        const state = await provider.getState();
-        setEntries(partitionContentCycles(state.content).flatMap((cycle) => cycle.entries));
-        setValues(emptyValues);
-        setErrors({ targetId: issue });
-        setStatus(ineligibleSelectionStatus);
+        await refreshAfterConflict();
         return;
       }
       const updated = await provider.updateContentEntry(values.targetId, {
@@ -175,7 +180,7 @@ export function ContentEditor({
         publishAt: `${values.publishDate}T13:00:00Z`,
         status: "scheduled",
         title: values.title.trim(),
-      }, "local-ray");
+      }, "local-ray", { expectedStatus: "scheduled" });
       const state = await provider.getState();
       const cycles = partitionContentCycles(state.content);
       const selectedCycle = cycles.find((cycle) =>
@@ -185,8 +190,12 @@ export function ContentEditor({
       setCycleCompliant(selectedCycle?.compliant ?? false);
       setStatus("Post scheduled");
       await onUpdated?.(updated);
-    } catch {
-      setStatus("Unable to schedule post");
+    } catch (error) {
+      if (error instanceof ContentUpdateConflictError) {
+        await refreshAfterConflict();
+      } else {
+        setStatus("Unable to schedule post");
+      }
     } finally {
       setPending(false);
     }

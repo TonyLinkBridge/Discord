@@ -1,5 +1,5 @@
 import { buildTrackedRayNameUrl } from "../tracking";
-import type { AdminDataProvider } from "./provider";
+import { ContentUpdateConflictError, type AdminDataProvider } from "./provider";
 import { localAdminSeed } from "./seed";
 import type {
   ActivityEvent,
@@ -292,8 +292,15 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
       return clone(offer);
     },
 
-    async updateContentEntry(entryId, patch, actorId) {
+    async updateContentEntry(entryId, patch, actorId, precondition) {
       const entry = contentById(entryId);
+      if (precondition && entry.status !== precondition.expectedStatus) {
+        throw new ContentUpdateConflictError(
+          entryId,
+          precondition.expectedStatus,
+          entry.status,
+        );
+      }
       Object.assign(entry, clone(patch));
       recordActivity(actorId, entryId, "content.updated");
       return clone(entry);

@@ -23,6 +23,24 @@ import type {
   WorkspaceSettings,
 } from "./types";
 
+export type ContentUpdatePrecondition = {
+  expectedStatus: ContentEntry["status"];
+};
+
+export class ContentUpdateConflictError extends Error {
+  readonly name = "ContentUpdateConflictError";
+
+  constructor(
+    readonly entryId: string,
+    readonly expectedStatus: ContentEntry["status"],
+    readonly actualStatus: ContentEntry["status"],
+  ) {
+    super(
+      `Content entry "${entryId}" has status "${actualStatus}"; expected "${expectedStatus}".`,
+    );
+  }
+}
+
 export interface AdminDataProvider {
   getState(): Promise<AdminState>;
   getOverview(range: DateRange): Promise<OverviewSnapshot>;
@@ -46,5 +64,10 @@ export interface AdminDataProvider {
   createTrackedLink(input: TrackingInput, actorId: string): Promise<TrackedLink>;
   createCampaign(input: CampaignInput, actorId: string): Promise<Campaign>;
   updateOffer(offerId: string, patch: OfferPatch, actorId: string): Promise<Offer>;
-  updateContentEntry(entryId: string, patch: ContentPatch, actorId: string): Promise<ContentEntry>;
+  updateContentEntry(
+    entryId: string,
+    patch: ContentPatch,
+    actorId: string,
+    precondition?: ContentUpdatePrecondition,
+  ): Promise<ContentEntry>;
 }
