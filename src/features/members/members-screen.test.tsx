@@ -4,6 +4,13 @@ import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
 import { renderAdmin } from "@/test/render";
 import { MembersScreen } from "./members-screen";
 
+test("opens a requested member in the canonical member workflow", async () => {
+  renderAdmin(<MembersScreen initialSelectedMemberId="alex-chen" />);
+
+  expect(await screen.findByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Member directory" })).toBeVisible();
+});
+
 test("filters unverified VIP signals and manually verifies one member", async () => {
   const user = userEvent.setup();
   const backingProvider = createLocalAdminDataProvider();

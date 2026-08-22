@@ -10,12 +10,14 @@ import styles from "./members-screen.module.css";
 
 const normalize = (value: string) => value.toLocaleLowerCase().replaceAll(" ", "-");
 
-export function MembersScreen() {
+export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
+  initialSelectedMemberId?: string | null;
+}>) {
   const provider = useAdminData();
   const verificationFilterRef = useRef<HTMLSelectElement>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedMemberId);
   const [search, setSearch] = useState("");
   const [verification, setVerification] = useState("all");
   const [segment, setSegment] = useState("all");

@@ -1,12 +1,21 @@
 "use client";
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { useEffect, useId, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { SearchResult } from "@/lib/admin-data/types";
 import styles from "./admin-shell.module.css";
 
 const searchGroups: SearchResult["type"][] = ["Member", "Lead", "Domain", "Campaign"];
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
 
 export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
   const provider = useAdminData();
@@ -14,10 +23,27 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
   const [query, setQuery] = useState("");
   const [displayResults, setDisplayResults] = useState<SearchResult[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const resultRefs = useRef(new Map<string, HTMLAnchorElement>());
 
   useEffect(() => {
+    openerRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const dialog = dialogRef.current;
+    if (dialog && typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog?.setAttribute("open", "");
+    }
     inputRef.current?.focus();
+
+    return () => {
+      if (dialog?.open && typeof dialog.close === "function") dialog.close();
+      openerRef.current?.focus();
+    };
   }, []);
 
   useEffect(() => {
@@ -60,13 +86,44 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
     });
   };
 
+  const activateCurrentResult = () => {
+    const result = visibleResults[activeIndex];
+    if (result) resultRefs.current.get(`${result.type}-${result.id}`)?.click();
+  };
+
+  function handleDialogKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
+    if (event.key !== "Tab") return;
+
+    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? [])];
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   return (
-    <div className={styles.searchBackdrop} onMouseDown={onClose}>
+    <dialog
+      aria-label="Global search"
+      className={styles.searchBackdrop}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onKeyDown={handleDialogKeyDown}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      ref={dialogRef}
+    >
       <section
-        aria-label="Global search"
         className={styles.searchDialog}
-        onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
       >
         <label className={styles.searchInput} htmlFor={inputId}>
           <MagnifyingGlass aria-hidden size={19} />
@@ -85,6 +142,10 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
               if (event.key === "ArrowUp") {
                 event.preventDefault();
                 moveActiveResult(-1);
+              }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                activateCurrentResult();
               }
               if (event.key === "Escape") {
                 onClose();
@@ -105,17 +166,23 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
                 const resultIndex = displayResults.indexOf(result);
                 const active = resultIndex === activeIndex;
                 return (
-                  <a
+                  <Link
                     aria-selected={active}
                     className={active ? `${styles.result} ${styles.resultActive}` : styles.result}
                     href={result.href}
                     id={`search-result-${result.type}-${result.id}`}
                     key={`${result.type}-${result.id}`}
+                    onClick={onClose}
+                    ref={(node) => {
+                      const key = `${result.type}-${result.id}`;
+                      if (node) resultRefs.current.set(key, node);
+                      else resultRefs.current.delete(key);
+                    }}
                     role="option"
                   >
                     <span><strong>{result.primary}</strong><small>{result.secondary}</small></span>
                     <em>{result.type}</em>
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -124,6 +191,6 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
           {!query && <p className={styles.emptyResults}>Search RayName admin records</p>}
         </div>
       </section>
-    </div>
+    </dialog>
   );
 }

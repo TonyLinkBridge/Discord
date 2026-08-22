@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Fire } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { useAdminData } from "@/lib/admin-data/context";
@@ -96,9 +97,9 @@ export function HighIntentLeads({ leads: initialLeads }: Readonly<{ leads?: Lead
         </table>
       </div>
       <p aria-live="polite" className={styles.visuallyHidden} role="status">{status}</p>
-      <a className={styles.panelFooter} href="/leads">
+      <Link className={styles.panelFooter} href="/leads">
         View all leads <ArrowRight aria-hidden size={13} weight="bold" />
-      </a>
+      </Link>
     </section>
   );
 }

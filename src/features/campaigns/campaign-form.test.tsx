@@ -3,6 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
 import { CampaignForm } from "./campaign-form";
+import { CampaignsScreen } from "./campaigns-screen";
+
+test("focuses a requested campaign in the canonical campaign workflow", async () => {
+  renderAdmin(<CampaignsScreen initialSelectedCampaignId="com-transfer-week" />);
+
+  const campaignRow = await screen.findByRole("row", { name: /.com Transfer Week/i });
+  expect(campaignRow).toHaveFocus();
+});
 
 test("creates Renewal Rescue with a Discord-attributed RayName URL", async () => {
   const user = userEvent.setup();

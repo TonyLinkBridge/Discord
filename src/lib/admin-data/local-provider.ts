@@ -254,7 +254,7 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
           type: "Member" as const,
           primary: member.discordHandle,
           secondary: `${member.segment} · ${member.customerStatus}`,
-          href: `/members/${member.id}`,
+          href: `/members?member=${encodeURIComponent(member.id)}`,
         }));
       const leads = state.leads
         .filter((lead) =>
@@ -280,10 +280,10 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
           type: "Campaign" as const,
           primary: campaign.name,
           secondary: campaign.objective,
-          href: `/campaigns/${campaign.id}`,
+          href: `/campaigns?campaign=${encodeURIComponent(campaign.id)}`,
         }));
       const domains = [
-        { id: "domain-rayname-com", type: "Domain" as const, primary: "rayname.com", secondary: "RayName primary domain", href: "/domains/rayname-com" },
+        { id: "domain-rayname-com", type: "Domain" as const, primary: "rayname.com", secondary: "RayName primary domain", href: "https://www.rayname.com/domain/search" },
       ].filter((domain) =>
         [domain.primary, domain.secondary].some((value) =>
           value.toLocaleLowerCase().includes(normalizedQuery),

@@ -98,8 +98,9 @@
 .operatorMenu [role="menuitem"][data-focused] { background: var(--accent-muted); }
 
 .routeContent { padding: 0 22px 30px; }
-.searchBackdrop { align-items: flex-start; background: rgb(7 16 24 / 38%); display: flex; inset: 0; justify-content: center; padding-top: 14vh; position: fixed; z-index: 10; }
-.searchDialog { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: 0 20px 60px rgb(0 0 0 / 24%); overflow: hidden; width: min(620px, calc(100vw - 40px)); }
+.searchBackdrop { background: transparent; border: 0; height: 100%; inset: 0; margin: 0; max-height: none; max-width: none; padding: 14vh 20px 0; position: fixed; width: 100%; }
+.searchBackdrop::backdrop { background: rgb(7 16 24 / 38%); }
+.searchDialog { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: 0 20px 60px rgb(0 0 0 / 24%); margin: 0 auto; overflow: hidden; width: min(620px, calc(100vw - 40px)); }
 .searchInput { align-items: center; border-bottom: 1px solid var(--border-subtle); display: flex; gap: 12px; padding: 15px; }
 .searchInput input { background: transparent; border: 0; color: var(--text-primary); flex: 1; font: inherit; outline: 0; }
 .searchInput input::placeholder { color: var(--text-secondary); }

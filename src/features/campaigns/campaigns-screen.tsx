@@ -1,7 +1,7 @@
 "use client";
 
 import { ChartLineUp, LinkSimple } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Campaign } from "@/lib/admin-data/types";
 import { CampaignForm } from "./campaign-form";
@@ -9,8 +9,11 @@ import styles from "./campaigns-screen.module.css";
 
 const statusLabel = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
 
-export function CampaignsScreen() {
+export function CampaignsScreen({ initialSelectedCampaignId = null }: Readonly<{
+  initialSelectedCampaignId?: string | null;
+}>) {
   const provider = useAdminData();
+  const selectedCampaignRef = useRef<HTMLTableRowElement>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -24,6 +27,10 @@ export function CampaignsScreen() {
     });
     return () => { active = false; };
   }, [provider]);
+
+  useEffect(() => {
+    if (loaded) selectedCampaignRef.current?.focus();
+  }, [loaded]);
 
   return (
     <main className={styles.screen}>
@@ -42,7 +49,13 @@ export function CampaignsScreen() {
               <caption className={styles.visuallyHidden}>Campaign management and attribution</caption>
               <thead><tr><th scope="col">Campaign</th><th scope="col">Channel</th><th scope="col">Dates</th><th scope="col">Clicks</th><th scope="col">Verified</th><th scope="col">Conversions</th><th scope="col">Revenue</th><th scope="col">Status</th></tr></thead>
               <tbody>{campaigns.map((campaign) => (
-                <tr key={campaign.id}>
+                <tr
+                  aria-current={campaign.id === initialSelectedCampaignId ? "true" : undefined}
+                  className={campaign.id === initialSelectedCampaignId ? styles.selectedCampaign : undefined}
+                  key={campaign.id}
+                  ref={campaign.id === initialSelectedCampaignId ? selectedCampaignRef : undefined}
+                  tabIndex={campaign.id === initialSelectedCampaignId ? -1 : undefined}
+                >
                   <th scope="row"><strong>{campaign.name}</strong><small><LinkSimple aria-hidden size={12} /> {new URL(campaign.destination).pathname}</small></th>
                   <td>{statusLabel(campaign.channel)}</td>
                   <td>{campaign.startDate}<br />{campaign.endDate}</td>

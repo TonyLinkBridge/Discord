@@ -140,7 +140,7 @@ describe("local admin data provider", () => {
         type: "Member",
         primary: "@alexchen",
         secondary: "Investor · Verified customer",
-        href: "/members/alex-chen",
+        href: "/members?member=alex-chen",
       },
       {
         id: "alex-chen",
@@ -148,6 +148,22 @@ describe("local admin data provider", () => {
         primary: "Alex Chen",
         secondary: "Investor · Very High intent",
         href: "/leads?lead=alex-chen",
+      },
+    ]);
+    expect(await provider.search("transfer")).toContainEqual({
+      id: "com-transfer-week",
+      type: "Campaign",
+      primary: ".com Transfer Week",
+      secondary: "Drive .com transfers",
+      href: "/campaigns?campaign=com-transfer-week",
+    });
+    expect(await provider.search("rayname.com")).toEqual([
+      {
+        id: "domain-rayname-com",
+        type: "Domain",
+        primary: "rayname.com",
+        secondary: "RayName primary domain",
+        href: "https://www.rayname.com/domain/search",
       },
     ]);
   });
