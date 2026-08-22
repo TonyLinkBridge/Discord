@@ -1,6 +1,7 @@
 "use client";
 
 import { Funnel, Kanban, Table } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Lead } from "@/lib/admin-data/types";
@@ -17,9 +18,11 @@ export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
   initialSelectedLeadId?: string | null;
 }>) {
   const provider = useAdminData();
+  const router = useRouter();
   const segmentFilterRef = useRef<HTMLSelectElement>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [previousInitialSelectedId, setPreviousInitialSelectedId] = useState(initialSelectedLeadId);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedLeadId);
   const [view, setView] = useState<LeadView>("table");
   const [segment, setSegment] = useState("all");
@@ -35,6 +38,11 @@ export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
     });
     return () => { active = false; };
   }, [provider]);
+
+  if (previousInitialSelectedId !== initialSelectedLeadId) {
+    setPreviousInitialSelectedId(initialSelectedLeadId);
+    setSelectedId(initialSelectedLeadId);
+  }
 
   const segments = useMemo(
     () => [...new Set(leads.map((lead) => lead.segment))],
@@ -52,6 +60,11 @@ export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
 
   function replaceLead(updated: Lead) {
     setLeads((items) => items.map((item) => item.id === updated.id ? updated : item));
+  }
+
+  function closeLeadDetail() {
+    setSelectedId(null);
+    if (initialSelectedLeadId) router.replace("/leads", { scroll: false });
   }
 
   if (!loaded) return <p className={styles.loading} role="status">Loading leads…</p>;
@@ -116,7 +129,7 @@ export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
           focusFallbackRef={segmentFilterRef}
           lead={selectedLead}
           onChange={replaceLead}
-          onClose={() => setSelectedId(null)}
+          onClose={closeLeadDetail}
         />
       ) : null}
     </main>

@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
 import { CampaignForm } from "./campaign-form";
@@ -10,6 +11,26 @@ test("focuses a requested campaign in the canonical campaign workflow", async ()
 
   const campaignRow = await screen.findByRole("row", { name: /.com Transfer Week/i });
   expect(campaignRow).toHaveFocus();
+});
+
+test("moves campaign focus when the query-selected id changes after mount", async () => {
+  const user = userEvent.setup();
+  function Harness() {
+    const [campaignId, setCampaignId] = useState<string | null>(null);
+    return <>
+      <button onClick={() => setCampaignId("com-transfer-week")} type="button">Select Transfer Week campaign</button>
+      <button onClick={() => setCampaignId("investor-outreach")} type="button">Select Investor Outreach campaign</button>
+      <CampaignsScreen initialSelectedCampaignId={campaignId} />
+    </>;
+  }
+  renderAdmin(<Harness />);
+  await screen.findByRole("heading", { name: "Campaigns" });
+
+  await user.click(screen.getByRole("button", { name: "Select Transfer Week campaign" }));
+  expect(await screen.findByRole("row", { name: /.com Transfer Week/i })).toHaveFocus();
+
+  await user.click(screen.getByRole("button", { name: "Select Investor Outreach campaign" }));
+  expect(await screen.findByRole("row", { name: /Investor Outreach/i })).toHaveFocus();
 });
 
 test("creates Renewal Rescue with a Discord-attributed RayName URL", async () => {

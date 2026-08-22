@@ -1,14 +1,40 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { vi } from "vitest";
 import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
 import { renderAdmin } from "@/test/render";
 import { MembersScreen } from "./members-screen";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
 
 test("opens a requested member in the canonical member workflow", async () => {
   renderAdmin(<MembersScreen initialSelectedMemberId="alex-chen" />);
 
   expect(await screen.findByRole("dialog", { name: "Alex Chen" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Member directory" })).toBeVisible();
+});
+
+test("opens a member when the query-selected id changes after mount", async () => {
+  const user = userEvent.setup();
+  function Harness() {
+    const [memberId, setMemberId] = useState<string | null>(null);
+    return <>
+      <button onClick={() => setMemberId("alex-chen")} type="button">Select Alex member</button>
+      <button onClick={() => setMemberId("domainnomad")} type="button">Select DomainNomad member</button>
+      <MembersScreen initialSelectedMemberId={memberId} />
+    </>;
+  }
+  renderAdmin(<Harness />);
+  await screen.findByRole("heading", { name: "Member directory" });
+
+  await user.click(screen.getByRole("button", { name: "Select Alex member" }));
+  expect(await screen.findByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Select DomainNomad member" }));
+  expect(await screen.findByRole("dialog", { name: "DomainNomad" })).toBeVisible();
 });
 
 test("filters unverified VIP signals and manually verifies one member", async () => {

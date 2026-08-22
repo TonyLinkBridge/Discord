@@ -1,6 +1,7 @@
 "use client";
 
 import { MagnifyingGlass, User } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { useAdminData } from "@/lib/admin-data/context";
@@ -14,9 +15,11 @@ export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
   initialSelectedMemberId?: string | null;
 }>) {
   const provider = useAdminData();
+  const router = useRouter();
   const verificationFilterRef = useRef<HTMLSelectElement>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [previousInitialSelectedId, setPreviousInitialSelectedId] = useState(initialSelectedMemberId);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedMemberId);
   const [search, setSearch] = useState("");
   const [verification, setVerification] = useState("all");
@@ -34,6 +37,11 @@ export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
     });
     return () => { active = false; };
   }, [provider]);
+
+  if (previousInitialSelectedId !== initialSelectedMemberId) {
+    setPreviousInitialSelectedId(initialSelectedMemberId);
+    setSelectedId(initialSelectedMemberId);
+  }
 
   const segments = useMemo(() => [...new Set(members.map((member) => member.segment))], [members]);
   const customerStatuses = useMemo(
@@ -56,6 +64,11 @@ export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
 
   function replaceMember(updated: Member) {
     setMembers((items) => items.map((item) => item.id === updated.id ? updated : item));
+  }
+
+  function closeMemberDetail() {
+    setSelectedId(null);
+    if (initialSelectedMemberId) router.replace("/members", { scroll: false });
   }
 
   const columns: DataTableColumn<Member>[] = [
@@ -131,7 +144,7 @@ export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
           focusFallbackRef={verificationFilterRef}
           member={selectedMember}
           onChange={replaceMember}
-          onClose={() => setSelectedId(null)}
+          onClose={closeMemberDetail}
         />
       ) : null}
     </main>

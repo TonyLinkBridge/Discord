@@ -31,8 +31,8 @@ export function CampaignsScreen({ initialSelectedCampaignId = null }: Readonly<{
   }, [provider]);
 
   useEffect(() => {
-    if (loaded) selectedCampaignRef.current?.focus();
-  }, [loaded]);
+    if (loaded && initialSelectedCampaignId) selectedCampaignRef.current?.focus();
+  }, [initialSelectedCampaignId, loaded]);
 
   return (
     <main className={styles.screen}>

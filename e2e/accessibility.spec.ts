@@ -139,6 +139,81 @@ test("global search opens canonical member and campaign workflows", async ({ pag
   await expect(campaignRow).toHaveAttribute("aria-current", "true");
 });
 
+test("member search selection clears and reopens on the members route", async ({ page }) => {
+  await page.goto("/members");
+  const verification = page.getByLabel("Verification");
+  await verification.selectOption("verified");
+  await verification.focus();
+  await page.keyboard.press("Control+k");
+  let search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Alex");
+  await page.getByRole("option", { name: /@alexchen.*Member/i }).click();
+
+  await expect(page).toHaveURL(/\/members\?member=alex-chen$/);
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  await page.getByRole("button", { name: "Close member details" }).click();
+  await expect(page).toHaveURL(/\/members$/);
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeHidden();
+  await expect(verification).toHaveValue("verified");
+  await expect(verification).toBeFocused();
+
+  await page.keyboard.press("Control+k");
+  search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Alex");
+  await page.getByRole("option", { name: /@alexchen.*Member/i }).click();
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+});
+
+test("lead search selection clears and reopens on the leads route", async ({ page }) => {
+  await page.goto("/leads");
+  const segment = page.getByLabel("Segment");
+  const intent = page.getByLabel("Intent");
+  await segment.selectOption("investor");
+  await intent.selectOption("very-high");
+  await intent.focus();
+  await page.keyboard.press("Control+k");
+  let search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Alex");
+  await page.getByRole("option", { name: /Alex Chen.*Lead/i }).click();
+
+  await expect(page).toHaveURL(/\/leads\?lead=alex-chen$/);
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  await page.getByRole("button", { name: "Close lead details" }).click();
+  await expect(page).toHaveURL(/\/leads$/);
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeHidden();
+  await expect(segment).toHaveValue("investor");
+  await expect(intent).toHaveValue("very-high");
+  await expect(intent).toBeFocused();
+
+  await page.keyboard.press("Control+k");
+  search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Alex");
+  await page.getByRole("option", { name: /Alex Chen.*Lead/i }).click();
+  await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+});
+
+test("campaign search moves focus between results on the campaigns route", async ({ page }) => {
+  await page.goto("/campaigns?campaign=com-transfer-week");
+  await expect(page.getByRole("row", { name: /.com Transfer Week/i })).toBeFocused();
+
+  const trigger = page.getByRole("button", { name: /Search members, domains, leads, campaigns/ });
+  await trigger.click();
+  let search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Investor Outreach");
+  await page.getByRole("option", { name: /Investor Outreach.*Campaign/i }).click();
+  await expect(page).toHaveURL(/\/campaigns\?campaign=investor-outreach$/);
+  const investorRow = page.getByRole("row", { name: /Investor Outreach/i });
+  await expect(investorRow).toBeFocused();
+  await expect(investorRow).toHaveAttribute("aria-current", "true");
+
+  await trigger.click();
+  search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+  await search.fill("Transfer Week");
+  await page.getByRole("option", { name: /.com Transfer Week.*Campaign/i }).click();
+  await expect(page).toHaveURL(/\/campaigns\?campaign=com-transfer-week$/);
+  await expect(page.getByRole("row", { name: /.com Transfer Week/i })).toBeFocused();
+});
+
 test("global search exposes the official RayName domain-search destination", async ({ page }) => {
   await page.goto("/");
   await page.keyboard.press("Control+k");

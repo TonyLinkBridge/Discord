@@ -1,9 +1,14 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
 import type { LeadAction } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { LeadsScreen } from "./leads-screen";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
 
 test("completes Alex Chen follow-up and creates an attributed registration link", async () => {
   const user = userEvent.setup();
