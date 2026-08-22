@@ -1,24 +1,33 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
 import { OfferForm } from "./offer-form";
 
 test("extends and activates the .com Transfer Week offer", async () => {
-  const user = userEvent.setup();
-  const { provider } = renderAdmin(<OfferForm offerId="com-transfer-week" />);
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
+  try {
+    const user = userEvent.setup();
+    const { provider } = renderAdmin(
+      <OfferForm offerId="com-transfer-week" today="2026-08-22" />,
+    );
 
-  await user.clear(screen.getByLabelText("End date"));
-  await user.type(screen.getByLabelText("End date"), "2026-08-30");
-  await user.selectOptions(screen.getByLabelText("Status"), "active");
-  await user.click(screen.getByRole("button", { name: "Save offer" }));
+    await user.clear(screen.getByLabelText("End date"));
+    await user.type(screen.getByLabelText("End date"), "2026-08-30");
+    await user.selectOptions(screen.getByLabelText("Status"), "active");
+    await user.click(screen.getByRole("button", { name: "Save offer" }));
 
-  expect(await screen.findByText("Live")).toBeVisible();
-  expect(screen.getByText("Aug 17–30, 2026")).toBeVisible();
-  expect(await provider.getOffer("com-transfer-offer")).toMatchObject({
-    endsAt: "2026-08-30T23:59:59Z",
-    status: "active",
-  });
-  expect(screen.getByRole("status")).toHaveTextContent("Offer saved and live");
+    expect(await screen.findByText("Live")).toBeVisible();
+    expect(screen.getByText("Aug 17–30, 2026")).toBeVisible();
+    expect(await provider.getOffer("com-transfer-offer")).toMatchObject({
+      endsAt: "2026-08-30T23:59:59Z",
+      status: "active",
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Offer saved and live");
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("exposes every approved offer lifecycle state", async () => {

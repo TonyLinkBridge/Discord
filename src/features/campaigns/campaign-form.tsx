@@ -16,7 +16,7 @@ const rayNameDestination = z.string().trim().superRefine((value, context) => {
 const slugify = (value: string) => value
   .normalize("NFKC")
   .trim()
-  .toLocaleLowerCase()
+  .toLowerCase()
   .replace(/[^\p{L}\p{N}]+/gu, "-")
   .replace(/(^-|-$)/g, "");
 

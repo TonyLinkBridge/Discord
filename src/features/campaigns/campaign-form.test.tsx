@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
 import { CampaignForm } from "./campaign-form";
 
@@ -90,4 +91,29 @@ test("creates a stable nonempty attribution value for a Chinese campaign name", 
   expect(attribution).toBe("续费救援");
   expect(attribution).not.toHaveLength(0);
   expect(await provider.getCampaign("campaign-5")).toMatchObject({ name: "续费救援" });
+});
+
+test("creates the same ASCII attribution ID under a Turkish operator locale", async () => {
+  const originalToLocaleLowerCase = String.prototype.toLocaleLowerCase;
+  const localeSpy = vi.spyOn(String.prototype, "toLocaleLowerCase").mockImplementation(function (this: string) {
+    return originalToLocaleLowerCase.call(this, "tr");
+  });
+
+  try {
+    const user = userEvent.setup();
+    renderAdmin(<CampaignForm />);
+
+    await user.type(screen.getByLabelText("Campaign name"), "INVESTOR I");
+    await user.selectOptions(screen.getByLabelText("Channel"), "discord");
+    await user.type(screen.getByLabelText("Destination"), "https://www.rayname.com/domain/search");
+    await user.type(screen.getByLabelText("Start date"), "2026-08-23");
+    await user.type(screen.getByLabelText("End date"), "2026-09-06");
+    await user.click(screen.getByRole("button", { name: "Create campaign" }));
+
+    const trackedUrl = await screen.findByRole("textbox", { name: "Tracked URL" });
+    expect(new URL((trackedUrl as HTMLInputElement).value).searchParams.get("utm_campaign"))
+      .toBe("investor-i");
+  } finally {
+    localeSpy.mockRestore();
+  }
 });
