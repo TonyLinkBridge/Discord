@@ -69,6 +69,20 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
     requiredEntity(state.members.find((member) => member.id === memberId), "member", memberId);
   const leadById = (leadId: string): Lead =>
     requiredEntity(state.leads.find((lead) => lead.id === leadId), "lead", leadId);
+  const applyLeadAction = (leadId: string, action: Lead["nextAction"]): Lead => {
+    const lead = leadById(leadId);
+    lead.nextAction = action;
+    if (action === "mark-converted") {
+      lead.stage = "converted";
+    }
+
+    const overviewLead = state.overview.leads.find((item) => item.id === leadId);
+    if (overviewLead) {
+      overviewLead.nextAction = lead.nextAction;
+      overviewLead.stage = lead.stage;
+    }
+    return lead;
+  };
   const campaignById = (campaignId: string): Campaign =>
     requiredEntity(
       state.campaigns.find((campaign) => campaign.id === campaignId),
@@ -205,18 +219,14 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
     },
 
     async updateLeadAction(leadId, action, actorId) {
-      const lead = leadById(leadId);
-      lead.nextAction = action;
-      if (action === "mark-converted") {
-        lead.stage = "converted";
-      }
-
-      const overviewLead = state.overview.leads.find((item) => item.id === leadId);
-      if (overviewLead) {
-        overviewLead.nextAction = lead.nextAction;
-        overviewLead.stage = lead.stage;
-      }
+      applyLeadAction(leadId, action);
       recordActivity(actorId, leadId, "lead.action.updated");
+    },
+
+    async completeLeadAction(leadId, action, actorId) {
+      const lead = applyLeadAction(leadId, action);
+      recordActivity(actorId, leadId, "lead.action.completed");
+      return clone(lead);
     },
 
     async updateMember(memberId, patch, actorId) {
