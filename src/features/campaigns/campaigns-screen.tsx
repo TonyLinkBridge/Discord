@@ -1,6 +1,7 @@
 "use client";
 
 import { ChartLineUp, LinkSimple } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Campaign, TrackedLink } from "@/lib/admin-data/types";
@@ -13,10 +14,13 @@ export function CampaignsScreen({ initialSelectedCampaignId = null }: Readonly<{
   initialSelectedCampaignId?: string | null;
 }>) {
   const provider = useAdminData();
+  const router = useRouter();
   const selectedCampaignRef = useRef<HTMLTableRowElement>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [trackedLinks, setTrackedLinks] = useState<TrackedLink[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [previousInitialSelectedId, setPreviousInitialSelectedId] = useState(initialSelectedCampaignId);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(initialSelectedCampaignId);
 
   useEffect(() => {
     let active = true;
@@ -30,9 +34,16 @@ export function CampaignsScreen({ initialSelectedCampaignId = null }: Readonly<{
     return () => { active = false; };
   }, [provider]);
 
+  if (previousInitialSelectedId !== initialSelectedCampaignId) {
+    setPreviousInitialSelectedId(initialSelectedCampaignId);
+    if (initialSelectedCampaignId) setSelectedCampaignId(initialSelectedCampaignId);
+  }
+
   useEffect(() => {
-    if (loaded && initialSelectedCampaignId) selectedCampaignRef.current?.focus();
-  }, [initialSelectedCampaignId, loaded]);
+    if (!loaded || !initialSelectedCampaignId) return;
+    selectedCampaignRef.current?.focus();
+    router.replace("/campaigns", { scroll: false });
+  }, [initialSelectedCampaignId, loaded, router]);
 
   return (
     <main className={styles.screen}>
@@ -57,11 +68,11 @@ export function CampaignsScreen({ initialSelectedCampaignId = null }: Readonly<{
                 const trackedLink = trackedLinks.find((link) => link.id === campaign.trackedLinkId);
                 return (
                 <tr
-                  aria-current={campaign.id === initialSelectedCampaignId ? "true" : undefined}
-                  className={campaign.id === initialSelectedCampaignId ? styles.selectedCampaign : undefined}
+                  aria-current={campaign.id === selectedCampaignId ? "true" : undefined}
+                  className={campaign.id === selectedCampaignId ? styles.selectedCampaign : undefined}
                   key={campaign.id}
-                  ref={campaign.id === initialSelectedCampaignId ? selectedCampaignRef : undefined}
-                  tabIndex={campaign.id === initialSelectedCampaignId ? -1 : undefined}
+                  ref={campaign.id === selectedCampaignId ? selectedCampaignRef : undefined}
+                  tabIndex={campaign.id === selectedCampaignId ? -1 : undefined}
                 >
                   <th scope="row">
                     <strong>{campaign.name}</strong>

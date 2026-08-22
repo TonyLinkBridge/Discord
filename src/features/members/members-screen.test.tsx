@@ -17,7 +17,7 @@ test("opens a requested member in the canonical member workflow", async () => {
   expect(screen.getByRole("heading", { name: "Member directory" })).toBeVisible();
 });
 
-test("opens a member when the query-selected id changes after mount", async () => {
+test("resets member-local detail state when the query-selected id changes", async () => {
   const user = userEvent.setup();
   function Harness() {
     const [memberId, setMemberId] = useState<string | null>(null);
@@ -27,14 +27,27 @@ test("opens a member when the query-selected id changes after mount", async () =
       <MembersScreen initialSelectedMemberId={memberId} />
     </>;
   }
-  renderAdmin(<Harness />);
+  const { provider } = renderAdmin(<Harness />);
   await screen.findByRole("heading", { name: "Member directory" });
 
   await user.click(screen.getByRole("button", { name: "Select Alex member" }));
-  expect(await screen.findByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  const alexDialog = await screen.findByRole("dialog", { name: "Alex Chen" });
+  await user.selectOptions(within(alexDialog).getByLabelText("Role to assign"), "Builder");
+  await user.type(within(alexDialog).getByRole("textbox", { name: "Internal note" }), "Alex-only draft");
+  await user.click(within(alexDialog).getByRole("button", { name: "Create tracked link" }));
+  expect(await within(alexDialog).findByRole("textbox", { name: "Tracked RayName URL" }))
+    .toHaveValue("https://www.rayname.com/domain/search?utm_campaign=member-outreach&utm_content=member-alex-chen&utm_medium=community&utm_source=discord");
 
   await user.click(screen.getByRole("button", { name: "Select DomainNomad member" }));
-  expect(await screen.findByRole("dialog", { name: "DomainNomad" })).toBeVisible();
+  const domainNomadDialog = await screen.findByRole("dialog", { name: "DomainNomad" });
+  expect(within(domainNomadDialog).getByLabelText("Role to assign")).toHaveValue("VIP");
+  expect(within(domainNomadDialog).getByRole("textbox", { name: "Internal note" })).toHaveValue("");
+  expect(within(domainNomadDialog).queryByRole("textbox", { name: "Tracked RayName URL" }))
+    .not.toBeInTheDocument();
+  expect(within(domainNomadDialog).getByRole("status")).toHaveTextContent("");
+  expect(within(domainNomadDialog).getByRole("button", { name: "Close member details" }))
+    .toHaveFocus();
+  expect(await provider.getMember("domainnomad")).toMatchObject({ notes: [] });
 });
 
 test("filters unverified VIP signals and manually verifies one member", async () => {

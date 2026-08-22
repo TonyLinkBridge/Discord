@@ -142,6 +142,7 @@ export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
       {selectedMember ? (
         <MemberDetail
           focusFallbackRef={verificationFilterRef}
+          key={selectedMember.id}
           member={selectedMember}
           onChange={replaceMember}
           onClose={closeMemberDetail}

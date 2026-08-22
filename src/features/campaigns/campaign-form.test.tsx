@@ -6,6 +6,10 @@ import { renderAdmin } from "@/test/render";
 import { CampaignForm } from "./campaign-form";
 import { CampaignsScreen } from "./campaigns-screen";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
+
 test("focuses a requested campaign in the canonical campaign workflow", async () => {
   renderAdmin(<CampaignsScreen initialSelectedCampaignId="com-transfer-week" />);
 
@@ -13,13 +17,13 @@ test("focuses a requested campaign in the canonical campaign workflow", async ()
   expect(campaignRow).toHaveFocus();
 });
 
-test("moves campaign focus when the query-selected id changes after mount", async () => {
+test("retains campaign selection while consuming and repeating a query activation", async () => {
   const user = userEvent.setup();
   function Harness() {
     const [campaignId, setCampaignId] = useState<string | null>(null);
     return <>
       <button onClick={() => setCampaignId("com-transfer-week")} type="button">Select Transfer Week campaign</button>
-      <button onClick={() => setCampaignId("investor-outreach")} type="button">Select Investor Outreach campaign</button>
+      <button onClick={() => setCampaignId(null)} type="button">Clear campaign query</button>
       <CampaignsScreen initialSelectedCampaignId={campaignId} />
     </>;
   }
@@ -27,10 +31,15 @@ test("moves campaign focus when the query-selected id changes after mount", asyn
   await screen.findByRole("heading", { name: "Campaigns" });
 
   await user.click(screen.getByRole("button", { name: "Select Transfer Week campaign" }));
-  expect(await screen.findByRole("row", { name: /.com Transfer Week/i })).toHaveFocus();
+  const transferRow = await screen.findByRole("row", { name: /.com Transfer Week/i });
+  expect(transferRow).toHaveFocus();
+  expect(transferRow).toHaveAttribute("aria-current", "true");
 
-  await user.click(screen.getByRole("button", { name: "Select Investor Outreach campaign" }));
-  expect(await screen.findByRole("row", { name: /Investor Outreach/i })).toHaveFocus();
+  await user.click(screen.getByRole("button", { name: "Clear campaign query" }));
+  expect(transferRow).toHaveAttribute("aria-current", "true");
+
+  await user.click(screen.getByRole("button", { name: "Select Transfer Week campaign" }));
+  expect(transferRow).toHaveFocus();
 });
 
 test("creates Renewal Rescue with a Discord-attributed RayName URL", async () => {

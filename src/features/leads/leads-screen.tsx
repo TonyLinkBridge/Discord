@@ -127,6 +127,7 @@ export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
       {selectedLead ? (
         <LeadDetail
           focusFallbackRef={segmentFilterRef}
+          key={selectedLead.id}
           lead={selectedLead}
           onChange={replaceLead}
           onClose={closeLeadDetail}

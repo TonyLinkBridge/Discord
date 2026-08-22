@@ -133,7 +133,7 @@ test("global search opens canonical member and campaign workflows", async ({ pag
   await search.fill("Transfer");
   await page.getByRole("option", { name: /.com Transfer Week.*Campaign/i }).click();
 
-  await expect(page).toHaveURL(/\/campaigns\?campaign=com-transfer-week$/);
+  await expect(page).toHaveURL(/\/campaigns$/);
   const campaignRow = page.getByRole("row", { name: /.com Transfer Week/i });
   await expect(campaignRow).toBeFocused();
   await expect(campaignRow).toHaveAttribute("aria-current", "true");
@@ -201,7 +201,7 @@ test("campaign search moves focus between results on the campaigns route", async
   let search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
   await search.fill("Investor Outreach");
   await page.getByRole("option", { name: /Investor Outreach.*Campaign/i }).click();
-  await expect(page).toHaveURL(/\/campaigns\?campaign=investor-outreach$/);
+  await expect(page).toHaveURL(/\/campaigns$/);
   const investorRow = page.getByRole("row", { name: /Investor Outreach/i });
   await expect(investorRow).toBeFocused();
   await expect(investorRow).toHaveAttribute("aria-current", "true");
@@ -210,8 +210,25 @@ test("campaign search moves focus between results on the campaigns route", async
   search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
   await search.fill("Transfer Week");
   await page.getByRole("option", { name: /.com Transfer Week.*Campaign/i }).click();
-  await expect(page).toHaveURL(/\/campaigns\?campaign=com-transfer-week$/);
+  await expect(page).toHaveURL(/\/campaigns$/);
   await expect(page.getByRole("row", { name: /.com Transfer Week/i })).toBeFocused();
+});
+
+test("campaign search refocuses the same result after its query is consumed", async ({ page }) => {
+  await page.goto("/campaigns");
+  const trigger = page.getByRole("button", { name: /Search members, domains, leads, campaigns/ });
+  const transferRow = page.getByRole("row", { name: /.com Transfer Week/i });
+
+  for (let activation = 0; activation < 2; activation += 1) {
+    await trigger.click();
+    const search = page.getByRole("searchbox", { name: "Search members, domains, leads, campaigns" });
+    await search.fill("Transfer Week");
+    await page.getByRole("option", { name: /.com Transfer Week.*Campaign/i }).click();
+
+    await expect(page).toHaveURL(/\/campaigns$/);
+    await expect(transferRow).toBeFocused();
+    await expect(transferRow).toHaveAttribute("aria-current", "true");
+  }
 });
 
 test("global search exposes the official RayName domain-search destination", async ({ page }) => {
