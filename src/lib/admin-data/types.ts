@@ -163,6 +163,7 @@ export interface SearchResult {
 export interface OverviewSnapshot {
   metrics: Metric[];
   trend: TrendPoint[];
+  funnel: FunnelStep[];
   priorities: Priority[];
   leads: Lead[];
   campaigns: Campaign[];

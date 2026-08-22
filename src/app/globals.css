@@ -51,5 +51,6 @@ html {
 body {
   background: var(--bg-canvas);
   color: var(--text-primary);
+  font-family: var(--font-geist-sans), sans-serif;
   margin: 0;
 }

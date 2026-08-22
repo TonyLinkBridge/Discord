@@ -1,8 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderAdmin } from "@/test/render";
 import OverviewPage from "./page";
 
-test("shows the RayName admin entry point", () => {
-  render(<OverviewPage />);
-  expect(screen.getByRole("heading", { name: "Overview" })).toBeVisible();
-  expect(screen.getByText("RayName Admin")).toBeVisible();
+test("mounts the Overview dashboard at the default admin route", async () => {
+  renderAdmin(<OverviewPage />);
+
+  expect(
+    await screen.findByRole("heading", { name: "Conversion performance" }),
+  ).toBeVisible();
 });

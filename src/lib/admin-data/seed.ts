@@ -10,6 +10,12 @@ const aug16To22Trend = [
   ["2026-08-22", 84, 9, 23, 3480],
 ] as const;
 
+const overviewFunnel = [
+  { label: "Discord Visitors", value: 8742, conversionRate: null, delta: -5.1 },
+  { label: "Verified Customers", value: 326, conversionRate: 3.7, delta: 6.6 },
+  { label: "Paid Customers", value: 168, conversionRate: 51.5, delta: 11.3 },
+];
+
 export const localAdminSeed: AdminState = {
   overview: {
     metrics: [
@@ -27,6 +33,7 @@ export const localAdminSeed: AdminState = {
       renewals,
       revenue,
     })),
+    funnel: overviewFunnel.map((step) => ({ ...step })),
     priorities: [
       { id: "verify-new-members", title: "Verify 12 new members", detail: "12 joined in the last 24h", actionLabel: "Review", kind: "verification", completed: false },
       { id: "follow-up-high-intent", title: "Follow up with 7 high-intent leads", detail: "Active in #buying-domains", actionLabel: "Open leads", kind: "lead-follow-up", completed: false },
@@ -103,11 +110,7 @@ export const localAdminSeed: AdminState = {
     renewalReminderRuns: ["2026-08-22T08:00:00Z: completed"],
   },
   analytics: {
-    funnel: [
-      { label: "Discord Visitors", value: 8742, conversionRate: null, delta: -5.1 },
-      { label: "Verified Customers", value: 326, conversionRate: 3.7, delta: 6.6 },
-      { label: "Paid Customers", value: 168, conversionRate: 51.5, delta: 11.3 },
-    ],
+    funnel: overviewFunnel.map((step) => ({ ...step })),
     revenueBySource: [
       { label: "Discord", value: 12470 },
       { label: "Email", value: 2830 },

@@ -1,0 +1,459 @@
+.screen {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.loading {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 24px 0;
+}
+
+.metricStrip,
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+}
+
+.metricStrip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  min-height: 132px;
+  padding: 22px 10px;
+}
+
+.metric {
+  align-items: flex-start;
+  display: flex;
+  gap: 13px;
+  min-width: 0;
+  padding: 2px 12px;
+}
+
+.metric + .metric {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.metricIcon,
+.rowIcon {
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.metricCopy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.metricLabel {
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.25;
+  min-height: 28px;
+}
+
+.metricValue {
+  font-size: clamp(22px, 2vw, 29px);
+  font-weight: 620;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.deltaPositive,
+.deltaNegative {
+  align-items: center;
+  color: var(--positive);
+  display: flex;
+  font-size: 10px;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.deltaNegative {
+  color: var(--critical);
+}
+
+.deltaPeriod {
+  color: var(--text-secondary);
+}
+
+.mainGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 2fr) minmax(290px, 1fr);
+}
+
+.lowerGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(250px, .9fr) minmax(360px, 1.25fr) minmax(300px, 1.05fr);
+}
+
+.panel {
+  min-width: 0;
+  padding: 17px 16px;
+}
+
+.performancePanel,
+.prioritiesPanel {
+  min-height: 394px;
+}
+
+.lowerPanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 368px;
+}
+
+.panelHeader {
+  align-items: baseline;
+  display: flex;
+  gap: 11px;
+  justify-content: flex-start;
+  min-height: 27px;
+}
+
+.performancePanel .panelHeader {
+  justify-content: space-between;
+}
+
+.panelHeader h2 {
+  font-size: 17px;
+  font-weight: 610;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.panelHeader > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.chartPlaceholder {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  gap: 8%;
+  height: 275px;
+  padding: 25px 28px 0;
+}
+
+.chartTabs {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.chartTab {
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  min-height: 31px;
+  padding: 0 12px;
+}
+
+.chartTab + .chartTab {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.chartTab[aria-selected="true"] {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.chartRegion {
+  height: 276px;
+  min-width: 0;
+}
+
+.chartPlaceholder i {
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+  display: block;
+  flex: 1;
+  min-height: 8px;
+  opacity: .72;
+}
+
+.chartLegend {
+  align-items: center;
+  color: var(--text-secondary);
+  display: flex;
+  font-size: 11px;
+  justify-content: space-between;
+  padding: 19px 4px 0;
+}
+
+.chartLegend span:first-child {
+  align-items: center;
+  color: var(--text-primary);
+  display: inline-flex;
+  gap: 7px;
+}
+
+.chartLegend span:first-child i {
+  background: var(--accent);
+  display: inline-block;
+  height: 3px;
+  width: 17px;
+}
+
+.priorityList {
+  display: grid;
+  margin-top: 5px;
+}
+
+.priorityRow {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  min-height: 75px;
+  padding: 8px 1px;
+}
+
+.priorityRow + .priorityRow {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.rowIcon {
+  height: 46px;
+  width: 46px;
+}
+
+.rowCopy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.rowCopy strong {
+  font-size: 13px;
+  font-weight: 570;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowCopy small {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.actionLabel {
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 11px;
+  justify-content: center;
+  padding: 7px 9px;
+  white-space: nowrap;
+}
+
+.panelFooter {
+  color: var(--accent);
+  font-size: 11px;
+  margin-top: auto;
+  padding-top: 13px;
+}
+
+.funnelRows {
+  display: grid;
+  margin-top: 4px;
+}
+
+.funnelRow {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 108px;
+  min-height: 75px;
+}
+
+.funnelShape {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 54%, var(--bg-panel));
+  display: flex;
+  flex-direction: column;
+  height: 75px;
+  justify-content: center;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.funnelShape[data-step="1"] { clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%); }
+.funnelShape[data-step="2"] { clip-path: polygon(12% 0, 88% 0, 76% 100%, 24% 100%); width: 100%; }
+.funnelShape[data-step="3"] { clip-path: polygon(24% 0, 76% 0, 65% 100%, 35% 100%); width: 100%; }
+
+.funnelShape span {
+  font-size: 10px;
+}
+
+.funnelShape strong {
+  font-size: 20px;
+  margin-top: 4px;
+}
+
+.funnelStats {
+  display: grid;
+  font-size: 12px;
+  gap: 5px;
+  padding-left: 10px;
+}
+
+.funnelStats > strong {
+  font-size: 11px;
+}
+
+.funnelStats small {
+  color: var(--text-secondary);
+  font-size: 9px;
+  margin-left: 2px;
+}
+
+.tableScroller {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.dataTable {
+  border-collapse: collapse;
+  font-size: 11px;
+  width: 100%;
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 11px 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dataTable th:first-child,
+.dataTable td:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.dataTable th:last-child,
+.dataTable td:last-child {
+  padding-right: 0;
+}
+
+.dataTable thead th {
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.dataTable tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
+}
+
+.dataTable tfoot th,
+.dataTable tfoot td {
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  padding-top: 14px;
+}
+
+.campaignName {
+  display: block;
+  max-width: 128px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.campaignStatus,
+.conversionRate {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 8px;
+  margin-top: 3px;
+  text-transform: capitalize;
+}
+
+.leadsTable {
+  min-width: 420px;
+}
+
+.leadsTable th,
+.leadsTable td {
+  padding-bottom: 9px;
+  padding-top: 9px;
+  text-align: left;
+}
+
+.leadName {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.leadName i {
+  background: var(--positive);
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+.intentCritical { color: var(--critical); }
+.intentHigh { color: var(--warning); }
+
+.leadsTable .actionLabel {
+  padding: 5px 7px;
+}
+
+.visuallyHidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 1279px) {
+  .metricStrip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metric { min-height: 82px; }
+  .metric:nth-child(4) { border-left: 0; }
+  .metric:nth-child(n + 4) { border-top: 1px solid var(--border-subtle); padding-top: 15px; }
+  .lowerGrid { grid-template-columns: 1fr; }
+  .lowerPanel { min-height: 330px; }
+}
+
+@media (max-width: 1119px) {
+  .mainGrid { grid-template-columns: 1fr; }
+  .performancePanel,
+  .prioritiesPanel { min-height: 360px; }
+}
+
+@media (max-width: 720px) {
+  .metricStrip { grid-template-columns: 1fr 1fr; }
+  .metric:nth-child(3),
+  .metric:nth-child(5) { border-left: 0; }
+  .metric:nth-child(n + 3) { border-top: 1px solid var(--border-subtle); padding-top: 15px; }
+}
