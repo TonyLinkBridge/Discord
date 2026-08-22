@@ -142,6 +142,18 @@
   font-size: 11px;
 }
 
+.dataSemantics {
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+  margin: 7px 0 0;
+}
+
+.dataSemantics strong {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
 .chartPlaceholder {
   align-items: flex-end;
   border-bottom: 1px solid var(--border-subtle);

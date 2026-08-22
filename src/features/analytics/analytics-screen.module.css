@@ -59,6 +59,8 @@
 .panelHeader h2 { align-items: center; display: flex; font-size: 15px; font-weight: 620; gap: 8px; letter-spacing: -.01em; margin: 0; }
 .panelHeader h2 svg { color: var(--accent); }
 .panelHeader > span { color: var(--text-secondary); font-size: 10px; }
+.dataSemantics { color: var(--text-secondary); font-size: 10px; line-height: 1.4; margin: 7px 0 0; }
+.dataSemanticsLabel { color: var(--text-primary); font-weight: 650; }
 .trendPanel,
 .attributionPanel { grid-column: 1 / -1; }
 
@@ -122,7 +124,8 @@
 .retentionPanel div { display: grid; gap: 3px; }
 .retentionPanel p { color: var(--text-secondary); font-size: 10px; margin: 0; }
 .retentionPanel strong { font-size: 22px; }
-.retentionPanel span { color: var(--text-secondary); font-size: 10px; }
+.retentionPanel span { font-size: 10px; }
+.retentionPanel .dataSemantics { margin: 0; }
 
 .visuallyHidden {
   border: 0;

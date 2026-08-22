@@ -274,6 +274,101 @@ describe("local admin data provider", () => {
     ]).size).toBe(3);
   });
 
+  test("classifies exact facts, modeled estimates, and the retention snapshot", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const analytics = await provider.getAnalytics({
+      from: "2026-08-18",
+      to: "2026-08-22",
+    });
+
+    expect(analytics).toMatchObject({
+      semantics: {
+        trend: {
+          basis: "exact-dated-facts",
+          label: "Exact dated facts",
+        },
+        campaignAttribution: {
+          basis: "exact-dated-facts",
+          label: "Exact dated facts",
+        },
+        funnel: {
+          basis: "modeled-estimate",
+          comparisonLabel: null,
+          label: "Modeled estimate",
+        },
+        revenueBySource: {
+          basis: "modeled-estimate",
+          label: "Modeled estimate",
+        },
+        conversionBySegment: {
+          basis: "modeled-estimate",
+          label: "Modeled estimate",
+        },
+        leadVelocity: {
+          basis: "modeled-estimate",
+          label: "Modeled estimate",
+        },
+        offerPerformance: {
+          basis: "modeled-estimate",
+          label: "Modeled estimate",
+        },
+        retentionRate: {
+          basis: "latest-snapshot",
+          label: "Latest available snapshot",
+        },
+      },
+    });
+
+    for (const panel of [
+      "funnel",
+      "revenueBySource",
+      "conversionBySegment",
+      "leadVelocity",
+      "offerPerformance",
+    ] as const) {
+      const semantics = analytics.semantics[panel];
+      expect(semantics.description).toMatch(/derived|baseline model/i);
+      expect(`${semantics.label} ${semantics.description}`).not.toMatch(/exact|observed/i);
+    }
+    expect(analytics.semantics.revenueBySource.description).toMatch(/revenue ratio/i);
+    expect(analytics.semantics.conversionBySegment.description).toMatch(/registration activity ratio/i);
+    expect(analytics.semantics.leadVelocity.description).toMatch(/registration activity ratio/i);
+    expect(analytics.semantics.offerPerformance.description).toMatch(/registration activity ratio/i);
+    expect(analytics.semantics.retentionRate.description)
+      .toMatch(/not a selected-period fact/i);
+  });
+
+  test("exposes funnel comparisons only for their actual baseline range", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const baseline = await provider.getOverview({
+      from: "2026-08-16",
+      to: "2026-08-22",
+    });
+    const recent = await provider.getOverview({
+      from: "2026-08-18",
+      to: "2026-08-22",
+    });
+
+    expect(baseline).toMatchObject({
+      funnelSemantics: {
+        basis: "modeled-estimate",
+        comparisonLabel: "vs Aug 9–15",
+        label: "Modeled estimate",
+      },
+    });
+    expect(baseline.funnel.map((step) => step.delta)).toEqual([-5.1, 6.6, 11.3]);
+    expect(recent).toMatchObject({
+      funnelSemantics: {
+        basis: "modeled-estimate",
+        comparisonLabel: null,
+        label: "Modeled estimate",
+      },
+    });
+    expect(recent.funnel.map((step) => step.delta)).toEqual([null, null, null]);
+  });
+
   test("returns genuine single-day campaign activity at historical and current boundaries", async () => {
     const provider = createLocalAdminDataProvider();
     const cases = [

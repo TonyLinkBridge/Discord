@@ -46,7 +46,11 @@ export function OverviewScreen() {
         <TodaysPriorities priorities={displayedSnapshot.priorities} />
       </div>
       <div className={styles.lowerGrid}>
-        <ConversionFunnel funnel={displayedSnapshot.funnel} rangeLabel={selectedRange.label} />
+        <ConversionFunnel
+          funnel={displayedSnapshot.funnel}
+          rangeLabel={selectedRange.label}
+          semantics={displayedSnapshot.funnelSemantics}
+        />
         <HighIntentLeads leads={displayedSnapshot.leads} />
         <CampaignPerformance campaigns={displayedSnapshot.campaigns} rangeLabel={selectedRange.label} />
       </div>

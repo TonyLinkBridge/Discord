@@ -172,6 +172,7 @@ export interface OverviewSnapshot {
   metrics: Metric[];
   trend: TrendPoint[];
   funnel: FunnelStep[];
+  funnelSemantics: FunnelSemantics;
   priorities: Priority[];
   leads: Lead[];
   campaigns: Campaign[];
@@ -224,11 +225,50 @@ export interface FunnelStep {
   label: string;
   value: number;
   conversionRate: number | null;
-  delta: number;
+  delta: number | null;
+}
+
+export type ExactDatedSemantics = {
+  basis: "exact-dated-facts";
+  label: "Exact dated facts";
+  description: string;
+};
+
+export type ModeledSemantics = {
+  basis: "modeled-estimate";
+  label: "Modeled estimate";
+  description: string;
+};
+
+export type LatestSnapshotSemantics = {
+  basis: "latest-snapshot";
+  label: "Latest available snapshot";
+  description: string;
+};
+
+export type DataSemantics =
+  | ExactDatedSemantics
+  | ModeledSemantics
+  | LatestSnapshotSemantics;
+
+export type FunnelSemantics = ModeledSemantics & {
+  comparisonLabel: string | null;
+};
+
+export interface AnalyticsSemantics {
+  trend: ExactDatedSemantics;
+  campaignAttribution: ExactDatedSemantics;
+  funnel: FunnelSemantics;
+  revenueBySource: ModeledSemantics;
+  conversionBySegment: ModeledSemantics;
+  leadVelocity: ModeledSemantics;
+  offerPerformance: ModeledSemantics;
+  retentionRate: LatestSnapshotSemantics;
 }
 
 export interface AnalyticsSnapshot {
   range: DateRange;
+  semantics: AnalyticsSemantics;
   funnel: FunnelStep[];
   revenueBySource: DistributionItem[];
   campaignAttribution: Campaign[];
@@ -260,7 +300,7 @@ export interface WorkspaceSettings {
 }
 
 export interface AdminState {
-  overview: Omit<OverviewSnapshot, "range">;
+  overview: Omit<OverviewSnapshot, "range" | "funnelSemantics">;
   members: Member[];
   leads: Lead[];
   campaigns: Campaign[];
@@ -270,7 +310,7 @@ export interface AdminState {
   activity: ActivityEvent[];
   community: CommunitySnapshot;
   systemHealth: SystemHealth;
-  analytics: Omit<AnalyticsSnapshot, "range">;
+  analytics: Omit<AnalyticsSnapshot, "range" | "semantics">;
   analyticsEvents: CampaignAttributionEvent[];
   workspaceSettings: WorkspaceSettings;
 }

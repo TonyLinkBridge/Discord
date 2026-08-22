@@ -15,7 +15,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, ListBox, ListBoxItem } from "react-aria-components";
 import { useAdminData } from "@/lib/admin-data/context";
-import type { AnalyticsSnapshot, DistributionItem } from "@/lib/admin-data/types";
+import type { AnalyticsSnapshot, DataSemantics, DistributionItem } from "@/lib/admin-data/types";
 import { reportingRangeOptions, useReportingRange } from "@/lib/reporting-range";
 import styles from "./analytics-screen.module.css";
 
@@ -34,16 +34,28 @@ function DataTable({ caption, children }: Readonly<{ caption: string; children: 
   );
 }
 
+function SemanticsNote({ semantics }: Readonly<{ semantics: DataSemantics }>) {
+  return (
+    <p className={styles.dataSemantics}>
+      <span className={styles.dataSemanticsLabel}>{semantics.label}</span>
+      <span aria-hidden> · </span>
+      {semantics.description}
+    </p>
+  );
+}
+
 function DistributionCard({
   caption,
   icon,
   items,
+  semantics,
   title,
   valueFormatter = (value) => value.toLocaleString("en-US"),
 }: Readonly<{
   caption: string;
   icon: ReactNode;
   items: DistributionItem[];
+  semantics: DataSemantics;
   title: string;
   valueFormatter?: (value: number) => string;
 }>) {
@@ -51,6 +63,7 @@ function DistributionCard({
   return (
     <section className={`${styles.panel} ${styles.distributionPanel}`}>
       <header className={styles.panelHeader}><h2>{icon}{title}</h2></header>
+      <SemanticsNote semantics={semantics} />
       <ul className={styles.barList}>
         {items.map((item) => (
           <li key={item.label}>
@@ -122,7 +135,7 @@ export function AnalyticsScreen() {
       <div className={styles.toolbar}>
         <div>
           <p className={styles.eyebrow}>Provider-backed reporting</p>
-          <p>One reporting window is applied across trend, attribution, and funnel views.</p>
+          <p>Exact dated facts are separated from modeled estimates and latest snapshots.</p>
         </div>
         <div
           className={styles.rangeControl}
@@ -193,6 +206,7 @@ export function AnalyticsScreen() {
           <h2><ChartLineUp aria-hidden size={18} />Conversion trend</h2>
           <span>{selectedRange.label}</span>
         </header>
+        <SemanticsNote semantics={displayedAnalytics.semantics.trend} />
         <div
           aria-label="Conversion trend axis"
           className={styles.trendScroller}
@@ -238,6 +252,7 @@ export function AnalyticsScreen() {
           <h2><Megaphone aria-hidden size={18} />Campaign attribution</h2>
           <span>{selectedRange.label}</span>
         </header>
+        <SemanticsNote semantics={displayedAnalytics.semantics.campaignAttribution} />
         <DataTable caption="Attribution data table">
           <thead><tr><th scope="col">Campaign</th><th scope="col">Channel</th><th scope="col">Visitors</th><th scope="col">Verified customers</th><th scope="col">Conversions</th><th scope="col">Revenue</th></tr></thead>
           <tbody>{displayedAnalytics.campaignAttribution.map((campaign) => (
@@ -251,15 +266,20 @@ export function AnalyticsScreen() {
           <h2><Funnel aria-hidden size={18} />Conversion funnel</h2>
           <span>{selectedRange.label}</span>
         </header>
+        <SemanticsNote semantics={displayedAnalytics.semantics.funnel} />
         <ol className={styles.funnelList}>
           {displayedAnalytics.funnel.map((step) => {
-            const DeltaIcon = step.delta >= 0 ? ArrowUpRight : ArrowDownRight;
+            const positive = step.delta !== null && step.delta >= 0;
+            const DeltaIcon = positive ? ArrowUpRight : ArrowDownRight;
             return (
               <li key={step.label}>
                 <div><strong>{step.label}</strong><span>{step.value.toLocaleString("en-US")}</span></div>
-                <span className={step.delta >= 0 ? styles.positive : styles.negative}>
-                  <DeltaIcon aria-hidden size={14} />{Math.abs(step.delta)}%
-                </span>
+                {displayedAnalytics.semantics.funnel.comparisonLabel && step.delta !== null ? (
+                  <span className={positive ? styles.positive : styles.negative}>
+                    <DeltaIcon aria-hidden size={14} />
+                    {Math.abs(step.delta)}% {displayedAnalytics.semantics.funnel.comparisonLabel}
+                  </span>
+                ) : null}
               </li>
             );
           })}
@@ -267,19 +287,19 @@ export function AnalyticsScreen() {
         <DataTable caption="Funnel data table">
           <thead><tr><th scope="col">Stage</th><th scope="col">Volume</th><th scope="col">Conversion rate</th><th scope="col">Change</th></tr></thead>
           <tbody>{displayedAnalytics.funnel.map((step) => (
-            <tr key={step.label}><th scope="row">{step.label}</th><td>{step.value}</td><td>{step.conversionRate === null ? "Entry" : `${step.conversionRate}%`}</td><td>{step.delta}%</td></tr>
+            <tr key={step.label}><th scope="row">{step.label}</th><td>{step.value}</td><td>{step.conversionRate === null ? "Entry" : `${step.conversionRate}%`}</td><td>{displayedAnalytics.semantics.funnel.comparisonLabel && step.delta !== null ? `${step.delta}% ${displayedAnalytics.semantics.funnel.comparisonLabel}` : "Not available for modeled range"}</td></tr>
           ))}</tbody>
         </DataTable>
       </section>
 
-      <DistributionCard caption="Revenue by source data table" icon={<CurrencyDollar aria-hidden size={18} />} items={displayedAnalytics.revenueBySource} title="Revenue by source" valueFormatter={(value) => `$${value.toLocaleString("en-US")}`} />
-      <DistributionCard caption="Conversion by segment data table" icon={<UsersThree aria-hidden size={18} />} items={displayedAnalytics.conversionBySegment} title="Conversion by segment" />
-      <DistributionCard caption="Lead velocity data table" icon={<TrendUp aria-hidden size={18} />} items={displayedAnalytics.leadVelocity} title="Lead velocity" />
-      <DistributionCard caption="Offer performance data table" icon={<Megaphone aria-hidden size={18} />} items={displayedAnalytics.offerPerformance} title="Offer performance" />
+      <DistributionCard caption="Revenue by source data table" icon={<CurrencyDollar aria-hidden size={18} />} items={displayedAnalytics.revenueBySource} semantics={displayedAnalytics.semantics.revenueBySource} title="Revenue by source" valueFormatter={(value) => `$${value.toLocaleString("en-US")}`} />
+      <DistributionCard caption="Conversion by segment data table" icon={<UsersThree aria-hidden size={18} />} items={displayedAnalytics.conversionBySegment} semantics={displayedAnalytics.semantics.conversionBySegment} title="Conversion by segment" />
+      <DistributionCard caption="Lead velocity data table" icon={<TrendUp aria-hidden size={18} />} items={displayedAnalytics.leadVelocity} semantics={displayedAnalytics.semantics.leadVelocity} title="Lead velocity" />
+      <DistributionCard caption="Offer performance data table" icon={<Megaphone aria-hidden size={18} />} items={displayedAnalytics.offerPerformance} semantics={displayedAnalytics.semantics.offerPerformance} title="Offer performance" />
 
       <section className={`${styles.panel} ${styles.retentionPanel}`}>
         <Gauge aria-hidden size={25} weight="duotone" />
-        <div><p>Customer retention</p><strong>{displayedAnalytics.retentionRate}%</strong><span>Renewal rate for the provider reporting period</span></div>
+        <div><p>Customer retention</p><strong>{displayedAnalytics.retentionRate}%</strong><SemanticsNote semantics={displayedAnalytics.semantics.retentionRate} /></div>
       </section>
         </>
       )}

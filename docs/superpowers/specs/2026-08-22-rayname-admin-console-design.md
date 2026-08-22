@@ -116,7 +116,7 @@ Each item has one primary action. Completing or dismissing an item updates the v
 
 ### 4.4 Conversion funnel
 
-Show Discord Visitors, Verified Customers, and Paid Customers with counts, step conversion rates, and period-over-period changes. The funnel is a compact visual summary, not the sole representation of the data.
+Show Discord Visitors, Verified Customers, and Paid Customers with counts and step conversion rates. This seed has no dated funnel-stage facts, so the funnel is visibly disclosed as a modeled estimate derived from the selected range's registration-activity ratio. Show the seeded Aug 9–15 comparison only for the Aug 16–22 baseline; do not claim a period comparison for other ranges. The funnel is a compact visual summary, not the sole representation of the data.
 
 ### 4.5 High-intent leads
 
@@ -166,7 +166,7 @@ Before RayName Marketing API access is available, the API state reads `Awaiting 
 
 ### 5.8 Analytics
 
-Show the full conversion funnel, revenue by source, campaign attribution, conversion by audience segment, registration/transfer/renewal trends, lead velocity, offer performance, and retention. Every chart shares the global date range and can expose its underlying rows.
+Show the full conversion funnel, revenue by source, campaign attribution, conversion by audience segment, registration/transfer/renewal trends, lead velocity, offer performance, and retention. Every chart shares the global date range and can expose its underlying rows. Label the dated trend and campaign attribution as exact dated facts. Label funnel, revenue-by-source, segment, lead-velocity, and offer values as modeled estimates derived from selected-range activity or revenue ratios. Label retention as the latest available snapshot and state that it is not a selected-period fact.
 
 ### 5.9 Settings
 

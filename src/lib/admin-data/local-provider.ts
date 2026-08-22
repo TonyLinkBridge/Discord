@@ -4,6 +4,7 @@ import { localAdminSeed } from "./seed";
 import type {
   ActivityEvent,
   AdminState,
+  AnalyticsSemantics,
   AnalyticsSnapshot,
   Campaign,
   CampaignCreationResult,
@@ -12,6 +13,7 @@ import type {
   Lead,
   LeadAction,
   Member,
+  ModeledSemantics,
   Offer,
   Priority,
   TrackedLink,
@@ -84,6 +86,51 @@ const previousRange = (range: { from: string; to: string }) => {
 const percentageChange = (current: number, previous: number) =>
   previous ? Number((((current - previous) / previous) * 100).toFixed(1)) : null;
 
+const isApprovedAnalyticsBaseline = (range: { from: string; to: string }) =>
+  range.from === approvedAnalyticsBaseline.from && range.to === approvedAnalyticsBaseline.to;
+
+const analyticsSemanticsForRange = (range: { from: string; to: string }): AnalyticsSemantics => {
+  const activityModel = {
+    basis: "modeled-estimate" as const,
+    label: "Modeled estimate",
+    description: "Derived from the selected-range registration activity ratio against the Aug 16–22 baseline.",
+  } satisfies ModeledSemantics;
+  const isBaseline = isApprovedAnalyticsBaseline(range);
+
+  return {
+    trend: {
+      basis: "exact-dated-facts",
+      label: "Exact dated facts",
+      description: "Observed daily facts inside the selected range.",
+    },
+    campaignAttribution: {
+      basis: "exact-dated-facts",
+      label: "Exact dated facts",
+      description: "Summed dated campaign events inside the selected range and campaign dates.",
+    },
+    funnel: {
+      ...activityModel,
+      comparisonLabel: isBaseline ? "vs Aug 9–15" : null,
+      description: isBaseline
+        ? "Baseline model for Aug 16–22; comparison deltas use Aug 9–15."
+        : "Derived from the selected-range registration activity ratio against the Aug 16–22 baseline; no period comparison is available.",
+    },
+    revenueBySource: {
+      basis: "modeled-estimate",
+      label: "Modeled estimate",
+      description: "Derived from the selected-range revenue ratio against the Aug 16–22 baseline.",
+    },
+    conversionBySegment: { ...activityModel },
+    leadVelocity: { ...activityModel },
+    offerPerformance: { ...activityModel },
+    retentionRate: {
+      basis: "latest-snapshot",
+      label: "Latest available snapshot",
+      description: "No dated retention series is available, so this is not a selected-period fact.",
+    },
+  };
+};
+
 export function createLocalAdminDataProvider(
   seed: AdminState = localAdminSeed,
 ): ActorAwareAdminDataStore {
@@ -149,6 +196,7 @@ export function createLocalAdminDataProvider(
     requiredEntity(state.content.find((entry) => entry.id === entryId), "content", entryId);
 
   const analyticsForRange = (range: { from: string; to: string }): AnalyticsSnapshot => {
+    const hasBaselineComparison = isApprovedAnalyticsBaseline(range);
     const trend = state.analytics.trend.filter((point) => inRange(point.date, range));
     const baselineTrend = state.analytics.trend.filter((point) =>
       inRange(point.date, approvedAnalyticsBaseline),
@@ -163,6 +211,7 @@ export function createLocalAdminDataProvider(
       : 0;
     const funnel = state.analytics.funnel.map((step) => ({
       ...step,
+      delta: hasBaselineComparison ? step.delta : null,
       value: scaledCount(step.value, activityRatio),
     }));
     funnel.forEach((step, index) => {
@@ -194,6 +243,7 @@ export function createLocalAdminDataProvider(
 
     return {
       range: clone(range),
+      semantics: analyticsSemanticsForRange(range),
       funnel,
       revenueBySource: state.analytics.revenueBySource.map((item) => ({
         ...item,
@@ -289,6 +339,7 @@ export function createLocalAdminDataProvider(
         metrics: overviewMetrics(range, analytics.trend),
         trend: analytics.trend,
         funnel: analytics.funnel,
+        funnelSemantics: analytics.semantics.funnel,
         priorities: state.overview.priorities.filter((priority) => !priority.completed),
         leads: state.overview.leads,
         campaigns: analytics.campaignAttribution,

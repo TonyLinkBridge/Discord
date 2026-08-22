@@ -140,3 +140,26 @@ test("does not relabel an old Overview snapshot while the selected range loads",
   expect(within(await screen.findByRole("region", { name: "Overview metrics" }))
     .getByText("$14,460")).toBeVisible();
 });
+
+test("labels the Overview funnel as modeled and removes unavailable non-baseline deltas", async () => {
+  const user = userEvent.setup();
+  renderAdmin(
+    <AdminShell title="Overview">
+      <OverviewScreen />
+    </AdminShell>,
+  );
+
+  const initialFunnel = (await screen.findByRole("heading", { name: "Conversion funnel" }))
+    .closest("section")!;
+  expect(within(initialFunnel).getByText("Modeled estimate")).toBeVisible();
+  expect(within(initialFunnel).getAllByText("vs Aug 9–15")).toHaveLength(3);
+
+  const commandBar = screen.getByRole("heading", { level: 1, name: "Overview" }).closest("header")!;
+  await user.click(within(commandBar).getByRole("button", { name: /Date range:/ }));
+  await user.click(screen.getByRole("menuitemradio", { name: "Aug 18–22, 2026" }));
+
+  const recentFunnel = (await screen.findByRole("heading", { name: "Conversion funnel" }))
+    .closest("section")!;
+  expect(await within(recentFunnel).findByText(/no period comparison is available/i)).toBeVisible();
+  expect(within(recentFunnel).queryByText("vs Aug 9–15")).not.toBeInTheDocument();
+});

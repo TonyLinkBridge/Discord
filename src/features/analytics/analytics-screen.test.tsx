@@ -150,3 +150,52 @@ test("shares the command-bar range with Analytics", async () => {
     .toHaveAttribute("data-point-count", "5");
   expect(screen.getByText("$7,395")).toBeVisible();
 });
+
+test("visibly distinguishes exact facts, modeled panels, and the retention snapshot", async () => {
+  renderAdmin(<AnalyticsScreen />);
+
+  await screen.findByRole("heading", { name: "Conversion trend" });
+  const sectionFor = (heading: string) =>
+    screen.getByRole("heading", { name: heading }).closest("section")!;
+
+  const trend = sectionFor("Conversion trend");
+  expect(within(trend).getByText("Exact dated facts")).toBeVisible();
+  expect(trend).toHaveTextContent("Observed daily facts inside the selected range");
+  const attribution = sectionFor("Campaign attribution");
+  expect(within(attribution).getByText("Exact dated facts")).toBeVisible();
+  expect(attribution).toHaveTextContent("Summed dated campaign events");
+
+  for (const [heading, method] of [
+    ["Conversion funnel", /baseline model/i],
+    ["Revenue by source", /selected-range revenue ratio/i],
+    ["Conversion by segment", /selected-range registration activity ratio/i],
+    ["Lead velocity", /selected-range registration activity ratio/i],
+    ["Offer performance", /selected-range registration activity ratio/i],
+  ] as const) {
+    const panel = sectionFor(heading);
+    expect(within(panel).getByText("Modeled estimate")).toBeVisible();
+    expect(panel).toHaveTextContent(method);
+    expect(within(panel).queryByText("Exact dated facts")).not.toBeInTheDocument();
+  }
+
+  const retention = screen.getByText("Customer retention").closest("section")!;
+  expect(within(retention).getByText("Latest available snapshot")).toBeVisible();
+  expect(retention).toHaveTextContent("not a selected-period fact");
+  expect(retention).not.toHaveTextContent("for the provider reporting period");
+  expect(screen.queryByText("One reporting window is applied across trend, attribution, and funnel views."))
+    .not.toBeInTheDocument();
+});
+
+test("does not show baseline funnel deltas as a recent-range comparison", async () => {
+  const user = userEvent.setup();
+  renderAdmin(<AnalyticsScreen />);
+
+  await screen.findByRole("heading", { name: "Conversion funnel" });
+  await user.click(screen.getByRole("button", { name: "Date range" }));
+  await user.click(screen.getByRole("option", { name: "Aug 18–22, 2026" }));
+
+  const funnel = screen.getByRole("heading", { name: "Conversion funnel" }).closest("section")!;
+  expect(await within(funnel).findByText(/no period comparison is available/i)).toBeVisible();
+  expect(within(funnel).queryByText(/vs Aug 9–15/i)).not.toBeInTheDocument();
+  expect(within(funnel).getAllByText("Not available for modeled range")).toHaveLength(3);
+});
