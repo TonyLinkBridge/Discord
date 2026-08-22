@@ -9,7 +9,18 @@ import { renderAdmin } from "@/test/render";
 const location = vi.hoisted(() => ({ pathname: "/" }));
 
 vi.mock("next/navigation", () => ({
+  redirect: vi.fn(),
   usePathname: () => location.pathname,
+}));
+
+vi.mock("@/lib/auth", () => ({
+  getAdminAuthEnvironment: () => ({
+    environment: "development",
+    credentialsReady: false,
+    allowlist: [],
+    developmentOperatorId: "local-ray",
+  }),
+  getAuthenticatedDiscordUserId: vi.fn(),
 }));
 
 test("renders the approved navigation in order", () => {
@@ -36,9 +47,10 @@ test("renders the approved navigation in order", () => {
 
 test("mounts the local provider in the production admin layout", async () => {
   const user = userEvent.setup();
+  const layout = await AdminLayout({ children: <div>Route content</div> });
   render(
     <RayNameThemeProvider>
-      <AdminLayout><div>Route content</div></AdminLayout>
+      {layout}
     </RayNameThemeProvider>,
   );
 
