@@ -101,7 +101,7 @@ describe("local admin data provider", () => {
   test("exposes deterministic supporting-route snapshots", async () => {
     const provider = createLocalAdminDataProvider();
 
-    expect((await provider.getCommunity()).onboarding.completed).toBe(76);
+    expect((await provider.getCommunity()).onboarding.completed).toBe(78);
     expect((await provider.getSystemHealth()).services.find((service) => service.id === "rayname-api")).toMatchObject({
       status: "awaiting-access",
       label: "RayName Marketing API",

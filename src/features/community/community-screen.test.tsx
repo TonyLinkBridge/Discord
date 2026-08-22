@@ -5,12 +5,7 @@ import { renderAdmin } from "@/test/render";
 import { CommunityScreen } from "./community-screen";
 
 test("shows the community health and conversion sections", async () => {
-  const seed = structuredClone(localAdminSeed);
-  seed.community.onboarding = { started: 100, completed: 78, completionRate: 78 };
-
-  renderAdmin(<CommunityScreen />, {
-    provider: createLocalAdminDataProvider(seed),
-  });
+  renderAdmin(<CommunityScreen />);
 
   expect(await screen.findByRole("heading", { name: "Member growth" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Role distribution" })).toBeVisible();

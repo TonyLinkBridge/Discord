@@ -1,23 +1,11 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
-import { localAdminSeed } from "@/lib/admin-data/seed";
 import { renderAdmin } from "@/test/render";
 import { MembersScreen } from "./members-screen";
 
 test("filters unverified VIP signals and manually verifies one member", async () => {
   const user = userEvent.setup();
-  const seed = structuredClone(localAdminSeed);
-  seed.members[1] = {
-    ...seed.members[1],
-    customerStatus: "Prospect",
-    roles: ["Flipper"],
-    verified: false,
-    vipSignal: "candidate",
-  };
-  const provider = createLocalAdminDataProvider(seed);
-
-  renderAdmin(<MembersScreen />, { provider });
+  const { provider } = renderAdmin(<MembersScreen />);
   await user.selectOptions(await screen.findByLabelText("Verification"), "unverified");
   await user.selectOptions(screen.getByLabelText("VIP signal"), "candidate");
 
@@ -38,6 +26,55 @@ test("filters unverified VIP signals and manually verifies one member", async ()
     actorId: "local-ray",
     entityId: "domainnomad",
   });
+});
+
+test("keeps the Verified role exclusive to the complete verification transition", async () => {
+  const user = userEvent.setup();
+  const { provider } = renderAdmin(<MembersScreen />);
+
+  await user.click(await screen.findByRole("button", { name: "Open DomainNomad" }));
+  const roleSelect = screen.getByLabelText("Role to assign");
+
+  expect(within(roleSelect).queryByRole("option", { name: "Verified" })).not.toBeInTheDocument();
+
+  await user.selectOptions(roleSelect, "VIP");
+  await user.click(screen.getByRole("button", { name: "Assign role" }));
+
+  expect(await provider.getMember("domainnomad")).toMatchObject({
+    roles: ["Flipper", "VIP"],
+    verified: false,
+  });
+  expect((await provider.getMember("domainnomad")).roles).not.toContain("Verified");
+});
+
+test("moves focus into the member dialog and traps both Tab boundaries", async () => {
+  const user = userEvent.setup();
+  renderAdmin(<MembersScreen />);
+
+  await user.click(await screen.findByRole("button", { name: "Open Alex Chen" }));
+  const dialog = screen.getByRole("dialog", { name: "Alex Chen" });
+  const closeButton = within(dialog).getByRole("button", { name: "Close member details" });
+  const lastButton = within(dialog).getByRole("button", { name: "Create tracked link" });
+
+  expect(closeButton).toHaveFocus();
+  await user.tab({ shift: true });
+  expect(lastButton).toHaveFocus();
+  await user.tab();
+  expect(closeButton).toHaveFocus();
+});
+
+test("closes the member dialog on Escape and restores focus to its opener", async () => {
+  const user = userEvent.setup();
+  renderAdmin(<MembersScreen />);
+
+  const opener = await screen.findByRole("button", { name: "Open DomainNomad" });
+  await user.click(opener);
+  expect(screen.getByRole("button", { name: "Close member details" })).toHaveFocus();
+
+  await user.keyboard("{Escape}");
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(opener).toHaveFocus();
 });
 
 test("runs the approved member operations and persists their outcomes", async () => {

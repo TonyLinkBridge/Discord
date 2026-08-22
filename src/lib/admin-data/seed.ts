@@ -56,7 +56,7 @@ export const localAdminSeed: AdminState = {
   },
   members: [
     { id: "alex-chen", displayName: "Alex Chen", discordHandle: "@alexchen", verified: true, segment: "Investor", roles: ["Investor", "Verified"], registrationSource: "Discord", customerStatus: "Verified customer", vipSignal: "candidate", lastActivity: "Aug 22, 9:41 AM", notes: ["Interested in .com portfolio transfers"] },
-    { id: "domainnomad", displayName: "DomainNomad", discordHandle: "@domainnomad", verified: true, segment: "Flipper", roles: ["Flipper", "Verified"], registrationSource: "Discord", customerStatus: "Verified customer", vipSignal: "none", lastActivity: "Aug 22, 8:03 AM", notes: [] },
+    { id: "domainnomad", displayName: "DomainNomad", discordHandle: "@domainnomad", verified: false, segment: "Flipper", roles: ["Flipper"], registrationSource: "Discord", customerStatus: "Prospect", vipSignal: "candidate", lastActivity: "Aug 22, 8:03 AM", notes: [] },
     { id: "sarah-k", displayName: "Sarah K.", discordHandle: "@sarahk", verified: false, segment: "Startup", roles: ["Startup"], registrationSource: "Community referral", customerStatus: "Prospect", vipSignal: "none", lastActivity: "Aug 21, 11:28 PM", notes: ["Needs verification follow-up"] },
     { id: "web3builder", displayName: "Web3Builder", discordHandle: "@web3builder", verified: true, segment: "Builder", roles: ["Builder", "Verified"], registrationSource: "Discord", customerStatus: "Verified customer", vipSignal: "vip", lastActivity: "Aug 21, 7:15 PM", notes: [] },
   ],
@@ -93,7 +93,7 @@ export const localAdminSeed: AdminState = {
       { channel: "#domain-discussion", messages: 336, activeMembers: 142 },
       { channel: "#introductions", messages: 186, activeMembers: 104 },
     ],
-    onboarding: { started: 100, completed: 76, completionRate: 76 },
+    onboarding: { started: 100, completed: 78, completionRate: 78 },
     conversion: { visitors: 8742, verifiedCustomers: 326, paidCustomers: 168 },
     discordServerUrl: "https://discord.gg/rayname",
   },

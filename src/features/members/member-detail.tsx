@@ -9,12 +9,20 @@ import {
   UserCircleCheck,
   X,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Member } from "@/lib/admin-data/types";
 import styles from "./members-screen.module.css";
 
-const assignableRoles = ["Investor", "Flipper", "Startup", "Builder", "Beginner", "Verified", "VIP"];
+const assignableRoles = ["Investor", "Flipper", "Startup", "Builder", "Beginner", "VIP"];
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
 
 export function MemberDetail({
   member,
@@ -26,10 +34,44 @@ export function MemberDetail({
   onClose: () => void;
 }>) {
   const provider = useAdminData();
+  const dialogRef = useRef<HTMLElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   const [role, setRole] = useState("VIP");
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
   const [trackedUrl, setTrackedUrl] = useState("");
+
+  useEffect(() => {
+    openerRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    dialogRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus();
+
+    return () => openerRef.current?.focus();
+  }, []);
+
+  function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+
+    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? [])];
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   async function verifyCustomer() {
     try {
@@ -133,7 +175,14 @@ export function MemberDetail({
 
   return (
     <div className={styles.drawerBackdrop}>
-      <aside aria-labelledby="member-detail-title" aria-modal="true" className={styles.drawer} role="dialog">
+      <aside
+        aria-labelledby="member-detail-title"
+        aria-modal="true"
+        className={styles.drawer}
+        onKeyDown={handleDialogKeyDown}
+        ref={dialogRef}
+        role="dialog"
+      >
         <header className={styles.drawerHeader}>
           <div>
             <p>{member.discordHandle}</p>
