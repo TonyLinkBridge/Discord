@@ -69,6 +69,10 @@ export function LeadDetail({
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
+      if (pending) {
+        setStatus("Wait for the current operation to finish before closing");
+        return;
+      }
       onClose();
       return;
     }
@@ -165,7 +169,7 @@ export function LeadDetail({
             <p>{lead.segment} · {lead.intent} intent</p>
             <h2 id="lead-detail-title">{lead.name}</h2>
           </div>
-          <button aria-label="Close lead details" className={styles.iconButton} onClick={onClose} type="button">
+          <button aria-label="Close lead details" className={styles.iconButton} disabled={pending !== null} onClick={onClose} type="button">
             <X aria-hidden size={18} weight="bold" />
           </button>
         </header>

@@ -54,7 +54,7 @@ test("shows a completed action after reopening without offering duplicate comple
   expect(screen.getByRole("button", { name: "Select an action to complete" })).toBeDisabled();
 });
 
-test("serializes delayed lead mutations and blocks duplicate clicks while pending", async () => {
+test("keeps the delayed mutation lock across dismissal attempts", async () => {
   const user = userEvent.setup();
   const provider = createLocalAdminDataProvider();
   let releaseCompletion = () => {};
@@ -74,12 +74,17 @@ test("serializes delayed lead mutations and blocks duplicate clicks while pendin
   await user.selectOptions(screen.getByLabelText("Next action"), "follow-up");
   const completeButton = screen.getByRole("button", { name: "Mark follow-up complete" });
   const createLinkButton = screen.getByRole("button", { name: "Create tracked link" });
+  const closeButton = screen.getByRole("button", { name: "Close lead details" });
   await user.click(completeButton);
 
   expect(completeButton).toBeDisabled();
   expect(createLinkButton).toBeDisabled();
+  expect(closeButton).toBeDisabled();
   expect(screen.getByRole("status")).toHaveTextContent("Completing follow-up for Alex Chen");
   await user.click(completeButton);
+  await user.click(closeButton);
+  await user.keyboard("{Escape}");
+  expect(screen.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
   releaseCompletion();
 
   expect(await screen.findByRole("status")).toHaveTextContent("follow-up completed for Alex Chen");
@@ -89,4 +94,7 @@ test("serializes delayed lead mutations and blocks duplicate clicks while pendin
     "tracking.link.created",
     "lead.action.completed",
   ]);
+  expect(closeButton).toBeEnabled();
+  await user.click(closeButton);
+  expect(screen.queryByRole("dialog", { name: "Alex Chen" })).not.toBeInTheDocument();
 });
