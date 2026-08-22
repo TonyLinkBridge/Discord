@@ -178,6 +178,54 @@ test.each(["published", "draft"] as const)(
   },
 );
 
+test.each(["published", "draft"] as const)(
+  "focuses an enabled recovery status when the final scheduled post becomes %s",
+  async (status) => {
+    const user = userEvent.setup();
+    const finalSlotSeed: AdminState = structuredClone(localAdminSeed);
+    finalSlotSeed.content = finalSlotSeed.content.map((entry, index) => ({
+      ...entry,
+      status: index === 0 ? "scheduled" : index % 2 ? "published" : "draft",
+    }));
+    const baseProvider = createLocalAdminDataProvider(finalSlotSeed);
+    const provider: AdminDataProvider = {
+      ...baseProvider,
+      async updateContentEntry(entryId, patch, actorId, precondition) {
+        if (actorId === "local-ray") {
+          await baseProvider.updateContentEntry(
+            entryId,
+            { status, title: `${status} final slot` },
+            "publisher",
+          );
+        }
+        return baseProvider.updateContentEntry(entryId, patch, actorId, precondition);
+      },
+    };
+    renderAdmin(<ContentEditor />, { provider });
+
+    const target = await screen.findByLabelText("Post slot to replace");
+    await user.selectOptions(target, "market-pulse-aug-22");
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Attempted final-slot replacement");
+    await user.click(screen.getByRole("button", { name: "Schedule post" }));
+
+    const recovery = await screen.findByText(
+      "Selected post is no longer eligible. No scheduled post slots are available.",
+    );
+    expect(recovery).toHaveAttribute("role", "status");
+    expect(recovery).toHaveFocus();
+    expect(recovery).not.toHaveAttribute("disabled");
+    expect(target).toBeDisabled();
+    expect(within(target).getAllByRole("option").map((option) => option.getAttribute("value")))
+      .toEqual([""]);
+    expect(await baseProvider.getContentEntry("market-pulse-aug-22")).toMatchObject({
+      status,
+      title: `${status} final slot`,
+    });
+    expect((await baseProvider.getActivity()).map((event) => event.actorId)).toEqual(["publisher"]);
+  },
+);
+
 test("explains and disables scheduling when no eligible slots exist", async () => {
   const noEligibleSeed: AdminState = structuredClone(localAdminSeed);
   noEligibleSeed.content = noEligibleSeed.content.map((entry, index) => ({

@@ -45,6 +45,8 @@ const formatLabels = Object.fromEntries(
 const noEligibleSlotsMessage =
   "No scheduled post slots are available. Published and draft posts cannot be replaced here.";
 const ineligibleSelectionStatus = "Selected post is no longer eligible";
+const ineligibleSelectionNoSlotsStatus =
+  "Selected post is no longer eligible. No scheduled post slots are available.";
 
 function formatPublishDate(value: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -80,6 +82,7 @@ export function ContentEditor({
 }>) {
   const provider = useAdminData();
   const formRef = useRef<HTMLFormElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
   const [values, setValues] = useState<ContentFormValues>(emptyValues);
   const [errors, setErrors] = useState<ContentErrors>({});
   const [pending, setPending] = useState(false);
@@ -109,9 +112,12 @@ export function ContentEditor({
   }, [provider]);
 
   useEffect(() => {
-    if (status !== ineligibleSelectionStatus) return;
-    const target = formRef.current?.elements.namedItem("targetId");
-    if (target instanceof HTMLElement) target.focus();
+    if (status === ineligibleSelectionStatus) {
+      const target = formRef.current?.elements.namedItem("targetId");
+      if (target instanceof HTMLElement) target.focus();
+    } else if (status === ineligibleSelectionNoSlotsStatus) {
+      statusRef.current?.focus();
+    }
   }, [status]);
 
   function updateField<Field extends ContentField>(field: Field, value: ContentFormValues[Field]) {
@@ -146,10 +152,13 @@ export function ContentEditor({
   async function refreshAfterConflict() {
     const issue = "Only scheduled posts can be replaced. Choose another slot";
     const state = await provider.getState();
-    setEntries(partitionContentCycles(state.content).flatMap((cycle) => cycle.entries));
+    const refreshedEntries = partitionContentCycles(state.content)
+      .flatMap((cycle) => cycle.entries);
+    const hasEligibleTarget = refreshedEntries.some((entry) => entry.status === "scheduled");
+    setEntries(refreshedEntries);
     setValues(emptyValues);
     setErrors({ targetId: issue });
-    setStatus(ineligibleSelectionStatus);
+    setStatus(hasEligibleTarget ? ineligibleSelectionStatus : ineligibleSelectionNoSlotsStatus);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -375,7 +384,15 @@ export function ContentEditor({
           </span>
         </div>
       ) : null}
-      <p aria-live="polite" className={styles.status} role="status">{status}</p>
+      <p
+        aria-live="polite"
+        className={styles.status}
+        ref={statusRef}
+        role="status"
+        tabIndex={-1}
+      >
+        {status}
+      </p>
     </section>
   );
 }
