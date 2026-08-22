@@ -125,4 +125,132 @@ describe("local admin data provider", () => {
       entityId: "missing-priority",
     });
   });
+
+  test("throws typed errors for every supported missing entity category", async () => {
+    const provider = createLocalAdminDataProvider();
+    const missingRequests = [
+      ["member", "missing-member", provider.getMember("missing-member")],
+      ["lead", "missing-lead", provider.getLead("missing-lead")],
+      ["campaign", "missing-campaign", provider.getCampaign("missing-campaign")],
+      ["tracked-link", "missing-tracked-link", provider.getTrackedLink("missing-tracked-link")],
+      ["content", "missing-content", provider.getContentEntry("missing-content")],
+    ] as const;
+
+    for (const [entityType, entityId, request] of missingRequests) {
+      await expect(request).rejects.toMatchObject({
+        name: "EntityNotFoundError",
+        entityType,
+        entityId,
+      });
+    }
+  });
+
+  test("records a member action against the selected member", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    await provider.recordMemberAction("alex-chen", "open-ticket", "local-ray");
+
+    expect((await provider.getActivity())[0]).toMatchObject({
+      actorId: "local-ray",
+      entityId: "alex-chen",
+      action: "member.open-ticket",
+    });
+  });
+
+  test("creates a tracked link in state and records its activity", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const link = await provider.createTrackedLink(
+      {
+        destination: "https://www.rayname.com/domain/search",
+        campaign: "com-transfer-week",
+        source: "discord",
+        medium: "community",
+        content: "lead-detail",
+      },
+      "local-ray",
+    );
+
+    expect(link).toMatchObject({
+      id: "tracked-link-1",
+      url: "https://www.rayname.com/domain/search?utm_campaign=com-transfer-week&utm_content=lead-detail&utm_medium=community&utm_source=discord",
+    });
+    expect((await provider.getState()).trackedLinks).toEqual([link]);
+    expect((await provider.getActivity())[0]).toMatchObject({
+      actorId: "local-ray",
+      entityId: "tracked-link-1",
+      action: "tracking.link.created",
+    });
+  });
+
+  test("creates a campaign with zero performance and records its activity", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const campaign = await provider.createCampaign(
+      {
+        name: "Builder referral push",
+        objective: "Convert builder referrals",
+        audience: "Builders",
+        channel: "Discord",
+        destination: "https://www.rayname.com/domain/search",
+        startDate: "2026-08-23",
+        endDate: "2026-08-30",
+        status: "scheduled",
+      },
+      "local-ray",
+    );
+
+    expect(campaign).toMatchObject({
+      id: "campaign-5",
+      visitors: 0,
+      verifiedCustomers: 0,
+      conversions: 0,
+      revenue: 0,
+    });
+    expect((await provider.getState()).campaigns[0]).toEqual(campaign);
+    expect((await provider.getActivity())[0]).toMatchObject({
+      actorId: "local-ray",
+      entityId: "campaign-5",
+      action: "campaign.created",
+    });
+  });
+
+  test("updates an offer and records its activity", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const offer = await provider.updateOffer(
+      "com-transfer-offer",
+      { status: "expired", cta: "View transfer guide" },
+      "local-ray",
+    );
+
+    expect(offer).toMatchObject({ status: "expired", cta: "View transfer guide" });
+    expect(await provider.getOffer("com-transfer-offer")).toEqual(offer);
+    expect((await provider.getActivity())[0]).toMatchObject({
+      actorId: "local-ray",
+      entityId: "com-transfer-offer",
+      action: "offer.updated",
+    });
+  });
+
+  test("updates a content entry and records its activity", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const entry = await provider.updateContentEntry(
+      "market-pulse-aug-22",
+      { status: "published", ctas: ["Open the transfer guide"] },
+      "local-ray",
+    );
+
+    expect(entry).toMatchObject({
+      status: "published",
+      ctas: ["Open the transfer guide"],
+    });
+    expect(await provider.getContentEntry("market-pulse-aug-22")).toEqual(entry);
+    expect((await provider.getActivity())[0]).toMatchObject({
+      actorId: "local-ray",
+      entityId: "market-pulse-aug-22",
+      action: "content.updated",
+    });
+  });
 });
