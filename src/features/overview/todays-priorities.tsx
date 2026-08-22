@@ -8,7 +8,7 @@ import {
   Tag,
   UserCircleCheck,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Priority } from "@/lib/admin-data/types";
@@ -28,6 +28,8 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
   const provider = useAdminData();
   const [priorities, setPriorities] = useState<Priority[]>(initialPriorities ?? []);
   const [status, setStatus] = useState("");
+  const prioritySectionRef = useRef<HTMLElement>(null);
+  const restorePriorityFocus = useRef(false);
 
   useEffect(() => {
     if (initialPriorities) return;
@@ -39,6 +41,16 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
     return () => { active = false; };
   }, [initialPriorities, provider]);
 
+  useEffect(() => {
+    if (!restorePriorityFocus.current) return;
+
+    const nextAction = prioritySectionRef.current?.querySelector<HTMLButtonElement>(
+      '[data-action-menu-trigger="true"]',
+    );
+    (nextAction ?? prioritySectionRef.current)?.focus();
+    restorePriorityFocus.current = false;
+  }, [priorities]);
+
   async function completePriority(priority: Priority) {
     try {
       await provider.completePriority(priority.id, "local-ray");
@@ -49,8 +61,12 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
     }
   }
 
+  function focusNextPriorityAction() {
+    restorePriorityFocus.current = true;
+  }
+
   return (
-    <section className={`${styles.panel} ${styles.prioritiesPanel}`}>
+    <section className={`${styles.panel} ${styles.prioritiesPanel}`} ref={prioritySectionRef} tabIndex={-1}>
       <header className={styles.panelHeader}><h2>Today&apos;s priorities</h2></header>
       <div className={styles.priorityList}>
         {priorities.slice(0, 4).map((priority) => (
@@ -63,6 +79,7 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
             <ActionMenu
               buttonLabel={`${priority.actionLabel} ${priority.title}`}
               items={[{ label: "Mark complete", onSelect: () => completePriority(priority) }]}
+              onActionComplete={focusNextPriorityAction}
             />
           </div>
         ))}

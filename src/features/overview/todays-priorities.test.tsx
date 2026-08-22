@@ -5,7 +5,7 @@ import { TodaysPriorities } from "./todays-priorities";
 
 test("completes a priority and removes it from today's queue", async () => {
   const user = userEvent.setup();
-  renderAdmin(<TodaysPriorities />);
+  const { provider } = renderAdmin(<TodaysPriorities />);
 
   expect(await screen.findByText("Verify 12 new members")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Review Verify 12 new members" }));
@@ -13,6 +13,15 @@ test("completes a priority and removes it from today's queue", async () => {
 
   expect(screen.queryByText("Verify 12 new members")).not.toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent("Priority completed");
+  expect(screen.getByRole("button", { name: "Open leads Follow up with 7 high-intent leads" })).toHaveFocus();
+  expect((await provider.getOverview({ from: "2026-08-16", to: "2026-08-22" })).priorities).not.toContainEqual(
+    expect.objectContaining({ id: "verify-new-members" }),
+  );
+  expect((await provider.getActivity())[0]).toMatchObject({
+    action: "priority.completed",
+    actorId: "local-ray",
+    entityId: "verify-new-members",
+  });
 });
 
 test("supports completing a priority with keyboard menu navigation", async () => {
@@ -27,4 +36,5 @@ test("supports completing a priority with keyboard menu navigation", async () =>
   await user.keyboard("{Enter}");
 
   expect(screen.queryByText("Verify 12 new members")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Open leads Follow up with 7 high-intent leads" })).toHaveFocus();
 });

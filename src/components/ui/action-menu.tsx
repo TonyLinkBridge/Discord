@@ -13,22 +13,35 @@ export function ActionMenu({
   buttonLabel,
   compact = false,
   items,
+  onActionComplete,
 }: Readonly<{
   buttonLabel: string;
   compact?: boolean;
   items: readonly ActionMenuItem[];
+  onActionComplete?: () => void;
 }>) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
+  const restoreTriggerFocus = useRef(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (open) menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    if (open) {
+      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+      return;
+    }
+
+    if (restoreTriggerFocus.current) {
+      triggerRef.current?.focus();
+      restoreTriggerFocus.current = false;
+    }
   }, [open]);
 
   async function select(item: ActionMenuItem) {
     await item.onSelect();
+    if (onActionComplete) onActionComplete();
+    else restoreTriggerFocus.current = true;
     setOpen(false);
   }
 
@@ -59,6 +72,7 @@ export function ActionMenu({
         aria-haspopup="menu"
         aria-label={buttonLabel}
         className={styles.trigger}
+        data-action-menu-trigger="true"
         onClick={() => setOpen((value) => !value)}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") setOpen(true);
