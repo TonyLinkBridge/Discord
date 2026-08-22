@@ -1,0 +1,215 @@
+.screen {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(270px, .8fr);
+  min-width: 0;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  min-width: 0;
+  padding: 19px;
+}
+
+.loading,
+.eyebrow {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.loading { margin: 24px 0; }
+.eyebrow { margin: 0 0 5px; }
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.panelHeader h2 {
+  font-size: 17px;
+  font-weight: 620;
+  letter-spacing: -.02em;
+  margin: 0;
+}
+
+.total {
+  align-items: center;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 7px;
+}
+
+.growthPanel { min-height: 360px; }
+
+.growthChart {
+  align-items: end;
+  border-bottom: 1px solid var(--border-subtle);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(7, minmax(30px, 1fr));
+  height: 235px;
+  margin-top: 20px;
+  padding: 12px 8px 0;
+}
+
+.growthColumn {
+  align-items: center;
+  align-self: stretch;
+  color: var(--text-secondary);
+  display: grid;
+  font-size: 10px;
+  gap: 9px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  text-align: center;
+}
+
+.growthBars {
+  align-items: end;
+  align-self: stretch;
+  display: flex;
+  gap: 3px;
+}
+
+.growthBars > span {
+  border-radius: 4px 4px 0 0;
+  display: block;
+  min-height: 3px;
+  width: 50%;
+}
+
+.totalBar { background: var(--chart-1); }
+.activeBar { background: var(--chart-2); }
+
+.legend {
+  color: var(--text-secondary);
+  display: flex;
+  font-size: 11px;
+  gap: 20px;
+  padding-top: 14px;
+}
+
+.legend span { align-items: center; display: inline-flex; gap: 7px; }
+.legend i { border-radius: 2px; height: 8px; width: 8px; }
+.totalKey { background: var(--chart-1); }
+.activeKey { background: var(--chart-2); }
+
+.roleList,
+.channelList {
+  display: grid;
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.roleList { gap: 19px; }
+.roleList li { display: grid; gap: 8px; }
+.roleList li > div { display: flex; font-size: 12px; justify-content: space-between; }
+.roleList strong { font-weight: 580; }
+
+.roleTrack {
+  background: var(--bg-subtle);
+  border-radius: 999px;
+  display: block;
+  height: 7px;
+  overflow: hidden;
+}
+
+.roleTrack i {
+  background: var(--chart-1);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.activityPanel { min-height: 270px; }
+.channelList { margin-top: 9px; }
+
+.channelList li {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-height: 65px;
+}
+
+.channelList li + li { border-top: 1px solid var(--border-subtle); }
+.channelList div { display: grid; gap: 5px; }
+.channelList strong { font-size: 13px; font-weight: 580; }
+.channelList span { color: var(--text-secondary); font-size: 11px; }
+
+.conversionPanel {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.conversionPanel article {
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: 12px;
+  min-height: 83px;
+  padding: 13px;
+}
+
+.metricIcon {
+  align-items: center;
+  background: var(--accent-muted);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.conversionPanel article div { display: grid; gap: 6px; }
+.conversionPanel article strong { font-size: 12px; font-weight: 620; }
+.conversionPanel article span { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
+
+.shortcuts {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.shortcuts a {
+  align-items: center;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 11px;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.visuallyHidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 900px) {
+  .screen { grid-template-columns: 1fr; }
+  .conversionPanel { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .growthChart { gap: 7px; }
+  .total { display: none; }
+}
