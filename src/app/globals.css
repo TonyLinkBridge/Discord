@@ -6,11 +6,12 @@
   --text-primary: #12141a;
   --text-secondary: #687080;
   --border-subtle: #e4e7ee;
-  --accent: #6f4cff;
+  --accent: #6742ed;
+  --on-accent: #ffffff;
   --accent-muted: #f0ecff;
-  --positive: #20a65a;
-  --warning: #e98b0c;
-  --critical: #e54855;
+  --positive: #0f6b36;
+  --warning: #925600;
+  --critical: #b52533;
   --chart-1: #6f4cff;
   --chart-2: #299fe5;
   --chart-3: #2dbd68;
@@ -28,7 +29,8 @@ html.dark {
   --text-primary: #f3f5f8;
   --text-secondary: #a3adba;
   --border-subtle: #22313e;
-  --accent: #8b5cf6;
+  --accent: #956ff6;
+  --on-accent: #071018;
   --accent-muted: #21173c;
   --positive: #46d17d;
   --warning: #f2a51a;

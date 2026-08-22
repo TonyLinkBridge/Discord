@@ -29,7 +29,7 @@
   align-items: center;
   background: var(--accent);
   border-radius: 10px;
-  color: #fff;
+  color: var(--on-accent);
   display: inline-flex;
   font-weight: 800;
   height: 27px;
@@ -75,7 +75,7 @@
 .operatorCaret { margin-left: auto; }
 
 .contentColumn { min-width: 0; }
-.commandBar { align-items: center; background: var(--bg-canvas); display: flex; gap: 12px; min-height: 76px; padding: 16px 22px; }
+.commandBar { align-items: center; background: var(--bg-canvas); display: flex; gap: 12px; min-height: 76px; padding: 16px 22px; position: relative; z-index: 31; }
 .commandBar h1 { font-size: 24px; letter-spacing: -0.03em; margin: 0 30px 0 0; white-space: nowrap; }
 .searchTrigger, .dateControl, .iconButton { align-items: center; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; display: flex; font: inherit; }
 .searchTrigger { flex: 1; gap: 12px; height: 40px; max-width: 450px; padding: 0 11px; text-align: left; }
@@ -86,7 +86,7 @@
 .systemStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 12px; gap: 7px; white-space: nowrap; }
 .systemStatus i { background: var(--positive); border-radius: 50%; height: 9px; width: 9px; }
 .iconButton { justify-content: center; height: 40px; position: relative; width: 40px; }
-.notificationCount { align-items: center; background: var(--accent); border: 2px solid var(--bg-canvas); border-radius: 50%; color: #fff; display: flex; font-size: 9px; font-weight: 700; height: 17px; justify-content: center; position: absolute; right: -5px; top: -5px; width: 17px; }
+.notificationCount { align-items: center; background: var(--accent); border: 2px solid var(--bg-canvas); border-radius: 50%; color: var(--on-accent); display: flex; font-size: 9px; font-weight: 700; height: 17px; justify-content: center; position: absolute; right: -5px; top: -5px; width: 17px; }
 .commandOperator { align-items: center; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; display: flex; font: inherit; gap: 7px; padding: 0; }
 .commandOperatorName { font-size: 13px; font-weight: 600; }
 .operatorPopover { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); box-shadow: var(--shadow-panel); min-width: 148px; padding: 4px; }
@@ -113,7 +113,7 @@
 
 button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-@media (max-width: 1179px) {
+@media (max-width: 1180px) {
   .shell { grid-template-columns: 64px minmax(0, 1fr); }
   .sidebar { align-items: center; padding: 24px 8px 12px; }
   .brand { margin-left: 0; margin-right: 0; }
