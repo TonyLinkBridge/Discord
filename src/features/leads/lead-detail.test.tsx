@@ -90,10 +90,14 @@ test("keeps the delayed mutation lock across dismissal attempts", async () => {
   expect(closeButton).toHaveFocus();
   expect(backgroundViewButton).not.toHaveFocus();
   await user.keyboard("{Escape}");
-  expect(screen.getByRole("status")).toHaveTextContent("Wait for the current operation to finish before closing");
+  const dialog = screen.getByRole("dialog", { name: "Alex Chen" });
+  const status = screen.getByRole("status");
+  expect(status).toHaveTextContent("Wait for the current operation to finish before closing");
+  expect(status.closest('[aria-busy="true"]')).toBeNull();
+  expect(dialog.querySelector('[aria-busy="true"]')).not.toBeNull();
   expect(closeButton).toHaveFocus();
   await user.click(closeButton);
-  expect(screen.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  expect(dialog).toBeVisible();
   releaseCompletion();
 
   expect(await screen.findByRole("status")).toHaveTextContent("follow-up completed for Alex Chen");

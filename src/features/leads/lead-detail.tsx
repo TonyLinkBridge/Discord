@@ -169,71 +169,72 @@ export function LeadDetail({
       <aside
         aria-labelledby="lead-detail-title"
         aria-modal="true"
-        aria-busy={pending !== null}
         className={styles.drawer}
         onKeyDown={handleDialogKeyDown}
         ref={dialogRef}
         role="dialog"
       >
-        <header className={styles.drawerHeader}>
-          <div>
-            <p>{lead.segment} · {lead.intent} intent</p>
-            <h2 id="lead-detail-title">{lead.name}</h2>
-          </div>
-          <button
-            aria-disabled={pending !== null}
-            aria-label="Close lead details"
-            className={styles.iconButton}
-            onClick={requestClose}
-            ref={closeButtonRef}
-            type="button"
-          >
-            <X aria-hidden size={18} weight="bold" />
-          </button>
-        </header>
-
-        <dl className={styles.leadFacts}>
-          <div><dt>Stage</dt><dd>{lead.stage.replaceAll("-", " ")}</dd></div>
-          <div><dt>Source</dt><dd>{lead.source}</dd></div>
-          <div><dt>Campaign</dt><dd>{lead.campaignId.replaceAll("-", " ")}</dd></div>
-          <div><dt>Portfolio size</dt><dd>{lead.portfolioSizeBand}</dd></div>
-          <div><dt>Last activity</dt><dd>{lead.lastActivity}</dd></div>
-          <div><dt>Follow-up</dt><dd>{new Date(lead.followUpAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })}</dd></div>
-          <div><dt>Attributed value</dt><dd>${lead.attributedValue.toLocaleString()}</dd></div>
-          <div><dt>Last completed action</dt><dd>{completedActionLabel ? `${completedActionLabel} complete` : "None"}</dd></div>
-        </dl>
-
-        <section className={styles.detailSection}>
-          <h3><CheckCircle aria-hidden size={17} /> Next action</h3>
-          <label htmlFor="lead-next-action">Next action</label>
-          <select
-            disabled={pending !== null}
-            id="lead-next-action"
-            onChange={(event) => setAction(event.target.value as LeadAction | "")}
-            value={action}
-          >
-            <option disabled value="">Select an action</option>
-            {actionOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-          <button disabled={!action || pending !== null} onClick={completeAction} type="button">
-            {action ? `Mark ${actionLabels[action]} complete` : "Select an action to complete"}
-          </button>
-        </section>
-
-        <section className={styles.detailSection}>
-          <h3><LinkSimple aria-hidden size={17} /> RayName registration</h3>
-          <p className={styles.detailCopy}>Generate a campaign-attributed registration link for this lead.</p>
-          <button disabled={pending !== null} onClick={createTrackedLink} type="button">Create tracked link</button>
-          {trackedUrl ? (
-            <div className={styles.trackedLink}>
-              <label htmlFor="tracked-lead-url">Tracked URL</label>
-              <input id="tracked-lead-url" readOnly type="text" value={trackedUrl} />
-              <button disabled={pending !== null} onClick={copyTrackedLink} type="button">
-                <Copy aria-hidden size={15} /> Copy tracked link
-              </button>
+        <div aria-busy={pending !== null}>
+          <header className={styles.drawerHeader}>
+            <div>
+              <p>{lead.segment} · {lead.intent} intent</p>
+              <h2 id="lead-detail-title">{lead.name}</h2>
             </div>
-          ) : null}
-        </section>
+            <button
+              aria-disabled={pending !== null}
+              aria-label="Close lead details"
+              className={styles.iconButton}
+              onClick={requestClose}
+              ref={closeButtonRef}
+              type="button"
+            >
+              <X aria-hidden size={18} weight="bold" />
+            </button>
+          </header>
+
+          <dl className={styles.leadFacts}>
+            <div><dt>Stage</dt><dd>{lead.stage.replaceAll("-", " ")}</dd></div>
+            <div><dt>Source</dt><dd>{lead.source}</dd></div>
+            <div><dt>Campaign</dt><dd>{lead.campaignId.replaceAll("-", " ")}</dd></div>
+            <div><dt>Portfolio size</dt><dd>{lead.portfolioSizeBand}</dd></div>
+            <div><dt>Last activity</dt><dd>{lead.lastActivity}</dd></div>
+            <div><dt>Follow-up</dt><dd>{new Date(lead.followUpAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })}</dd></div>
+            <div><dt>Attributed value</dt><dd>${lead.attributedValue.toLocaleString()}</dd></div>
+            <div><dt>Last completed action</dt><dd>{completedActionLabel ? `${completedActionLabel} complete` : "None"}</dd></div>
+          </dl>
+
+          <section className={styles.detailSection}>
+            <h3><CheckCircle aria-hidden size={17} /> Next action</h3>
+            <label htmlFor="lead-next-action">Next action</label>
+            <select
+              disabled={pending !== null}
+              id="lead-next-action"
+              onChange={(event) => setAction(event.target.value as LeadAction | "")}
+              value={action}
+            >
+              <option disabled value="">Select an action</option>
+              {actionOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+            <button disabled={!action || pending !== null} onClick={completeAction} type="button">
+              {action ? `Mark ${actionLabels[action]} complete` : "Select an action to complete"}
+            </button>
+          </section>
+
+          <section className={styles.detailSection}>
+            <h3><LinkSimple aria-hidden size={17} /> RayName registration</h3>
+            <p className={styles.detailCopy}>Generate a campaign-attributed registration link for this lead.</p>
+            <button disabled={pending !== null} onClick={createTrackedLink} type="button">Create tracked link</button>
+            {trackedUrl ? (
+              <div className={styles.trackedLink}>
+                <label htmlFor="tracked-lead-url">Tracked URL</label>
+                <input id="tracked-lead-url" readOnly type="text" value={trackedUrl} />
+                <button disabled={pending !== null} onClick={copyTrackedLink} type="button">
+                  <Copy aria-hidden size={15} /> Copy tracked link
+                </button>
+              </div>
+            ) : null}
+          </section>
+        </div>
 
         <p aria-live="polite" className={styles.status} role="status">{status}</p>
       </aside>
