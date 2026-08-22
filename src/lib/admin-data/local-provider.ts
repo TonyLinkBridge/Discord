@@ -44,6 +44,16 @@ const requiredEntity = <Value>(
 const activityTimestamp = (sequence: number) =>
   `2026-08-22T12:${String(Math.floor(sequence / 60)).padStart(2, "0")}:${String(sequence % 60).padStart(2, "0")}.000Z`;
 
+const approvedAnalyticsBaseline = { from: "2026-08-16", to: "2026-08-22" } as const;
+
+const inRange = (date: string, range: { from: string; to: string }) =>
+  date >= range.from && date <= range.to;
+
+const sumBy = <Value>(values: readonly Value[], read: (value: Value) => number) =>
+  values.reduce((sum, value) => sum + read(value), 0);
+
+const scaledCount = (value: number, ratio: number) => Math.round(value * ratio);
+
 export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed): AdminDataProvider {
   const state = clone(seed);
 
@@ -127,7 +137,61 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
     },
 
     async getAnalytics(range) {
-      const analytics: AnalyticsSnapshot = { range: clone(range), ...state.analytics };
+      const trend = state.analytics.trend.filter((point) => inRange(point.date, range));
+      const baselineTrend = state.analytics.trend.filter((point) =>
+        inRange(point.date, approvedAnalyticsBaseline),
+      );
+      const baselineRegistrations = sumBy(baselineTrend, (point) => point.registrations);
+      const baselineRevenue = sumBy(baselineTrend, (point) => point.revenue);
+      const activityRatio = baselineRegistrations
+        ? sumBy(trend, (point) => point.registrations) / baselineRegistrations
+        : 0;
+      const revenueRatio = baselineRevenue
+        ? sumBy(trend, (point) => point.revenue) / baselineRevenue
+        : 0;
+      const funnel = state.analytics.funnel.map((step) => ({
+        ...step,
+        value: scaledCount(step.value, activityRatio),
+      }));
+      funnel.forEach((step, index) => {
+        if (index === 0) {
+          step.conversionRate = null;
+          return;
+        }
+        const previousValue = funnel[index - 1].value;
+        step.conversionRate = previousValue
+          ? Number(((step.value / previousValue) * 100).toFixed(1))
+          : 0;
+      });
+      const analytics: AnalyticsSnapshot = {
+        range: clone(range),
+        funnel,
+        revenueBySource: state.analytics.revenueBySource.map((item) => ({
+          ...item,
+          value: scaledCount(item.value, revenueRatio),
+        })),
+        campaignAttribution: state.analytics.campaignAttribution.map((campaign) => ({
+          ...campaign,
+          visitors: scaledCount(campaign.visitors, activityRatio),
+          verifiedCustomers: scaledCount(campaign.verifiedCustomers, activityRatio),
+          conversions: scaledCount(campaign.conversions, activityRatio),
+          revenue: scaledCount(campaign.revenue, revenueRatio),
+        })),
+        conversionBySegment: state.analytics.conversionBySegment.map((item) => ({
+          ...item,
+          value: scaledCount(item.value, activityRatio),
+        })),
+        trend,
+        leadVelocity: state.analytics.leadVelocity.map((item) => ({
+          ...item,
+          value: scaledCount(item.value, activityRatio),
+        })),
+        offerPerformance: state.analytics.offerPerformance.map((item) => ({
+          ...item,
+          value: scaledCount(item.value, activityRatio),
+        })),
+        retentionRate: state.analytics.retentionRate,
+      };
       return clone(analytics);
     },
 

@@ -113,11 +113,14 @@ export function AnalyticsScreen() {
       </div>
     );
   }
-  if (!analytics) return <p className={styles.loading} role="status">Loading analytics…</p>;
+  const snapshotMatchesSelectedRange = analytics
+    && analytics.range.from === selectedRange.from
+    && analytics.range.to === selectedRange.to;
+  const displayedAnalytics = snapshotMatchesSelectedRange ? analytics : null;
 
-  const filteredTrend = analytics.trend.filter(
+  const filteredTrend = displayedAnalytics?.trend.filter(
     (point) => point.date >= selectedRange.from && point.date <= selectedRange.to,
-  );
+  ) ?? [];
   const maximumRegistrations = Math.max(...filteredTrend.map((point) => point.registrations), 1);
 
   return (
@@ -184,6 +187,13 @@ export function AnalyticsScreen() {
         </div>
       </div>
 
+      {!displayedAnalytics ? (
+        <p className={`${styles.loading} ${styles.fullWidth}`} role="status">
+          Loading analytics for {selectedRange.label}…
+        </p>
+      ) : (
+        <>
+
       <section className={`${styles.panel} ${styles.trendPanel}`}>
         <header className={styles.panelHeader}>
           <h2><ChartLineUp aria-hidden size={18} />Conversion trend</h2>
@@ -219,7 +229,7 @@ export function AnalyticsScreen() {
         </header>
         <DataTable caption="Attribution data table">
           <thead><tr><th scope="col">Campaign</th><th scope="col">Channel</th><th scope="col">Visitors</th><th scope="col">Verified customers</th><th scope="col">Conversions</th><th scope="col">Revenue</th></tr></thead>
-          <tbody>{analytics.campaignAttribution.map((campaign) => (
+          <tbody>{displayedAnalytics.campaignAttribution.map((campaign) => (
             <tr key={campaign.id}><th scope="row">{campaign.name}</th><td>{campaign.channel}</td><td>{campaign.visitors.toLocaleString("en-US")}</td><td>{campaign.verifiedCustomers}</td><td>{campaign.conversions}</td><td>${campaign.revenue.toLocaleString("en-US")}</td></tr>
           ))}</tbody>
         </DataTable>
@@ -231,7 +241,7 @@ export function AnalyticsScreen() {
           <span>{selectedRange.label}</span>
         </header>
         <ol className={styles.funnelList}>
-          {analytics.funnel.map((step) => {
+          {displayedAnalytics.funnel.map((step) => {
             const DeltaIcon = step.delta >= 0 ? ArrowUpRight : ArrowDownRight;
             return (
               <li key={step.label}>
@@ -245,21 +255,23 @@ export function AnalyticsScreen() {
         </ol>
         <DataTable caption="Funnel data table">
           <thead><tr><th scope="col">Stage</th><th scope="col">Volume</th><th scope="col">Conversion rate</th><th scope="col">Change</th></tr></thead>
-          <tbody>{analytics.funnel.map((step) => (
+          <tbody>{displayedAnalytics.funnel.map((step) => (
             <tr key={step.label}><th scope="row">{step.label}</th><td>{step.value}</td><td>{step.conversionRate === null ? "Entry" : `${step.conversionRate}%`}</td><td>{step.delta}%</td></tr>
           ))}</tbody>
         </DataTable>
       </section>
 
-      <DistributionCard caption="Revenue by source data table" icon={<CurrencyDollar aria-hidden size={18} />} items={analytics.revenueBySource} title="Revenue by source" valueFormatter={(value) => `$${value.toLocaleString("en-US")}`} />
-      <DistributionCard caption="Conversion by segment data table" icon={<UsersThree aria-hidden size={18} />} items={analytics.conversionBySegment} title="Conversion by segment" />
-      <DistributionCard caption="Lead velocity data table" icon={<TrendUp aria-hidden size={18} />} items={analytics.leadVelocity} title="Lead velocity" />
-      <DistributionCard caption="Offer performance data table" icon={<Megaphone aria-hidden size={18} />} items={analytics.offerPerformance} title="Offer performance" />
+      <DistributionCard caption="Revenue by source data table" icon={<CurrencyDollar aria-hidden size={18} />} items={displayedAnalytics.revenueBySource} title="Revenue by source" valueFormatter={(value) => `$${value.toLocaleString("en-US")}`} />
+      <DistributionCard caption="Conversion by segment data table" icon={<UsersThree aria-hidden size={18} />} items={displayedAnalytics.conversionBySegment} title="Conversion by segment" />
+      <DistributionCard caption="Lead velocity data table" icon={<TrendUp aria-hidden size={18} />} items={displayedAnalytics.leadVelocity} title="Lead velocity" />
+      <DistributionCard caption="Offer performance data table" icon={<Megaphone aria-hidden size={18} />} items={displayedAnalytics.offerPerformance} title="Offer performance" />
 
       <section className={`${styles.panel} ${styles.retentionPanel}`}>
         <Gauge aria-hidden size={25} weight="duotone" />
-        <div><p>Customer retention</p><strong>{analytics.retentionRate}%</strong><span>Renewal rate for the provider reporting period</span></div>
+        <div><p>Customer retention</p><strong>{displayedAnalytics.retentionRate}%</strong><span>Renewal rate for the provider reporting period</span></div>
       </section>
+        </>
+      )}
     </main>
   );
 }

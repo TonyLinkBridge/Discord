@@ -9,9 +9,9 @@ import {
   UserCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
-import type { SystemHealth } from "@/lib/admin-data/types";
+import type { Member, SystemHealth } from "@/lib/admin-data/types";
 import styles from "./bot-automations-screen.module.css";
 
 const apiAutomationLabels = [
@@ -26,20 +26,32 @@ const serviceStatusLabel = (status: SystemHealth["services"][number]["status"]) 
 
 export function BotAutomationsScreen() {
   const provider = useAdminData();
+  const operationLockRef = useRef(false);
   const [health, setHealth] = useState<SystemHealth | null>(null);
+  const [verificationQueue, setVerificationQueue] = useState<Member[] | null>(null);
+  const [healthError, setHealthError] = useState("");
+  const [healthRetryRevision, setHealthRetryRevision] = useState(0);
   const [pending, setPending] = useState<"tracking" | "verification" | null>(null);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
     let active = true;
-    provider.getSystemHealth().then((snapshot) => {
-      if (active) setHealth(snapshot);
-    });
+    Promise.all([provider.getSystemHealth(), provider.getState()])
+      .then(([snapshot, state]) => {
+        if (active) {
+          setHealth(snapshot);
+          setVerificationQueue(state.members.filter((member) => !member.verified));
+        }
+      })
+      .catch(() => {
+        if (active) setHealthError("Unable to load system health");
+      });
     return () => { active = false; };
-  }, [provider]);
+  }, [healthRetryRevision, provider]);
 
   async function createTrackedLink() {
-    if (pending) return;
+    if (operationLockRef.current) return;
+    operationLockRef.current = true;
     setPending("tracking");
     setStatus("Creating tracked link");
     try {
@@ -54,35 +66,67 @@ export function BotAutomationsScreen() {
     } catch {
       setStatus("Unable to create tracked link");
     } finally {
+      operationLockRef.current = false;
       setPending(null);
     }
   }
 
   async function verifyCustomer() {
-    if (pending) return;
+    const verificationTarget = verificationQueue?.[0];
+    if (!verificationTarget || operationLockRef.current) return;
+    operationLockRef.current = true;
     setPending("verification");
-    setStatus("Verifying DomainNomad");
+    setStatus(`Verifying ${verificationTarget.displayName}`);
     try {
-      const member = await provider.getMember("domainnomad");
-      const roles = member.roles.includes("Verified") ? member.roles : [...member.roles, "Verified"];
-      await provider.updateMember("domainnomad", {
-        customerStatus: "Verified customer",
-        roles,
-        verified: true,
-      }, "local-ray");
-      setStatus("DomainNomad verified manually");
+      const member = await provider.getMember(verificationTarget.id);
+      if (!member.verified) {
+        const roles = member.roles.includes("Verified") ? member.roles : [...member.roles, "Verified"];
+        await provider.updateMember(member.id, {
+          customerStatus: "Verified customer",
+          roles,
+          verified: true,
+        }, "local-ray");
+      }
+      const refreshedState = await provider.getState();
+      setVerificationQueue(refreshedState.members.filter((item) => !item.verified));
+      setStatus(member.verified
+        ? `${member.displayName} was already verified`
+        : `${member.displayName} verified manually`);
     } catch {
-      setStatus("Unable to verify DomainNomad");
+      setStatus(`Unable to verify ${verificationTarget.displayName}`);
     } finally {
+      operationLockRef.current = false;
       setPending(null);
     }
   }
 
+  if (healthError) {
+    return (
+      <div className={styles.loadError} role="alert">
+        <p>{healthError}</p>
+        <button
+          onClick={() => {
+            setHealthError("");
+            setHealth(null);
+            setVerificationQueue(null);
+            setHealthRetryRevision((revision) => revision + 1);
+          }}
+          type="button"
+        >
+          Retry system health
+        </button>
+      </div>
+    );
+  }
   if (!health) return <p className={styles.loading} role="status">Loading system health…</p>;
 
-  const apiPending = health.services.some(
-    (service) => service.id === "rayname-api" && service.status === "awaiting-access",
-  );
+  const apiStatus = health.services.find((service) => service.id === "rayname-api")?.status;
+  const apiStateExplanation = apiStatus === "operational"
+    ? "RayName Marketing API is connected."
+    : apiStatus === "degraded"
+      ? "RayName Marketing API is degraded."
+      : "RayName Marketing API access is pending.";
+  const verificationTarget = verificationQueue?.[0] ?? null;
 
   return (
     <main className={styles.screen}>
@@ -121,15 +165,13 @@ export function BotAutomationsScreen() {
           </div>
           <Robot aria-hidden className={styles.headerIcon} size={22} weight="duotone" />
         </header>
-        {apiPending ? (
-          <p className={styles.notice}>
-            <WarningCircle aria-hidden size={18} weight="fill" />
-            RayName Marketing API access is pending. API-dependent commands remain off until a server-side adapter is connected.
-          </p>
-        ) : null}
+        <p className={styles.notice}>
+          <WarningCircle aria-hidden size={18} weight="fill" />
+          {apiStateExplanation} Controls remain unavailable until provider mutations are implemented.
+        </p>
         <div className={styles.automationGrid}>
           {apiAutomationLabels.map((label) => (
-            <button disabled={apiPending} key={label} type="button">{label}</button>
+            <button disabled key={label} type="button">{label}</button>
           ))}
         </div>
       </section>
@@ -144,12 +186,18 @@ export function BotAutomationsScreen() {
         <p className={styles.supportingCopy}>
           Tracked attribution and operator-recorded verification stay available through the admin data provider.
         </p>
-        <p className={styles.queueTarget}><strong>Next verification: DomainNomad</strong></p>
+        <p className={styles.queueTarget}>
+          <strong>
+            {verificationTarget
+              ? `Next verification: ${verificationTarget.displayName}`
+              : "Manual verification queue complete"}
+          </strong>
+        </p>
         <div className={styles.manualActions}>
           <button disabled={pending !== null} onClick={createTrackedLink} type="button">
             <LinkSimple aria-hidden size={16} />Create tracked link
           </button>
-          <button disabled={pending !== null} onClick={verifyCustomer} type="button">
+          <button disabled={pending !== null || !verificationTarget} onClick={verifyCustomer} type="button">
             <UserCheck aria-hidden size={16} />Verify customer manually
           </button>
         </div>

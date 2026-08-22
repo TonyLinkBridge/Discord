@@ -134,6 +134,33 @@ describe("local admin data provider", () => {
     expect((await provider.getWorkspaceSettings()).workspace.name).toBe("RayName Discord Community");
   });
 
+  test("computes distinct analytics aggregates for every approved date range", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const monthToDate = await provider.getAnalytics({ from: "2026-08-01", to: "2026-08-22" });
+    const approvedWeek = await provider.getAnalytics({ from: "2026-08-16", to: "2026-08-22" });
+    const recentFiveDays = await provider.getAnalytics({ from: "2026-08-18", to: "2026-08-22" });
+
+    expect(approvedWeek.campaignAttribution[0]).toMatchObject({
+      revenue: 9420,
+      visitors: 2842,
+    });
+    expect(approvedWeek.funnel.map((step) => step.value)).toEqual([8742, 326, 168]);
+    expect(recentFiveDays.campaignAttribution[0]).toMatchObject({
+      revenue: 7395,
+      visitors: 2504,
+    });
+    expect(recentFiveDays.funnel.map((step) => step.value)).toEqual([7701, 287, 148]);
+    expect(recentFiveDays.trend).toHaveLength(5);
+    expect(monthToDate.campaignAttribution[0].revenue).toBeGreaterThan(9420);
+    expect(monthToDate.funnel[0].value).toBeGreaterThan(8742);
+    expect(new Set([
+      monthToDate.campaignAttribution[0].revenue,
+      approvedWeek.campaignAttribution[0].revenue,
+      recentFiveDays.campaignAttribution[0].revenue,
+    ]).size).toBe(3);
+  });
+
   test("throws a typed error when a requested entity does not exist", async () => {
     const provider = createLocalAdminDataProvider();
 

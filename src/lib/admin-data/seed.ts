@@ -10,6 +10,24 @@ const aug16To22Trend = [
   ["2026-08-22", 84, 9, 23, 3480],
 ] as const;
 
+const aug1To15AnalyticsTrend = [
+  ["2026-08-01", 4, 1, 18, 720],
+  ["2026-08-02", 5, 2, 19, 840],
+  ["2026-08-03", 6, 1, 17, 960],
+  ["2026-08-04", 7, 2, 20, 1120],
+  ["2026-08-05", 5, 2, 18, 890],
+  ["2026-08-06", 8, 3, 21, 1340],
+  ["2026-08-07", 9, 2, 22, 1460],
+  ["2026-08-08", 6, 2, 19, 1080],
+  ["2026-08-09", 7, 3, 20, 1190],
+  ["2026-08-10", 8, 2, 21, 1420],
+  ["2026-08-11", 9, 3, 22, 1530],
+  ["2026-08-12", 10, 3, 23, 1670],
+  ["2026-08-13", 7, 2, 20, 1210],
+  ["2026-08-14", 11, 4, 24, 1820],
+  ["2026-08-15", 12, 4, 22, 1960],
+] as const;
+
 const overviewFunnel = [
   { label: "Discord Visitors", value: 8742, conversionRate: null, delta: -5.1 },
   { label: "Verified Customers", value: 326, conversionRate: 3.7, delta: 6.6 },
@@ -129,7 +147,15 @@ export const localAdminSeed: AdminState = {
       { label: "Builder", value: 21 },
       { label: "Beginner", value: 14 },
     ],
-    trend: aug16To22Trend.map(([date, registrations, transfers, renewals, revenue]) => ({ date, registrations, transfers, renewals, revenue })),
+    trend: [...aug1To15AnalyticsTrend, ...aug16To22Trend].map(
+      ([date, registrations, transfers, renewals, revenue]) => ({
+        date,
+        registrations,
+        transfers,
+        renewals,
+        revenue,
+      }),
+    ),
     leadVelocity: [
       { label: "New", value: 29 },
       { label: "Qualified", value: 18 },

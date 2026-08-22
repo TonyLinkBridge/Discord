@@ -26,6 +26,7 @@
 .toolbar .eyebrow { color: var(--text-primary); font-size: 12px; font-weight: 620; }
 .panel { padding: 19px; }
 .loading { color: var(--text-secondary); font-size: 12px; margin: 24px 0; }
+.fullWidth { grid-column: 1 / -1; }
 .loadError { align-items: flex-start; color: var(--critical); display: flex; flex-direction: column; gap: 10px; margin: 24px 0; }
 .loadError p { font-size: 12px; margin: 0; }
 .loadError button { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font: inherit; font-size: 11px; min-height: 34px; padding: 0 12px; }
