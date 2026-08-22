@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckCircle, Copy, LinkSimple, X } from "@phosphor-icons/react";
+import { CheckCircle, Copy, LinkSimple, Moon, Sun, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { useTheme } from "next-themes";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Lead, LeadAction } from "@/lib/admin-data/types";
 import styles from "./leads-screen.module.css";
@@ -43,8 +44,9 @@ export function LeadDetail({
   onClose: () => void;
 }>) {
   const provider = useAdminData();
+  const { resolvedTheme, setTheme } = useTheme();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const [action, setAction] = useState<LeadAction | "">(lead.nextAction ?? "");
   const [pending, setPending] = useState<"completion" | "tracking" | "copy" | null>(null);
@@ -56,9 +58,18 @@ export function LeadDetail({
     openerRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    dialogRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus();
+    const dialog = dialogRef.current;
+    if (dialog && typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog?.setAttribute("open", "");
+    }
+    dialog?.querySelector<HTMLElement>(focusableSelector)?.focus();
 
     return () => {
+      if (dialog?.open && typeof dialog.close === "function") {
+        dialog.close();
+      }
       if (openerRef.current?.isConnected) {
         openerRef.current.focus();
       } else {
@@ -165,31 +176,50 @@ export function LeadDetail({
     : null;
 
   return (
-    <div className={styles.drawerBackdrop}>
-      <aside
-        aria-labelledby="lead-detail-title"
-        aria-modal="true"
-        className={styles.drawer}
-        onKeyDown={handleDialogKeyDown}
-        ref={dialogRef}
-        role="dialog"
-      >
+    <dialog
+      aria-labelledby="lead-detail-title"
+      className={styles.drawer}
+      onKeyDown={handleDialogKeyDown}
+      ref={dialogRef}
+    >
         <div aria-busy={pending !== null}>
           <header className={styles.drawerHeader}>
             <div>
               <p>{lead.segment} · {lead.intent} intent</p>
               <h2 id="lead-detail-title">{lead.name}</h2>
             </div>
-            <button
-              aria-disabled={pending !== null}
-              aria-label="Close lead details"
-              className={styles.iconButton}
-              onClick={requestClose}
-              ref={closeButtonRef}
-              type="button"
-            >
-              <X aria-hidden size={18} weight="bold" />
-            </button>
+            <div className={styles.drawerHeaderActions}>
+              <button
+                aria-disabled={pending !== null}
+                aria-label="Close lead details"
+                className={styles.iconButton}
+                onClick={requestClose}
+                ref={closeButtonRef}
+                type="button"
+              >
+                <X aria-hidden size={18} weight="bold" />
+              </button>
+              <div aria-label="Lead detail theme" className={styles.drawerTheme} role="group">
+                <button
+                  aria-label="Use light theme"
+                  aria-pressed={resolvedTheme === "light"}
+                  disabled={pending !== null}
+                  onClick={() => setTheme("light")}
+                  type="button"
+                >
+                  <Sun aria-hidden size={16} />
+                </button>
+                <button
+                  aria-label="Use dark theme"
+                  aria-pressed={resolvedTheme === "dark"}
+                  disabled={pending !== null}
+                  onClick={() => setTheme("dark")}
+                  type="button"
+                >
+                  <Moon aria-hidden size={16} />
+                </button>
+              </div>
+            </div>
           </header>
 
           <dl className={styles.leadFacts}>
@@ -237,7 +267,6 @@ export function LeadDetail({
         </div>
 
         <p aria-live="polite" className={styles.status} role="status">{status}</p>
-      </aside>
-    </div>
+    </dialog>
   );
 }

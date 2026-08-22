@@ -112,7 +112,7 @@
   background: var(--accent);
   border: 0;
   border-radius: var(--radius-sm);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
@@ -286,7 +286,7 @@
 }
 
 .education { background: var(--accent-muted); color: var(--accent); }
-.soft { background: color-mix(in srgb, var(--chart-2) 14%, transparent); color: var(--chart-2); }
+.soft { background: color-mix(in srgb, var(--chart-2) 14%, transparent); color: var(--text-primary); }
 .direct { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--text-primary); }
 
 .calendarCard > p {

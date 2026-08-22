@@ -32,7 +32,7 @@ const dateLabel = (date: string) =>
 
 function DataTable({ caption, children }: Readonly<{ caption: string; children: ReactNode }>) {
   return (
-    <div className={styles.tableScroller}>
+    <div aria-label={`${caption} scroll area`} className={styles.tableScroller} role="region" tabIndex={0}>
       <table className={styles.dataTable}>
         <caption className={styles.visuallyHidden}>{caption}</caption>
         {children}

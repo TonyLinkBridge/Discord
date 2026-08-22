@@ -132,7 +132,7 @@
 .manualActions button {
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   gap: 7px;
 }
 

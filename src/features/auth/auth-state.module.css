@@ -53,7 +53,7 @@
 .primaryAction {
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .secondaryAction {

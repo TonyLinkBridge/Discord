@@ -75,7 +75,7 @@
 .operatorCaret { margin-left: auto; }
 
 .contentColumn { min-width: 0; }
-.commandBar { align-items: center; background: var(--bg-canvas); display: flex; gap: 12px; min-height: 76px; padding: 16px 22px; position: relative; z-index: 31; }
+.commandBar { align-items: center; background: var(--bg-canvas); display: flex; gap: 12px; min-height: 76px; padding: 16px 22px; }
 .commandBar h1 { font-size: 24px; letter-spacing: -0.03em; margin: 0 30px 0 0; white-space: nowrap; }
 .searchTrigger, .dateControl, .iconButton { align-items: center; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; display: flex; font: inherit; }
 .searchTrigger { flex: 1; gap: 12px; height: 40px; max-width: 450px; padding: 0 11px; text-align: left; }

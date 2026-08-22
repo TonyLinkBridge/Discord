@@ -158,28 +158,32 @@
   outline-offset: 2px;
 }
 
-.drawerBackdrop {
-  background: color-mix(in srgb, var(--text-primary) 38%, transparent);
-  inset: 0;
-  position: fixed;
-  z-index: 30;
-}
-
 .drawer {
   background: var(--bg-panel);
+  border: 0;
   border-left: 1px solid var(--border-subtle);
   box-shadow: -16px 0 44px color-mix(in srgb, var(--text-primary) 16%, transparent);
+  color: var(--text-primary);
   height: 100%;
-  margin-left: auto;
+  inset: 0 0 0 auto;
+  margin: 0;
+  max-height: none;
   max-width: 520px;
   overflow-y: auto;
   padding: 20px;
+  position: fixed;
   width: min(92vw, 520px);
 }
+
+.drawer::backdrop { background: color-mix(in srgb, var(--text-primary) 38%, transparent); }
 
 .drawerHeader { align-items: flex-start; display: flex; justify-content: space-between; }
 .drawerHeader p { color: var(--text-secondary); font-size: 11px; margin: 0 0 5px; }
 .drawerHeader h2 { font-size: 21px; margin: 0; }
+.drawerHeaderActions { align-items: flex-start; display: flex; gap: 8px; }
+.drawerTheme { display: inline-flex; gap: 4px; }
+.drawerTheme button { border-color: var(--border-subtle); color: var(--text-secondary); min-width: 32px; padding: 5px; }
+.drawerTheme button[aria-pressed="true"] { background: var(--accent-muted); color: var(--accent); }
 
 .drawer button {
   align-items: center;

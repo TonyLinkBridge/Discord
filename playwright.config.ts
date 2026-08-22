@@ -24,6 +24,10 @@ export default defineConfig({
   webServer: {
     command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
     env: {
+      ADMIN_DISCORD_USER_IDS: "local-ray",
+      AUTH_DISCORD_ID: "playwright-discord-client",
+      AUTH_DISCORD_SECRET: "playwright-discord-secret",
+      AUTH_SECRET: "playwright-local-auth-secret",
       DATA_MODE: "local",
       DEV_OPERATOR_ID: "local-ray",
     },

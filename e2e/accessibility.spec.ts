@@ -2,7 +2,20 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
-const routes = ["/", "/members", "/leads", "/campaigns", "/settings"];
+const routes = [
+  "/",
+  "/community",
+  "/members",
+  "/leads",
+  "/campaigns",
+  "/offers",
+  "/content",
+  "/bot-automations",
+  "/analytics",
+  "/settings",
+  "/sign-in",
+  "/access-denied",
+];
 const themes = ["light", "dark"] as const;
 
 async function loadTheme(page: Page, route: string, theme: (typeof themes)[number]) {
@@ -94,6 +107,14 @@ test("lead detail drawer traps focus and restores its opener", async ({ page }) 
   const close = page.getByRole("button", { name: "Close lead details" });
   const lastControl = page.getByRole("button", { name: "Create tracked link" });
   await expect(drawer).toBeVisible();
+  expect(await drawer.evaluate((element) => element.matches(":modal"))).toBe(true);
+  await expect(close).toBeFocused();
+
+  const backgroundMemberLink = page.locator('nav[aria-label="Primary"] a[href="/members"]');
+  expect(await backgroundMemberLink.evaluate((element) => {
+    (element as HTMLElement).focus();
+    return document.activeElement === element;
+  })).toBe(false);
   await expect(close).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(lastControl).toBeFocused();
