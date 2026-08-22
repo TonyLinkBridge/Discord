@@ -76,6 +76,26 @@ describe("local admin data provider", () => {
     ]);
   });
 
+  test("persists one completed lead action across canonical and overview state", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const completed = await provider.completeLeadAction("alex-chen", "message", "local-ray");
+
+    expect(completed).toMatchObject({
+      completedAction: "message",
+      nextAction: null,
+    });
+    expect(await provider.getLead("alex-chen")).toEqual(completed);
+    expect((await provider.getState()).overview.leads.find((lead) => lead.id === "alex-chen"))
+      .toMatchObject({ completedAction: "message", nextAction: null });
+    await expect(
+      provider.completeLeadAction("alex-chen", "message", "local-ray"),
+    ).rejects.toThrow("No pending message action exists for Alex Chen.");
+    expect((await provider.getActivity()).map((event) => event.action)).toEqual([
+      "lead.action.completed",
+    ]);
+  });
+
   test("searches the supported entities and returns no result for an empty query", async () => {
     const provider = createLocalAdminDataProvider();
 

@@ -38,7 +38,15 @@ export function LeadTable({
     },
     { id: "stage", header: "Stage", render: (lead) => <span className={styles.stage}>{lead.stage.replaceAll("-", " ")}</span> },
     { id: "activity", header: "Last activity", render: (lead) => lead.lastActivity },
-    { id: "action", header: "Next action", render: (lead) => actionLabels[lead.nextAction] },
+    {
+      id: "action",
+      header: "Next action",
+      render: (lead) => lead.nextAction
+        ? actionLabels[lead.nextAction]
+        : lead.completedAction
+          ? `${actionLabels[lead.completedAction]} complete`
+          : "No action scheduled",
+    },
     {
       id: "open",
       header: "",

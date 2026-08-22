@@ -9,6 +9,7 @@ import type {
   ContentEntry,
   EntityType,
   Lead,
+  LeadAction,
   Member,
   Offer,
   Priority,
@@ -69,18 +70,23 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
     requiredEntity(state.members.find((member) => member.id === memberId), "member", memberId);
   const leadById = (leadId: string): Lead =>
     requiredEntity(state.leads.find((lead) => lead.id === leadId), "lead", leadId);
-  const applyLeadAction = (leadId: string, action: Lead["nextAction"]): Lead => {
+  const syncOverviewLead = (lead: Lead): void => {
+    const overviewLead = state.overview.leads.find((item) => item.id === lead.id);
+    if (overviewLead) {
+      overviewLead.nextAction = lead.nextAction;
+      overviewLead.completedAction = lead.completedAction;
+      overviewLead.stage = lead.stage;
+    }
+  };
+  const applyLeadAction = (leadId: string, action: LeadAction): Lead => {
     const lead = leadById(leadId);
     lead.nextAction = action;
+    lead.completedAction = null;
     if (action === "mark-converted") {
       lead.stage = "converted";
     }
 
-    const overviewLead = state.overview.leads.find((item) => item.id === leadId);
-    if (overviewLead) {
-      overviewLead.nextAction = lead.nextAction;
-      overviewLead.stage = lead.stage;
-    }
+    syncOverviewLead(lead);
     return lead;
   };
   const campaignById = (campaignId: string): Campaign =>
@@ -224,7 +230,17 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
     },
 
     async completeLeadAction(leadId, action, actorId) {
-      const lead = applyLeadAction(leadId, action);
+      const lead = leadById(leadId);
+      if (lead.nextAction === null && lead.completedAction === action) {
+        throw new Error(`No pending ${action} action exists for ${lead.name}.`);
+      }
+
+      lead.nextAction = null;
+      lead.completedAction = action;
+      if (action === "mark-converted") {
+        lead.stage = "converted";
+      }
+      syncOverviewLead(lead);
       recordActivity(actorId, leadId, "lead.action.completed");
       return clone(lead);
     },

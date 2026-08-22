@@ -46,7 +46,8 @@ export interface Lead {
   intent: string;
   stage: LeadStage;
   lastActivity: string;
-  nextAction: LeadAction;
+  nextAction: LeadAction | null;
+  completedAction: LeadAction | null;
   attributedValue: number;
   source: string;
   campaignId: string;

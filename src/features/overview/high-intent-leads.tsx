@@ -43,7 +43,7 @@ export function HighIntentLeads({ leads: initialLeads }: Readonly<{ leads?: Lead
     try {
       await provider.updateLeadAction(lead.id, action, "local-ray");
       setLeads((items) => items.map((item) => (
-        item.id === lead.id ? { ...item, nextAction: action } : item
+        item.id === lead.id ? { ...item, completedAction: null, nextAction: action } : item
       )));
       setCompletedActions((items) => ({
         ...items,
@@ -75,7 +75,14 @@ export function HighIntentLeads({ leads: initialLeads }: Readonly<{ leads?: Lead
                 <td>{lead.lastActivity}</td>
                 <td>
                   <span className={styles.leadAction}>
-                    <span className={styles.actionLabel}>{completedActions[lead.id] ?? actionLabels[lead.nextAction]}</span>
+                    <span className={styles.actionLabel}>
+                      {completedActions[lead.id]
+                        ?? (lead.nextAction
+                          ? actionLabels[lead.nextAction]
+                          : lead.completedAction
+                            ? `${actionLabels[lead.completedAction]} complete`
+                            : "No action scheduled")}
+                    </span>
                     <ActionMenu
                       buttonLabel={`Actions for ${lead.name}`}
                       compact

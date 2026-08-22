@@ -45,7 +45,8 @@ export function LeadDetail({
   const provider = useAdminData();
   const dialogRef = useRef<HTMLElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-  const [action, setAction] = useState<LeadAction>(lead.nextAction);
+  const [action, setAction] = useState<LeadAction | "">(lead.nextAction ?? "");
+  const [pending, setPending] = useState<"completion" | "tracking" | "copy" | null>(null);
   const [status, setStatus] = useState("");
   const [trackedUrl, setTrackedUrl] = useState("");
 
@@ -89,16 +90,29 @@ export function LeadDetail({
   }
 
   async function completeAction() {
+    if (!action || pending) return;
+
+    const completedAction = action;
+    setPending("completion");
+    setStatus(`Completing ${actionLabels[completedAction]} for ${lead.name}`);
+
     try {
-      const updated = await provider.completeLeadAction(lead.id, action, "local-ray");
+      const updated = await provider.completeLeadAction(lead.id, completedAction, "local-ray");
       onChange(updated);
-      setStatus(`${actionLabels[action]} completed for ${lead.name}`);
+      setStatus(`${actionLabels[completedAction]} completed for ${lead.name}`);
+      setAction("");
     } catch {
-      setStatus(`Unable to complete ${actionLabels[action]}`);
+      setStatus(`Unable to complete ${actionLabels[completedAction]}`);
+    } finally {
+      setPending(null);
     }
   }
 
   async function createTrackedLink() {
+    if (pending) return;
+
+    setPending("tracking");
+    setStatus(`Creating tracked registration link for ${lead.name}`);
     try {
       const campaign = await provider.getCampaign(lead.campaignId);
       const link = await provider.createTrackedLink({
@@ -112,23 +126,35 @@ export function LeadDetail({
       setStatus("Tracked registration link created");
     } catch {
       setStatus("Unable to create tracked link");
+    } finally {
+      setPending(null);
     }
   }
 
   async function copyTrackedLink() {
+    if (pending) return;
+
+    setPending("copy");
     try {
       await navigator.clipboard.writeText(trackedUrl);
       setStatus("Tracked registration link copied");
     } catch {
       setStatus("Unable to copy tracked link");
+    } finally {
+      setPending(null);
     }
   }
+
+  const completedActionLabel = lead.completedAction
+    ? actionOptions.find((item) => item.value === lead.completedAction)?.label
+    : null;
 
   return (
     <div className={styles.drawerBackdrop}>
       <aside
         aria-labelledby="lead-detail-title"
         aria-modal="true"
+        aria-busy={pending !== null}
         className={styles.drawer}
         onKeyDown={handleDialogKeyDown}
         ref={dialogRef}
@@ -152,32 +178,35 @@ export function LeadDetail({
           <div><dt>Last activity</dt><dd>{lead.lastActivity}</dd></div>
           <div><dt>Follow-up</dt><dd>{new Date(lead.followUpAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })}</dd></div>
           <div><dt>Attributed value</dt><dd>${lead.attributedValue.toLocaleString()}</dd></div>
+          <div><dt>Last completed action</dt><dd>{completedActionLabel ? `${completedActionLabel} complete` : "None"}</dd></div>
         </dl>
 
         <section className={styles.detailSection}>
           <h3><CheckCircle aria-hidden size={17} /> Next action</h3>
           <label htmlFor="lead-next-action">Next action</label>
           <select
+            disabled={pending !== null}
             id="lead-next-action"
-            onChange={(event) => setAction(event.target.value as LeadAction)}
+            onChange={(event) => setAction(event.target.value as LeadAction | "")}
             value={action}
           >
+            <option disabled value="">Select an action</option>
             {actionOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
-          <button onClick={() => void completeAction()} type="button">
-            Mark {actionLabels[action]} complete
+          <button disabled={!action || pending !== null} onClick={completeAction} type="button">
+            {action ? `Mark ${actionLabels[action]} complete` : "Select an action to complete"}
           </button>
         </section>
 
         <section className={styles.detailSection}>
           <h3><LinkSimple aria-hidden size={17} /> RayName registration</h3>
           <p className={styles.detailCopy}>Generate a campaign-attributed registration link for this lead.</p>
-          <button onClick={() => void createTrackedLink()} type="button">Create tracked link</button>
+          <button disabled={pending !== null} onClick={createTrackedLink} type="button">Create tracked link</button>
           {trackedUrl ? (
             <div className={styles.trackedLink}>
               <label htmlFor="tracked-lead-url">Tracked URL</label>
               <input id="tracked-lead-url" readOnly type="text" value={trackedUrl} />
-              <button onClick={() => void copyTrackedLink()} type="button">
+              <button disabled={pending !== null} onClick={copyTrackedLink} type="button">
                 <Copy aria-hidden size={15} /> Copy tracked link
               </button>
             </div>
