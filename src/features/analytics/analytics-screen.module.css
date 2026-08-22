@@ -1,0 +1,142 @@
+.screen {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.toolbar,
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  min-width: 0;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding: 13px 16px;
+}
+
+.toolbar p { color: var(--text-secondary); font-size: 11px; margin: 2px 0 0; }
+.toolbar .eyebrow { color: var(--text-primary); font-size: 12px; font-weight: 620; }
+.panel { padding: 19px; }
+.loading { color: var(--text-secondary); font-size: 12px; margin: 24px 0; }
+.loadError { align-items: flex-start; color: var(--critical); display: flex; flex-direction: column; gap: 10px; margin: 24px 0; }
+.loadError p { font-size: 12px; margin: 0; }
+.loadError button { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font: inherit; font-size: 11px; min-height: 34px; padding: 0 12px; }
+.loadError button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.rangeButton {
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  display: inline-flex;
+  font: inherit;
+  font-size: 11px;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.rangeButton:focus-visible,
+.rangeOption:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rangeControl { position: relative; }
+.rangePopover { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); box-shadow: 0 12px 30px rgb(0 0 0 / 16%); min-width: 190px; padding: 5px; position: absolute; right: 0; top: calc(100% + 7px); z-index: 20; }
+.rangeList { outline: none; }
+.rangeOption { border-radius: 4px; color: var(--text-primary); cursor: default; font-size: 11px; outline: none; padding: 9px 10px; }
+.rangeOption[data-focused] { background: var(--accent-muted); }
+.rangeOption[data-selected] { color: var(--accent); font-weight: 650; }
+
+.panelHeader { align-items: center; display: flex; justify-content: space-between; }
+.panelHeader h2 { align-items: center; display: flex; font-size: 15px; font-weight: 620; gap: 8px; letter-spacing: -.01em; margin: 0; }
+.panelHeader h2 svg { color: var(--accent); }
+.panelHeader > span { color: var(--text-secondary); font-size: 10px; }
+.trendPanel,
+.attributionPanel { grid-column: 1 / -1; }
+
+.trendChart {
+  align-items: end;
+  border-bottom: 1px solid var(--border-subtle);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(7, minmax(34px, 1fr));
+  height: 225px;
+  margin-top: 17px;
+  padding: 12px 12px 0;
+}
+
+.trendColumn { align-items: center; align-self: stretch; color: var(--text-secondary); display: grid; font-size: 10px; gap: 8px; grid-template-rows: minmax(0, 1fr) auto; text-align: center; }
+.trendBars { align-items: end; align-self: stretch; display: flex; gap: 3px; justify-content: center; }
+.trendBars > span { border-radius: 3px 3px 0 0; display: block; min-height: 3px; width: min(14px, 30%); }
+.registrationBar { background: var(--chart-1); }
+.transferBar { background: var(--chart-2); }
+.renewalBar { background: var(--chart-3); }
+.legend { color: var(--text-secondary); display: flex; font-size: 10px; gap: 20px; justify-content: flex-end; padding: 12px 0 4px; }
+.legend span::before { background: var(--chart-1); border-radius: 2px; content: ""; display: inline-block; height: 7px; margin-right: 6px; width: 7px; }
+.legend span:nth-child(2)::before { background: var(--chart-2); }
+.legend span:nth-child(3)::before { background: var(--chart-3); }
+
+.tableScroller { margin-top: 14px; overflow-x: auto; }
+.dataTable { border-collapse: collapse; min-width: 620px; width: 100%; }
+.dataTable th,
+.dataTable td { border-bottom: 1px solid var(--border-subtle); font-size: 10px; padding: 10px; text-align: left; }
+.dataTable thead th { color: var(--text-secondary); font-size: 9px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.dataTable tbody th { color: var(--text-primary); font-weight: 580; }
+.dataTable td { color: var(--text-secondary); }
+.dataTable tbody tr:last-child > * { border-bottom: 0; }
+
+.funnelList { display: grid; gap: 8px; list-style: none; margin: 17px 0 0; padding: 0; }
+.funnelList li { align-items: center; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; justify-content: space-between; min-height: 50px; padding: 9px 12px; }
+.funnelList li > div { display: grid; gap: 4px; }
+.funnelList strong { font-size: 11px; }
+.funnelList div span { color: var(--text-secondary); font-size: 10px; }
+.funnelList li > span { align-items: center; display: inline-flex; font-size: 10px; gap: 3px; }
+.positive { color: var(--positive); }
+.negative { color: var(--critical); }
+
+.distributionPanel { min-height: 235px; }
+.barList { display: grid; gap: 14px; list-style: none; margin: 17px 0 0; padding: 0; }
+.barList li { display: grid; gap: 7px; }
+.barList li > div { display: flex; font-size: 10px; justify-content: space-between; }
+.barList strong { font-weight: 620; }
+.barTrack { background: var(--bg-subtle); border-radius: 999px; display: block; height: 7px; overflow: hidden; }
+.barTrack i { background: var(--chart-1); border-radius: inherit; display: block; height: 100%; }
+.retentionPanel { align-items: center; display: flex; gap: 12px; grid-column: 1 / -1; }
+.retentionPanel > svg { color: var(--accent); }
+.retentionPanel div { display: grid; gap: 3px; }
+.retentionPanel p { color: var(--text-secondary); font-size: 10px; margin: 0; }
+.retentionPanel strong { font-size: 22px; }
+.retentionPanel span { color: var(--text-secondary); font-size: 10px; }
+
+.visuallyHidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 900px) {
+  .screen { grid-template-columns: 1fr; }
+  .toolbar,
+  .trendPanel,
+  .attributionPanel,
+  .retentionPanel { grid-column: auto; }
+}
+
+@media (max-width: 620px) {
+  .toolbar { align-items: flex-start; gap: 12px; }
+  .trendChart { gap: 7px; padding-inline: 2px; }
+}

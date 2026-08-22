@@ -1,0 +1,165 @@
+.screen {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  min-width: 0;
+  padding: 19px;
+}
+
+.loading,
+.eyebrow,
+.supportingCopy {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.loading { margin: 24px 0; }
+.eyebrow { margin: 0 0 5px; }
+.supportingCopy { line-height: 1.55; margin: 12px 0 17px; }
+.queueTarget { color: var(--text-secondary); font-size: 10px; margin: -8px 0 12px; }
+.queueTarget strong { color: var(--text-primary); font-weight: 620; }
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.panelHeader h2 {
+  font-size: 17px;
+  font-weight: 620;
+  letter-spacing: -.02em;
+  margin: 0;
+}
+
+.summary,
+.headerIcon {
+  color: var(--accent);
+}
+
+.summary {
+  align-items: center;
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+}
+
+.serviceGrid {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.serviceGrid li {
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.serviceGrid li > svg { color: var(--positive); }
+.serviceGrid li[data-status="awaiting-access"] > svg,
+.serviceGrid li[data-status="degraded"] > svg { color: var(--warning); }
+.serviceGrid div { display: grid; gap: 5px; }
+.serviceGrid strong { font-size: 12px; font-weight: 620; }
+.serviceGrid div span { color: var(--text-secondary); font-size: 10px; }
+.healthy,
+.awaiting { font-size: 10px; font-weight: 650; }
+.healthy { color: var(--positive); }
+.awaiting { color: var(--warning); }
+
+.automationPanel,
+.manualPanel { min-height: 238px; }
+
+.notice {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--warning) 11%, var(--bg-panel));
+  border: 1px solid color-mix(in srgb, var(--warning) 34%, var(--border-subtle));
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  display: flex;
+  font-size: 11px;
+  gap: 9px;
+  line-height: 1.5;
+  margin: 15px 0;
+  padding: 10px;
+}
+
+.notice svg { color: var(--warning); flex: 0 0 auto; margin-top: 1px; }
+.automationGrid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.automationGrid button,
+.manualActions button {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.automationGrid button {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.automationGrid button:disabled { cursor: not-allowed; opacity: .68; }
+.manualActions { display: flex; flex-wrap: wrap; gap: 9px; }
+.manualActions button {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+  gap: 7px;
+}
+
+.manualActions button:disabled { cursor: wait; opacity: .65; }
+.manualActions button:focus-visible,
+.automationGrid button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.operationStatus {
+  color: var(--positive);
+  font-size: 11px;
+  margin: 16px 0 0;
+  min-height: 16px;
+}
+
+.activityPanel { grid-column: 1 / -1; }
+.activityGrid { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px; }
+.activityGrid article { background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); min-height: 130px; padding: 13px; }
+.activityGrid h3 { align-items: center; display: flex; font-size: 11px; gap: 7px; margin: 0 0 10px; }
+.activityGrid h3 svg { color: var(--accent); }
+.activityGrid ul { color: var(--text-secondary); display: grid; font-size: 10px; gap: 7px; list-style-position: inside; margin: 0; padding: 0; }
+.activityGrid p { color: var(--positive); font-size: 10px; margin: 0; }
+
+@media (max-width: 900px) {
+  .screen { grid-template-columns: 1fr; }
+  .activityPanel { grid-column: auto; }
+  .activityGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .serviceGrid,
+  .automationGrid,
+  .activityGrid { grid-template-columns: 1fr; }
+  .manualActions { align-items: stretch; flex-direction: column; }
+}
