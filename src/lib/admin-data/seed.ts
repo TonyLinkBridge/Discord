@@ -68,6 +68,11 @@ export const localAdminSeed: AdminState = {
   content: [
     { id: "market-pulse-aug-22", title: "Market Pulse: .com transfer signals", format: "market-pulse", conversionLevel: "education", publishAt: "2026-08-22T13:00:00Z", ctas: ["Read the transfer guide"], status: "scheduled" },
     { id: "domain-101-aug-23", title: "Domain 101: preparing a transfer", format: "domain-101", conversionLevel: "soft", publishAt: "2026-08-23T13:00:00Z", ctas: ["Check transfer eligibility"], status: "scheduled" },
+    { id: "name-battle-aug-24", title: "Name Battle: exact match or brandable", format: "name-battle", conversionLevel: "education", publishAt: "2026-08-24T13:00:00Z", ctas: ["Compare the naming approaches"], status: "scheduled" },
+    { id: "domain-breakdown-aug-25", title: "Domain Breakdown: two-word .coms", format: "domain-breakdown", conversionLevel: "education", publishAt: "2026-08-25T13:00:00Z", ctas: ["Read the breakdown"], status: "scheduled" },
+    { id: "risk-check-aug-26", title: "Risk Check: transfer readiness", format: "risk-check", conversionLevel: "education", publishAt: "2026-08-26T13:00:00Z", ctas: ["Review the checklist"], status: "scheduled" },
+    { id: "brand-launch-aug-27", title: "Brand Launch: choosing a memorable name", format: "brand-launch", conversionLevel: "soft", publishAt: "2026-08-27T13:00:00Z", ctas: ["Explore similar names"], status: "scheduled" },
+    { id: "market-pulse-aug-28", title: "Friday .com transfer offer", format: "market-pulse", conversionLevel: "direct", publishAt: "2026-08-28T13:00:00Z", ctas: ["Start a transfer"], status: "scheduled" },
   ],
   trackedLinks: [],
   activity: [],
