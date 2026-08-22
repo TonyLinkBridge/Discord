@@ -76,3 +76,20 @@ for (const viewport of [
     }
   });
 }
+
+test("aligns command actions with the content edge on ultra-wide screens", async ({ page }) => {
+  await page.setViewportSize({ width: 1708, height: 1080 });
+  await page.goto("/");
+
+  const header = page.getByRole("banner");
+  const operatorMenu = header.getByRole("button", { name: "Operator menu" });
+  const [headerBounds, operatorBounds] = await Promise.all([
+    header.boundingBox(),
+    operatorMenu.boundingBox(),
+  ]);
+
+  expect(headerBounds).not.toBeNull();
+  expect(operatorBounds).not.toBeNull();
+  expect(headerBounds!.x + headerBounds!.width - (operatorBounds!.x + operatorBounds!.width))
+    .toBeLessThanOrEqual(24);
+});

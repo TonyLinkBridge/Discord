@@ -84,7 +84,7 @@
 .searchTrigger { flex: 1; gap: 12px; height: 40px; max-width: 450px; padding: 0 11px; text-align: left; }
 .searchTrigger span { flex: 1; font-size: 13px; }
 .keyHint { background: var(--bg-subtle); border-radius: 4px; color: var(--text-secondary); font-family: inherit; font-size: 11px; padding: 3px 5px; }
-.dateControl { color: var(--text-primary); gap: 10px; height: 40px; padding: 0 12px; white-space: nowrap; }
+.dateControl { color: var(--text-primary); gap: 10px; height: 40px; margin-left: auto; padding: 0 12px; white-space: nowrap; }
 .dateControl span { font-size: 13px; }
 .systemStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 12px; gap: 7px; white-space: nowrap; }
 .systemStatus i { background: var(--positive); border-radius: 50%; height: 9px; width: 9px; }
