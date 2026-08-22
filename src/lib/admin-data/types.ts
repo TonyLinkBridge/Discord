@@ -18,7 +18,7 @@ export interface Metric {
   id: string;
   label: string;
   value: string;
-  delta: number;
+  delta: number | null;
   deltaLabel: string;
 }
 
@@ -101,6 +101,7 @@ export interface Campaign {
   startDate: string;
   endDate: string;
   status: string;
+  trackedLinkId: string | null;
   visitors: number;
   verifiedCustomers: number;
   conversions: number;
@@ -109,8 +110,13 @@ export interface Campaign {
 
 export type CampaignInput = Omit<
   Campaign,
-  "id" | "visitors" | "verifiedCustomers" | "conversions" | "revenue"
+  "id" | "trackedLinkId" | "visitors" | "verifiedCustomers" | "conversions" | "revenue"
 >;
+
+export interface CampaignCreationResult {
+  campaign: Campaign;
+  trackedLink: TrackedLink;
+}
 
 export interface Offer {
   id: string;
@@ -162,6 +168,7 @@ export interface SearchResult {
 }
 
 export interface OverviewSnapshot {
+  range: DateRange;
   metrics: Metric[];
   trend: TrendPoint[];
   funnel: FunnelStep[];
@@ -253,7 +260,7 @@ export interface WorkspaceSettings {
 }
 
 export interface AdminState {
-  overview: OverviewSnapshot;
+  overview: Omit<OverviewSnapshot, "range">;
   members: Member[];
   leads: Lead[];
   campaigns: Campaign[];

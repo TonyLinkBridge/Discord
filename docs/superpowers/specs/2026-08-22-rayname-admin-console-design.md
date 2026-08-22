@@ -96,7 +96,7 @@ Show six primary metrics with the selected period, comparison period, value, del
 - Renewal Rate;
 - Attributed Revenue.
 
-The approved sample values are 1,248 members, 326 verified customers, 84 registrations, 39 transfers, 91.4% renewal rate, and USD 18,420 attributed revenue.
+The corrected sample values are 1,248 members, 326 verified customers, 168 registrations, 39 transfers, 91.4% renewal rate, and USD 18,420 attributed revenue. Registrations, transfers, and attributed revenue are selected-period flows derived from dated facts; members, verified customers, and renewal rate are latest available snapshots when the seed has no period history.
 
 ### 4.2 Conversion performance
 

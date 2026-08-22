@@ -34,7 +34,7 @@ export function MetricStrip({ metrics }: Readonly<{ metrics: Metric[] }>) {
   return (
     <section aria-label="Overview metrics" className={styles.metricStrip}>
       {metrics.map((metric) => {
-        const positive = metric.delta >= 0;
+        const positive = metric.delta !== null && metric.delta >= 0;
         const DeltaIcon = positive ? TrendUp : TrendDown;
 
         return (
@@ -45,11 +45,15 @@ export function MetricStrip({ metrics }: Readonly<{ metrics: Metric[] }>) {
             <span className={styles.metricCopy}>
               <span className={styles.metricLabel}>{metric.label}</span>
               <strong className={styles.metricValue}>{metric.value}</strong>
-              <span className={positive ? styles.deltaPositive : styles.deltaNegative}>
-                <DeltaIcon aria-hidden size={13} weight="bold" />
-                {Math.abs(metric.delta)}{metric.id === "renewal-rate" ? "pp" : "%"}
-                <span className={styles.deltaPeriod}>{metric.deltaLabel.replace(/^pp\s*/, "")}</span>
-              </span>
+              {metric.delta === null ? (
+                <span className={styles.deltaPeriod}>{metric.deltaLabel}</span>
+              ) : (
+                <span className={positive ? styles.deltaPositive : styles.deltaNegative}>
+                  <DeltaIcon aria-hidden size={13} weight="bold" />
+                  {Math.abs(metric.delta)}{metric.id === "renewal-rate" ? "pp" : "%"}
+                  <span className={styles.deltaPeriod}>{metric.deltaLabel.replace(/^pp\s*/, "")}</span>
+                </span>
+              )}
             </span>
           </article>
         );

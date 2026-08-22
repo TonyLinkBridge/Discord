@@ -77,9 +77,9 @@
   align-items: center;
   color: var(--positive);
   display: flex;
+  flex-wrap: wrap;
   font-size: 10px;
   gap: 3px;
-  white-space: nowrap;
 }
 
 .deltaNegative {

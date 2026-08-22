@@ -2,12 +2,15 @@ import { ArrowDown, ArrowRight, ArrowUp } from "@phosphor-icons/react";
 import type { FunnelStep } from "@/lib/admin-data/types";
 import styles from "./overview-screen.module.css";
 
-export function ConversionFunnel({ funnel }: Readonly<{ funnel: FunnelStep[] }>) {
+export function ConversionFunnel({
+  funnel,
+  rangeLabel,
+}: Readonly<{ funnel: FunnelStep[]; rangeLabel: string }>) {
   return (
     <section className={`${styles.panel} ${styles.lowerPanel}`}>
       <header className={styles.panelHeader}>
         <h2>Conversion funnel</h2>
-        <span>Aug 16–22, 2026</span>
+        <span>{rangeLabel}</span>
       </header>
       <div className={styles.funnelRows}>
         {funnel.map((step, index) => {

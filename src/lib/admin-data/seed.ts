@@ -44,6 +44,7 @@ const historicalAnalyticsCampaign = {
   startDate: "2026-08-01",
   endDate: "2026-08-15",
   status: "completed",
+  trackedLinkId: null,
   visitors: 1250,
   verifiedCustomers: 30,
   conversions: 25,
@@ -123,7 +124,7 @@ export const localAdminSeed: AdminState = {
     metrics: [
       { id: "discord-members", label: "Discord Members", value: "1,248", delta: 3.2, deltaLabel: "vs Aug 9–15" },
       { id: "verified-customers", label: "Verified Customers", value: "326", delta: 6.6, deltaLabel: "vs Aug 9–15" },
-      { id: "registrations", label: "Registrations", value: "84", delta: 16.7, deltaLabel: "vs Aug 9–15" },
+      { id: "registrations", label: "Registrations", value: "168", delta: 16.7, deltaLabel: "vs Aug 9–15" },
       { id: "transfers", label: "Transfers", value: "39", delta: 8.3, deltaLabel: "vs Aug 9–15" },
       { id: "renewal-rate", label: "Renewal Rate", value: "91.4%", delta: 2.1, deltaLabel: "pp vs Aug 9–15" },
       { id: "attributed-revenue", label: "Attributed Revenue", value: "$18,420", delta: 12.8, deltaLabel: "vs Aug 9–15" },
@@ -150,10 +151,10 @@ export const localAdminSeed: AdminState = {
       { id: "web3builder", name: "Web3Builder", segment: "Builder", intent: "High", stage: "engaged", lastActivity: "Aug 21, 7:15 PM", nextAction: "message", completedAction: null, attributedValue: 900, source: "Discord", campaignId: "investor-outreach", portfolioSizeBand: "11–49 domains", followUpAt: "2026-08-23T11:00:00Z" },
     ],
     campaigns: [
-      { id: "com-transfer-week", name: ".com Transfer Week", objective: "Drive .com transfers", audience: "Domain investors", channel: "Discord", destination: "https://www.rayname.com/domain/transfer", startDate: "2026-08-16", endDate: "2026-08-24", status: "active", visitors: 2842, verifiedCustomers: 68, conversions: 68, revenue: 9420 },
-      { id: "new-member-welcome", name: "New Member Welcome", objective: "Convert new members", audience: "New Discord members", channel: "Discord", destination: "https://www.rayname.com/domain/search", startDate: "2026-08-16", endDate: "2026-08-31", status: "active", visitors: 1936, verifiedCustomers: 34, conversions: 34, revenue: 3120 },
-      { id: "investor-outreach", name: "Investor Outreach", objective: "Qualify investors", audience: "Domain investors", channel: "Discord", destination: "https://www.rayname.com/domain/search", startDate: "2026-08-16", endDate: "2026-08-30", status: "active", visitors: 1124, verifiedCustomers: 21, conversions: 21, revenue: 3050 },
-      { id: "renewal-reminder", name: "Renewal Reminder", objective: "Retain expiring domains", audience: "Existing customers", channel: "Email", destination: "https://www.rayname.com/account/renewals", startDate: "2026-08-16", endDate: "2026-08-23", status: "active", visitors: 2310, verifiedCustomers: 45, conversions: 45, revenue: 2830 },
+      { id: "com-transfer-week", name: ".com Transfer Week", objective: "Drive .com transfers", audience: "Domain investors", channel: "Discord", destination: "https://www.rayname.com/domain/transfer", startDate: "2026-08-16", endDate: "2026-08-24", status: "active", trackedLinkId: null, visitors: 2842, verifiedCustomers: 68, conversions: 68, revenue: 9420 },
+      { id: "new-member-welcome", name: "New Member Welcome", objective: "Convert new members", audience: "New Discord members", channel: "Discord", destination: "https://www.rayname.com/domain/search", startDate: "2026-08-16", endDate: "2026-08-31", status: "active", trackedLinkId: null, visitors: 1936, verifiedCustomers: 34, conversions: 34, revenue: 3120 },
+      { id: "investor-outreach", name: "Investor Outreach", objective: "Qualify investors", audience: "Domain investors", channel: "Discord", destination: "https://www.rayname.com/domain/search", startDate: "2026-08-16", endDate: "2026-08-30", status: "active", trackedLinkId: null, visitors: 1124, verifiedCustomers: 21, conversions: 21, revenue: 3050 },
+      { id: "renewal-reminder", name: "Renewal Reminder", objective: "Retain expiring domains", audience: "Existing customers", channel: "Email", destination: "https://www.rayname.com/account/renewals", startDate: "2026-08-16", endDate: "2026-08-23", status: "active", trackedLinkId: null, visitors: 2310, verifiedCustomers: 45, conversions: 45, revenue: 2830 },
     ],
   },
   members: [

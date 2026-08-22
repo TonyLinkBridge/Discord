@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AccessibleLineChart } from "@/components/charts/accessible-line-chart";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { TrendPoint } from "@/lib/admin-data/types";
-import { overviewDateRange } from "./overview-range";
+import { useReportingRange } from "@/lib/reporting-range";
 import styles from "./overview-screen.module.css";
 const seriesOptions = ["registrations", "transfers", "renewals"] as const;
 type Series = (typeof seriesOptions)[number];
@@ -15,8 +15,12 @@ const seriesLabels: Record<Series, string> = {
   transfers: "Transfers",
 };
 
-export function ConversionPerformance({ trend }: Readonly<{ trend?: TrendPoint[] }>) {
+export function ConversionPerformance({
+  rangeLabel,
+  trend,
+}: Readonly<{ rangeLabel?: string; trend?: TrendPoint[] }>) {
   const provider = useAdminData();
+  const { selectedRange } = useReportingRange();
   const [fetchedTrend, setFetchedTrend] = useState<TrendPoint[] | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<Series>("registrations");
 
@@ -24,11 +28,11 @@ export function ConversionPerformance({ trend }: Readonly<{ trend?: TrendPoint[]
     if (trend) return;
 
     let active = true;
-    provider.getOverview(overviewDateRange).then((overview) => {
+    provider.getOverview(selectedRange).then((overview) => {
       if (active) setFetchedTrend(overview.trend);
     });
     return () => { active = false; };
-  }, [provider, trend]);
+  }, [provider, selectedRange, trend]);
 
   const resolvedTrend = trend ?? fetchedTrend;
   if (!resolvedTrend) return <p role="status">Loading performance…</p>;
@@ -78,11 +82,11 @@ export function ConversionPerformance({ trend }: Readonly<{ trend?: TrendPoint[]
         id="performance-chart-panel"
         role="tabpanel"
       >
-        <AccessibleLineChart data={data} label={label} />
+        <AccessibleLineChart data={data} label={label} rangeLabel={rangeLabel ?? selectedRange.label} />
       </div>
       <div className={styles.chartLegend}>
         <span><i /> {label}</span>
-        <span>Total (Aug 16–22, 2026): {total}</span>
+        <span>Total ({rangeLabel ?? selectedRange.label}): {total}</span>
       </div>
     </section>
   );

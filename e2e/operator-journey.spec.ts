@@ -4,8 +4,8 @@ test("operator completes a lead action and switches theme without losing state",
   await page.goto("/");
   const metrics = page.getByRole("region", { name: "Overview metrics" });
   const registrationMetric = metrics.getByText("Registrations").locator("..");
-  await expect(registrationMetric).toContainText("84");
-  await expect(registrationMetric).toContainText("16.7%");
+  await expect(registrationMetric).toContainText("168");
+  await expect(registrationMetric).toContainText("162.5%");
   await expect(page.getByRole("heading", { name: "Today's priorities" })).toBeVisible();
 
   const followUpPriority = page.getByText("Follow up with 7 high-intent leads");

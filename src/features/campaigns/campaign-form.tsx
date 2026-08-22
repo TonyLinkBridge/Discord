@@ -4,8 +4,8 @@ import { LinkSimple, Megaphone } from "@phosphor-icons/react";
 import { useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { useAdminData } from "@/lib/admin-data/context";
-import type { Campaign } from "@/lib/admin-data/types";
-import { buildTrackedRayNameUrl, rayNameDestinationError } from "@/lib/tracking";
+import type { CampaignCreationResult } from "@/lib/admin-data/types";
+import { rayNameDestinationError } from "@/lib/tracking";
 import styles from "./campaigns-screen.module.css";
 
 const rayNameDestination = z.string().trim().superRefine((value, context) => {
@@ -58,7 +58,7 @@ const deriveCampaignStatus = (startDate: string, endDate: string) => {
 
 export function CampaignForm({
   onCreated,
-}: Readonly<{ onCreated?: (campaign: Campaign) => void }>) {
+}: Readonly<{ onCreated?: (creation: CampaignCreationResult) => void }>) {
   const provider = useAdminData();
   const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<CampaignErrors>({});
@@ -97,19 +97,23 @@ export function CampaignForm({
     setStatus(`Creating ${result.data.name} campaign`);
     try {
       const campaignSlug = slugify(result.data.name);
-      const campaign = await provider.createCampaign({
-        ...result.data,
-        status: deriveCampaignStatus(result.data.startDate, result.data.endDate),
-      }, "local-ray");
-      setTrackedUrl(buildTrackedRayNameUrl({
-        campaign: campaignSlug,
-        content: "campaign-form",
-        destination: result.data.destination,
-        medium: result.data.channel === "discord" ? "community" : "campaign",
-        source: result.data.channel,
-      }));
-      setStatus(`${campaign.name} campaign created`);
-      onCreated?.(campaign);
+      const creation = await provider.createCampaignWithTrackedLink(
+        {
+          ...result.data,
+          status: deriveCampaignStatus(result.data.startDate, result.data.endDate),
+        },
+        {
+          campaign: campaignSlug,
+          content: "campaign-form",
+          destination: result.data.destination,
+          medium: result.data.channel === "discord" ? "community" : "campaign",
+          source: result.data.channel,
+        },
+        "local-ray",
+      );
+      setTrackedUrl(creation.trackedLink.url);
+      setStatus(`${creation.campaign.name} campaign created`);
+      onCreated?.(creation);
     } catch {
       setStatus("Unable to create campaign");
     } finally {

@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { AdminShell } from "@/components/admin-shell/admin-shell";
 import { renderAdmin } from "@/test/render";
 import { AnalyticsScreen } from "./analytics-screen";
 
@@ -130,4 +131,22 @@ test("dismisses the date range list with Escape and restores trigger focus", asy
 
   expect(screen.queryByRole("option", { name: "Aug 18–22, 2026" })).not.toBeInTheDocument();
   expect(rangeButton).toHaveFocus();
+});
+
+test("shares the command-bar range with Analytics", async () => {
+  const user = userEvent.setup();
+  renderAdmin(
+    <AdminShell title="Analytics">
+      <AnalyticsScreen />
+    </AdminShell>,
+  );
+
+  await screen.findByText("$9,420");
+  const commandBar = screen.getByRole("heading", { level: 1, name: "Analytics" }).closest("header")!;
+  await user.click(within(commandBar).getByRole("button", { name: /Date range:/ }));
+  await user.click(screen.getByRole("menuitemradio", { name: "Aug 18–22, 2026" }));
+
+  expect(await screen.findByRole("img", { name: /Aug 18–22, 2026/ }))
+    .toHaveAttribute("data-point-count", "5");
+  expect(screen.getByText("$7,395")).toBeVisible();
 });

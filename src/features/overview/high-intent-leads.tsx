@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Lead, LeadAction } from "@/lib/admin-data/types";
-import { overviewDateRange } from "./overview-range";
+import { useReportingRange } from "@/lib/reporting-range";
 import styles from "./overview-screen.module.css";
 
 const actionLabels: Record<LeadAction, string> = {
@@ -26,6 +26,7 @@ const actionItems = (update: (action: LeadAction) => Promise<void>) => (
 
 export function HighIntentLeads({ leads: initialLeads }: Readonly<{ leads?: Lead[] }>) {
   const provider = useAdminData();
+  const { selectedRange } = useReportingRange();
   const [leads, setLeads] = useState<Lead[]>(initialLeads ?? []);
   const [completedActions, setCompletedActions] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("");
@@ -34,11 +35,11 @@ export function HighIntentLeads({ leads: initialLeads }: Readonly<{ leads?: Lead
     if (initialLeads) return;
 
     let active = true;
-    provider.getOverview(overviewDateRange).then((overview) => {
+    provider.getOverview(selectedRange).then((overview) => {
       if (active) setLeads(overview.leads);
     });
     return () => { active = false; };
-  }, [initialLeads, provider]);
+  }, [initialLeads, provider, selectedRange]);
 
   async function updateLeadAction(lead: Lead, action: LeadAction) {
     try {

@@ -15,16 +15,9 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, ListBox, ListBoxItem } from "react-aria-components";
 import { useAdminData } from "@/lib/admin-data/context";
-import type { AnalyticsSnapshot, DateRange, DistributionItem } from "@/lib/admin-data/types";
+import type { AnalyticsSnapshot, DistributionItem } from "@/lib/admin-data/types";
+import { reportingRangeOptions, useReportingRange } from "@/lib/reporting-range";
 import styles from "./analytics-screen.module.css";
-
-type RangeOption = DateRange & { id: string; label: string };
-
-const rangeOptions: readonly RangeOption[] = [
-  { id: "aug-16-22", from: "2026-08-16", to: "2026-08-22", label: "Aug 16–22, 2026" },
-  { id: "aug-18-22", from: "2026-08-18", to: "2026-08-22", label: "Aug 18–22, 2026" },
-  { id: "aug-01-22", from: "2026-08-01", to: "2026-08-22", label: "Aug 1–22, 2026" },
-];
 
 const dateLabel = (date: string) =>
   new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", timeZone: "UTC" })
@@ -77,8 +70,8 @@ function DistributionCard({
 
 export function AnalyticsScreen() {
   const provider = useAdminData();
+  const { selectedRange, setSelectedRange } = useReportingRange();
   const rangeButtonRef = useRef<HTMLButtonElement>(null);
-  const [selectedRange, setSelectedRange] = useState<RangeOption>(rangeOptions[0]);
   const [rangeOpen, setRangeOpen] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -158,11 +151,11 @@ export function AnalyticsScreen() {
                 aria-label="Analytics date ranges"
                 className={styles.rangeList}
                 id="analytics-range-options"
-                items={rangeOptions}
+                items={reportingRangeOptions}
                 onSelectionChange={(keys) => {
                   if (keys === "all") return;
                   const selectedKey = [...keys][0];
-                  const option = rangeOptions.find((item) => item.id === selectedKey);
+                  const option = reportingRangeOptions.find((item) => item.id === selectedKey);
                   if (option) {
                     setSelectedRange(option);
                     setRangeOpen(false);

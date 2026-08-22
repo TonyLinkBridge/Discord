@@ -96,6 +96,10 @@
 .operatorMenu { outline: 0; }
 .operatorMenu [role="menuitem"] { border-radius: 4px; color: var(--text-primary); cursor: pointer; font-size: 13px; outline: 0; padding: 8px 10px; }
 .operatorMenu [role="menuitem"][data-focused] { background: var(--accent-muted); }
+.rangePopover { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); box-shadow: var(--shadow-panel); min-width: 184px; padding: 4px; }
+.rangeMenu { outline: 0; }
+.rangeMenu [role="menuitemradio"] { border-radius: 4px; color: var(--text-primary); cursor: pointer; font-size: 13px; outline: 0; padding: 8px 10px; }
+.rangeMenu [role="menuitemradio"][data-focused], .rangeMenu [role="menuitemradio"][aria-checked="true"] { background: var(--accent-muted); }
 
 .routeContent { padding: 0 22px 30px; }
 .searchBackdrop { background: transparent; border: 0; height: 100%; inset: 0; margin: 0; max-height: none; max-width: none; padding: 14vh 20px 0; position: fixed; width: 100%; }

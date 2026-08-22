@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { Priority } from "@/lib/admin-data/types";
-import { overviewDateRange } from "./overview-range";
+import { useReportingRange } from "@/lib/reporting-range";
 import styles from "./overview-screen.module.css";
 
 function PriorityIcon({ kind }: Readonly<{ kind: string }>) {
@@ -26,6 +26,7 @@ function PriorityIcon({ kind }: Readonly<{ kind: string }>) {
 
 export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ priorities?: Priority[] }>) {
   const provider = useAdminData();
+  const { selectedRange } = useReportingRange();
   const [priorities, setPriorities] = useState<Priority[]>(initialPriorities ?? []);
   const [status, setStatus] = useState("");
   const prioritySectionRef = useRef<HTMLElement>(null);
@@ -36,11 +37,11 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
     if (initialPriorities) return;
 
     let active = true;
-    provider.getOverview(overviewDateRange).then((overview) => {
+    provider.getOverview(selectedRange).then((overview) => {
       if (active) setPriorities(overview.priorities);
     });
     return () => { active = false; };
-  }, [initialPriorities, provider]);
+  }, [initialPriorities, provider, selectedRange]);
 
   useEffect(() => {
     if (!restorePriorityFocus.current) return;

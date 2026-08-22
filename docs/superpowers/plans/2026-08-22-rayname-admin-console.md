@@ -206,7 +206,7 @@ test("returns the approved overview totals for Aug 16–22", async () => {
   const provider = createLocalAdminDataProvider();
   const overview = await provider.getOverview({ from: "2026-08-16", to: "2026-08-22" });
   expect(overview.metrics.map((metric) => metric.value)).toEqual([
-    "1,248", "326", "84", "39", "91.4%", "$18,420"
+    "1,248", "326", "168", "39", "91.4%", "$18,420"
   ]);
 });
 
@@ -276,7 +276,7 @@ Define all referenced interfaces in `types.ts`; do not use `any` or untyped reco
 
 - [ ] **Step 4: Implement deterministic seed data and clone-on-read provider behavior**
 
-Use exact Aug 16–22, 2026 values from the approved visual references. Return cloned arrays and objects so UI code cannot mutate provider state accidentally. Throw a typed `EntityNotFoundError` for invalid priority, member, lead, campaign, offer, tracked-link, and content IDs.
+Use the corrected Aug 16–22, 2026 values, deriving flow totals from canonical dated facts while labeling stock/rate values with their available snapshot precision. Return cloned arrays and objects so UI code cannot mutate provider state accidentally. Throw a typed `EntityNotFoundError` for invalid priority, member, lead, campaign, offer, tracked-link, and content IDs.
 
 - [ ] **Step 5: Verify provider GREEN**
 

@@ -8,7 +8,10 @@ const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
 });
 
-export function CampaignPerformance({ campaigns }: Readonly<{ campaigns: Campaign[] }>) {
+export function CampaignPerformance({
+  campaigns,
+  rangeLabel,
+}: Readonly<{ campaigns: Campaign[]; rangeLabel: string }>) {
   const totals = campaigns.reduce(
     (sum, campaign) => ({
       conversions: sum.conversions + campaign.conversions,
@@ -22,7 +25,7 @@ export function CampaignPerformance({ campaigns }: Readonly<{ campaigns: Campaig
     <section className={`${styles.panel} ${styles.lowerPanel}`}>
       <header className={styles.panelHeader}>
         <h2>Campaign performance</h2>
-        <span>Aug 16–22, 2026</span>
+        <span>{rangeLabel}</span>
       </header>
       <div className={styles.tableScroller}>
         <table className={styles.dataTable}>

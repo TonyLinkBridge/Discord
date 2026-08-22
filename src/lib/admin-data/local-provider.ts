@@ -6,6 +6,7 @@ import type {
   AdminState,
   AnalyticsSnapshot,
   Campaign,
+  CampaignCreationResult,
   ContentEntry,
   EntityType,
   Lead,
@@ -14,6 +15,7 @@ import type {
   Offer,
   Priority,
   TrackedLink,
+  TrendPoint,
 } from "./types";
 
 export class EntityNotFoundError extends Error {
@@ -53,6 +55,34 @@ const sumBy = <Value>(values: readonly Value[], read: (value: Value) => number) 
   values.reduce((sum, value) => sum + read(value), 0);
 
 const scaledCount = (value: number, ratio: number) => Math.round(value * ratio);
+
+const formatCount = (value: number) => value.toLocaleString("en-US");
+
+const formatCurrency = (value: number) => new Intl.NumberFormat("en-US", {
+  currency: "USD",
+  maximumFractionDigits: 0,
+  style: "currency",
+}).format(value);
+
+const rangeLengthInDays = (range: { from: string; to: string }) => {
+  const from = new Date(`${range.from}T00:00:00Z`).getTime();
+  const to = new Date(`${range.to}T00:00:00Z`).getTime();
+  return Math.max(1, Math.round((to - from) / 86_400_000) + 1);
+};
+
+const shiftDate = (date: string, days: number) => {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+};
+
+const previousRange = (range: { from: string; to: string }) => {
+  const days = rangeLengthInDays(range);
+  return { from: shiftDate(range.from, -days), to: shiftDate(range.from, -1) };
+};
+
+const percentageChange = (current: number, previous: number) =>
+  previous ? Number((((current - previous) / previous) * 100).toFixed(1)) : null;
 
 export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed): AdminDataProvider {
   const state = clone(seed);
@@ -116,15 +146,150 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
   const contentById = (entryId: string): ContentEntry =>
     requiredEntity(state.content.find((entry) => entry.id === entryId), "content", entryId);
 
+  const analyticsForRange = (range: { from: string; to: string }): AnalyticsSnapshot => {
+    const trend = state.analytics.trend.filter((point) => inRange(point.date, range));
+    const baselineTrend = state.analytics.trend.filter((point) =>
+      inRange(point.date, approvedAnalyticsBaseline),
+    );
+    const baselineRegistrations = sumBy(baselineTrend, (point) => point.registrations);
+    const baselineRevenue = sumBy(baselineTrend, (point) => point.revenue);
+    const activityRatio = baselineRegistrations
+      ? sumBy(trend, (point) => point.registrations) / baselineRegistrations
+      : 0;
+    const revenueRatio = baselineRevenue
+      ? sumBy(trend, (point) => point.revenue) / baselineRevenue
+      : 0;
+    const funnel = state.analytics.funnel.map((step) => ({
+      ...step,
+      value: scaledCount(step.value, activityRatio),
+    }));
+    funnel.forEach((step, index) => {
+      if (index === 0) {
+        step.conversionRate = null;
+        return;
+      }
+      const previousValue = funnel[index - 1].value;
+      step.conversionRate = previousValue
+        ? Number(((step.value / previousValue) * 100).toFixed(1))
+        : 0;
+    });
+    const campaignAttribution = state.analytics.campaignAttribution.flatMap((campaign) => {
+      const events = state.analyticsEvents.filter((event) =>
+        event.campaignId === campaign.id
+        && inRange(event.date, range)
+        && event.date >= campaign.startDate
+        && event.date <= campaign.endDate,
+      );
+      if (!events.length) return [];
+      return [{
+        ...campaign,
+        visitors: sumBy(events, (event) => event.visitors),
+        verifiedCustomers: sumBy(events, (event) => event.verifiedCustomers),
+        conversions: sumBy(events, (event) => event.conversions),
+        revenue: sumBy(events, (event) => event.revenue),
+      }];
+    });
+
+    return {
+      range: clone(range),
+      funnel,
+      revenueBySource: state.analytics.revenueBySource.map((item) => ({
+        ...item,
+        value: scaledCount(item.value, revenueRatio),
+      })),
+      campaignAttribution,
+      conversionBySegment: state.analytics.conversionBySegment.map((item) => ({
+        ...item,
+        value: scaledCount(item.value, activityRatio),
+      })),
+      trend,
+      leadVelocity: state.analytics.leadVelocity.map((item) => ({
+        ...item,
+        value: scaledCount(item.value, activityRatio),
+      })),
+      offerPerformance: state.analytics.offerPerformance.map((item) => ({
+        ...item,
+        value: scaledCount(item.value, activityRatio),
+      })),
+      retentionRate: state.analytics.retentionRate,
+    };
+  };
+
+  const flowMetric = (
+    metric: AdminState["overview"]["metrics"][number],
+    current: number,
+    previous: number,
+    value: string,
+  ) => {
+    const delta = percentageChange(current, previous);
+    return {
+      ...metric,
+      value,
+      delta,
+      deltaLabel: delta === null ? "No prior-period data" : "vs previous equal period",
+    };
+  };
+
+  const overviewMetrics = (range: { from: string; to: string }, trend: TrendPoint[]) => {
+    const priorTrend = state.analytics.trend.filter((point) => inRange(point.date, previousRange(range)));
+    const currentRegistrations = sumBy(trend, (point) => point.registrations);
+    const currentTransfers = sumBy(trend, (point) => point.transfers);
+    const currentRevenue = sumBy(trend, (point) => point.revenue);
+    const previousRegistrations = sumBy(priorTrend, (point) => point.registrations);
+    const previousTransfers = sumBy(priorTrend, (point) => point.transfers);
+    const previousRevenue = sumBy(priorTrend, (point) => point.revenue);
+    const memberSnapshot = state.community.memberGrowth
+      .filter((point) => point.date <= range.to)
+      .at(-1);
+
+    return state.overview.metrics.map((metric) => {
+      if (metric.id === "registrations") {
+        return flowMetric(
+          metric,
+          currentRegistrations,
+          previousRegistrations,
+          formatCount(currentRegistrations),
+        );
+      }
+      if (metric.id === "transfers") {
+        return flowMetric(metric, currentTransfers, previousTransfers, formatCount(currentTransfers));
+      }
+      if (metric.id === "attributed-revenue") {
+        return flowMetric(metric, currentRevenue, previousRevenue, formatCurrency(currentRevenue));
+      }
+      if (metric.id === "discord-members") {
+        return {
+          ...metric,
+          value: memberSnapshot ? formatCount(memberSnapshot.totalMembers) : "Unavailable",
+          delta: null,
+          deltaLabel: memberSnapshot
+            ? `Snapshot as of ${memberSnapshot.date}`
+            : "No snapshot available",
+        };
+      }
+      return {
+        ...metric,
+        delta: null,
+        deltaLabel: "Latest available snapshot",
+      };
+    });
+  };
+
   return {
     async getState() {
       return clone(state);
     },
 
-    async getOverview() {
+    async getOverview(range) {
+      const analytics = analyticsForRange(range);
       return clone({
-        ...state.overview,
+        range,
+        metrics: overviewMetrics(range, analytics.trend),
+        trend: analytics.trend,
+        funnel: analytics.funnel,
         priorities: state.overview.priorities.filter((priority) => !priority.completed),
+        leads: state.overview.leads,
+        campaigns: analytics.campaignAttribution,
       });
     },
 
@@ -137,72 +302,7 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
     },
 
     async getAnalytics(range) {
-      const trend = state.analytics.trend.filter((point) => inRange(point.date, range));
-      const baselineTrend = state.analytics.trend.filter((point) =>
-        inRange(point.date, approvedAnalyticsBaseline),
-      );
-      const baselineRegistrations = sumBy(baselineTrend, (point) => point.registrations);
-      const baselineRevenue = sumBy(baselineTrend, (point) => point.revenue);
-      const activityRatio = baselineRegistrations
-        ? sumBy(trend, (point) => point.registrations) / baselineRegistrations
-        : 0;
-      const revenueRatio = baselineRevenue
-        ? sumBy(trend, (point) => point.revenue) / baselineRevenue
-        : 0;
-      const funnel = state.analytics.funnel.map((step) => ({
-        ...step,
-        value: scaledCount(step.value, activityRatio),
-      }));
-      funnel.forEach((step, index) => {
-        if (index === 0) {
-          step.conversionRate = null;
-          return;
-        }
-        const previousValue = funnel[index - 1].value;
-        step.conversionRate = previousValue
-          ? Number(((step.value / previousValue) * 100).toFixed(1))
-          : 0;
-      });
-      const campaignAttribution = state.analytics.campaignAttribution.flatMap((campaign) => {
-        const events = state.analyticsEvents.filter((event) =>
-          event.campaignId === campaign.id
-          && inRange(event.date, range)
-          && event.date >= campaign.startDate
-          && event.date <= campaign.endDate,
-        );
-        if (!events.length) return [];
-        return [{
-          ...campaign,
-          visitors: sumBy(events, (event) => event.visitors),
-          verifiedCustomers: sumBy(events, (event) => event.verifiedCustomers),
-          conversions: sumBy(events, (event) => event.conversions),
-          revenue: sumBy(events, (event) => event.revenue),
-        }];
-      });
-      const analytics: AnalyticsSnapshot = {
-        range: clone(range),
-        funnel,
-        revenueBySource: state.analytics.revenueBySource.map((item) => ({
-          ...item,
-          value: scaledCount(item.value, revenueRatio),
-        })),
-        campaignAttribution,
-        conversionBySegment: state.analytics.conversionBySegment.map((item) => ({
-          ...item,
-          value: scaledCount(item.value, activityRatio),
-        })),
-        trend,
-        leadVelocity: state.analytics.leadVelocity.map((item) => ({
-          ...item,
-          value: scaledCount(item.value, activityRatio),
-        })),
-        offerPerformance: state.analytics.offerPerformance.map((item) => ({
-          ...item,
-          value: scaledCount(item.value, activityRatio),
-        })),
-        retentionRate: state.analytics.retentionRate,
-      };
-      return clone(analytics);
+      return clone(analyticsForRange(range));
     },
 
     async getWorkspaceSettings() {
@@ -360,10 +460,18 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
       return clone(link);
     },
 
-    async createCampaign(input, actorId) {
+    async createCampaignWithTrackedLink(input, tracking, actorId) {
+      const trackedLinkId = `tracked-link-${state.trackedLinks.length + 1}`;
+      const trackedLink: TrackedLink = {
+        ...clone(tracking),
+        id: trackedLinkId,
+        url: buildTrackedRayNameUrl(tracking),
+        createdAt: activityTimestamp(state.activity.length + 2),
+      };
       const campaign: Campaign = {
         ...clone(input),
         id: `campaign-${state.campaigns.length + 1}`,
+        trackedLinkId,
         visitors: 0,
         verifiedCustomers: 0,
         conversions: 0,
@@ -372,8 +480,11 @@ export function createLocalAdminDataProvider(seed: AdminState = localAdminSeed):
       state.campaigns.unshift(campaign);
       state.overview.campaigns.unshift(clone(campaign));
       state.analytics.campaignAttribution.unshift(clone(campaign));
+      state.trackedLinks.unshift(trackedLink);
       recordActivity(actorId, campaign.id, "campaign.created");
-      return clone(campaign);
+      recordActivity(actorId, trackedLink.id, "tracking.link.created");
+      const result: CampaignCreationResult = { campaign, trackedLink };
+      return clone(result);
     },
 
     async updateOffer(offerId, patch, actorId) {

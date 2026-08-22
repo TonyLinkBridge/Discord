@@ -3,9 +3,16 @@
 import { Bell, CalendarBlank, CaretDown, MagnifyingGlass } from "@phosphor-icons/react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { ThemeSelector } from "@/components/theme/theme-selector";
+import {
+  accessibleReportingRangeLabel,
+  reportingRangeOptions,
+  useReportingRange,
+} from "@/lib/reporting-range";
 import styles from "./admin-shell.module.css";
 
 export function CommandBar({ onSearch, title }: Readonly<{ onSearch: () => void; title: string }>) {
+  const { selectedRange, setSelectedRange } = useReportingRange();
+
   return (
     <header className={styles.commandBar}>
       <h1>{title}</h1>
@@ -14,11 +21,32 @@ export function CommandBar({ onSearch, title }: Readonly<{ onSearch: () => void;
         <span>Search members, domains, leads, campaigns...</span>
         <kbd className={styles.keyHint}>⌘ K</kbd>
       </button>
-      <button className={styles.dateControl} type="button" aria-label="Date range: Aug 16 to 22, 2026">
-        <CalendarBlank aria-hidden size={18} weight="regular" />
-        <span>Aug 16–22, 2026</span>
-        <CaretDown aria-hidden size={15} />
-      </button>
+      <MenuTrigger>
+        <Button
+          aria-label={`Date range: ${accessibleReportingRangeLabel(selectedRange.label)}`}
+          className={styles.dateControl}
+        >
+          <CalendarBlank aria-hidden size={18} weight="regular" />
+          <span>{selectedRange.label}</span>
+          <CaretDown aria-hidden size={15} />
+        </Button>
+        <Popover className={styles.rangePopover} placement="bottom end" offset={8}>
+          <Menu
+            aria-label="Reporting date ranges"
+            className={styles.rangeMenu}
+            onAction={(key) => {
+              const option = reportingRangeOptions.find((item) => item.id === key);
+              if (option) setSelectedRange(option);
+            }}
+            selectedKeys={[selectedRange.id]}
+            selectionMode="single"
+          >
+            {reportingRangeOptions.map((option) => (
+              <MenuItem id={option.id} key={option.id}>{option.label}</MenuItem>
+            ))}
+          </Menu>
+        </Popover>
+      </MenuTrigger>
       <span className={styles.systemStatus}><i aria-hidden />All systems operational</span>
       <ThemeSelector />
       <button className={styles.iconButton} type="button" aria-label="Notifications">

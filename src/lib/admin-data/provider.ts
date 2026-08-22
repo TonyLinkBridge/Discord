@@ -3,6 +3,7 @@ import type {
   AdminState,
   AnalyticsSnapshot,
   Campaign,
+  CampaignCreationResult,
   CampaignInput,
   CommunitySnapshot,
   ContentEntry,
@@ -68,7 +69,11 @@ export interface AdminDataProvider {
   verifyMember(memberId: string, actorId: string): Promise<MemberVerificationResult>;
   recordMemberAction(memberId: string, action: MemberAction, actorId: string): Promise<void>;
   createTrackedLink(input: TrackingInput, actorId: string): Promise<TrackedLink>;
-  createCampaign(input: CampaignInput, actorId: string): Promise<Campaign>;
+  createCampaignWithTrackedLink(
+    input: CampaignInput,
+    tracking: TrackingInput,
+    actorId: string,
+  ): Promise<CampaignCreationResult>;
   updateOffer(offerId: string, patch: OfferPatch, actorId: string): Promise<Offer>;
   updateContentEntry(
     entryId: string,

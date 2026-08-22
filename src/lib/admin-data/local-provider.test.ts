@@ -16,7 +16,7 @@ describe("local admin data provider", () => {
     expect(overview.metrics.map((metric) => metric.value)).toEqual([
       "1,248",
       "326",
-      "84",
+      "168",
       "39",
       "91.4%",
       "$18,420",
@@ -24,6 +24,54 @@ describe("local admin data provider", () => {
     expect(overview.trend.map((point) => point.registrations)).toEqual([
       9, 11, 15, 17, 12, 20, 84,
     ]);
+  });
+
+  test("derives selected-period Overview flows from canonical dated facts", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    const overview = await provider.getOverview({
+      from: "2026-08-18",
+      to: "2026-08-22",
+    });
+
+    expect(overview.range).toEqual({ from: "2026-08-18", to: "2026-08-22" });
+    expect(overview.trend.map((point) => point.date)).toEqual([
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-22",
+    ]);
+    expect(overview.metrics.find((metric) => metric.id === "registrations")?.value).toBe("148");
+    expect(overview.metrics.find((metric) => metric.id === "transfers")?.value).toBe("32");
+    expect(overview.metrics.find((metric) => metric.id === "attributed-revenue")?.value)
+      .toBe("$14,460");
+    expect(overview.campaigns.find((campaign) => campaign.id === "com-transfer-week"))
+      .toMatchObject({ visitors: 2504, conversions: 60, revenue: 7395 });
+  });
+
+  test("keeps Overview period KPI totals equal to their dated trend facts", async () => {
+    const provider = createLocalAdminDataProvider();
+    const ranges = [
+      { from: "2026-08-16", to: "2026-08-22" },
+      { from: "2026-08-18", to: "2026-08-22" },
+      { from: "2026-08-01", to: "2026-08-22" },
+    ];
+
+    for (const range of ranges) {
+      const overview = await provider.getOverview(range);
+      const metricValue = (metricId: string) => overview.metrics
+        .find((metric) => metric.id === metricId)?.value.replace(/[$,]/g, "");
+      const trendTotal = (field: "registrations" | "transfers" | "revenue") =>
+        overview.trend.reduce((total, point) => total + point[field], 0);
+
+      expect(Number(metricValue("registrations")), JSON.stringify(range))
+        .toBe(trendTotal("registrations"));
+      expect(Number(metricValue("transfers")), JSON.stringify(range))
+        .toBe(trendTotal("transfers"));
+      expect(Number(metricValue("attributed-revenue")), JSON.stringify(range))
+        .toBe(trendTotal("revenue"));
+    }
   });
 
   test("completing a priority removes it from the active queue and records activity", async () => {
@@ -373,10 +421,10 @@ describe("local admin data provider", () => {
     });
   });
 
-  test("creates a campaign with zero performance and records its activity", async () => {
+  test("atomically creates a campaign, tracked link, and both audit events", async () => {
     const provider = createLocalAdminDataProvider();
 
-    const campaign = await provider.createCampaign(
+    const creation = await provider.createCampaignWithTrackedLink(
       {
         name: "Builder referral push",
         objective: "Convert builder referrals",
@@ -387,22 +435,65 @@ describe("local admin data provider", () => {
         endDate: "2026-08-30",
         status: "scheduled",
       },
+      {
+        campaign: "builder-referral-push",
+        content: "campaign-form",
+        destination: "https://www.rayname.com/domain/search",
+        medium: "community",
+        source: "discord",
+      },
       "local-ray",
     );
+    const { campaign, trackedLink } = creation;
 
     expect(campaign).toMatchObject({
       id: "campaign-5",
+      trackedLinkId: "tracked-link-1",
       visitors: 0,
       verifiedCustomers: 0,
       conversions: 0,
       revenue: 0,
     });
     expect((await provider.getState()).campaigns[0]).toEqual(campaign);
-    expect((await provider.getActivity())[0]).toMatchObject({
-      actorId: "local-ray",
-      entityId: "campaign-5",
-      action: "campaign.created",
+    expect((await provider.getState()).trackedLinks[0]).toEqual(trackedLink);
+    expect(trackedLink).toMatchObject({
+      id: campaign.trackedLinkId,
+      url: "https://www.rayname.com/domain/search?utm_campaign=builder-referral-push&utm_content=campaign-form&utm_medium=community&utm_source=discord",
     });
+    expect((await provider.getActivity()).slice(0, 2)).toMatchObject([
+      { actorId: "local-ray", entityId: "tracked-link-1", action: "tracking.link.created" },
+      { actorId: "local-ray", entityId: "campaign-5", action: "campaign.created" },
+    ]);
+  });
+
+  test("does not partially create a campaign when its tracked link is invalid", async () => {
+    const provider = createLocalAdminDataProvider();
+
+    await expect(provider.createCampaignWithTrackedLink(
+      {
+        name: "Unsafe campaign",
+        objective: "Reject invalid tracking",
+        audience: "Builders",
+        channel: "Discord",
+        destination: "https://www.rayname.com/domain/search",
+        startDate: "2026-08-23",
+        endDate: "2026-08-30",
+        status: "scheduled",
+      },
+      {
+        campaign: "unsafe-campaign",
+        content: "campaign-form",
+        destination: "https://example.com/search",
+        medium: "community",
+        source: "discord",
+      },
+      "local-ray",
+    )).rejects.toThrow("Tracking destinations must use HTTPS on a RayName domain.");
+
+    const state = await provider.getState();
+    expect(state.campaigns).toHaveLength(4);
+    expect(state.trackedLinks).toEqual([]);
+    expect(state.activity).toEqual([]);
   });
 
   test("updates an offer and records its activity", async () => {

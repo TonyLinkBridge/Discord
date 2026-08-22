@@ -32,8 +32,38 @@ test("creates Renewal Rescue with a Discord-attributed RayName URL", async () =>
     endDate: "2026-09-06",
     name: "Renewal Rescue",
     startDate: "2026-08-23",
+    trackedLinkId: "tracked-link-1",
   });
+  expect((await provider.getState()).trackedLinks[0]).toMatchObject({
+    campaign: "renewal-rescue",
+    id: "tracked-link-1",
+    url: (trackedUrl as HTMLInputElement).value,
+  });
+  expect((await provider.getActivity()).slice(0, 2).map((event) => event.action)).toEqual([
+    "tracking.link.created",
+    "campaign.created",
+  ]);
   expect(screen.getByRole("status")).toHaveTextContent("Renewal Rescue campaign created");
+});
+
+test("shows a campaign tracked URL after the campaign screen remounts", async () => {
+  const user = userEvent.setup();
+  const firstRender = renderAdmin(<CampaignsScreen />);
+
+  await screen.findByRole("heading", { name: "Campaigns" });
+  await user.type(screen.getByLabelText("Campaign name"), "Renewal Rescue");
+  await user.selectOptions(screen.getByLabelText("Channel"), "discord");
+  await user.type(screen.getByLabelText("Destination"), "https://www.rayname.com/domain/search");
+  await user.type(screen.getByLabelText("Start date"), "2026-08-23");
+  await user.type(screen.getByLabelText("End date"), "2026-09-06");
+  await user.click(screen.getByRole("button", { name: "Create campaign" }));
+  const trackedUrl = (await screen.findByRole("textbox", { name: "Tracked URL" }) as HTMLInputElement).value;
+
+  firstRender.unmount();
+  renderAdmin(<CampaignsScreen />, { provider: firstRender.provider });
+
+  expect(await screen.findByRole("link", { name: "Tracked URL for Renewal Rescue" }))
+    .toHaveAttribute("href", trackedUrl);
 });
 
 test("rejects external destinations and focuses the destination error", async () => {
