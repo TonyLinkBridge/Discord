@@ -72,36 +72,58 @@ test("global search activates Alex Chen in the canonical lead dialog", async ({ 
   await expect(page.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
 });
 
-test("every Overview chart tab shows seven non-overlapping date labels at 1440px", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1024 });
-  await page.goto("/");
+for (const theme of themes) {
+  test(`every Overview chart tab keeps seven complete date labels visible at 1440px in ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1024 });
+    await loadTheme(page, "/", theme);
 
-  for (const metric of ["Registrations", "Transfers", "Renewals"]) {
-    await page.getByRole("tab", { name: metric }).click();
-    const chart = page.getByRole("img", {
-      name: `${metric} line chart for Aug 16–22, 2026`,
-    });
-    const labels = chart.locator("svg text").filter({ hasText: /^Aug \d{2}/ });
+    for (const metric of ["Registrations", "Transfers", "Renewals"]) {
+      await page.getByRole("tab", { name: metric }).click();
+      const chart = page.getByRole("img", {
+        name: `${metric} line chart for Aug 16–22, 2026`,
+      });
+      const labels = chart.locator("svg text").filter({ hasText: /^Aug \d{2}/ });
 
-    await expect(labels).toHaveCount(7);
-    expect(await labels.allTextContents()).toEqual([
-      "Aug 16Sun",
-      "Aug 17Mon",
-      "Aug 18Tue",
-      "Aug 19Wed",
-      "Aug 20Thu",
-      "Aug 21Fri",
-      "Aug 22Sat",
-    ]);
-    const boxes = await labels.evaluateAll((elements) => elements.map((element) => {
-      const bounds = element.getBoundingClientRect();
-      return { left: bounds.left, right: bounds.right };
-    }));
-    for (let index = 1; index < boxes.length; index += 1) {
-      expect(boxes[index - 1].right).toBeLessThanOrEqual(boxes[index].left);
+      await expect(labels).toHaveCount(7);
+      expect(await labels.allTextContents()).toEqual([
+        "Aug 16Sun",
+        "Aug 17Mon",
+        "Aug 18Tue",
+        "Aug 19Wed",
+        "Aug 20Thu",
+        "Aug 21Fri",
+        "Aug 22Sat",
+      ]);
+
+      const chartBounds = await chart.boundingBox();
+      expect(chartBounds).not.toBeNull();
+      const labelBounds = await labels.evaluateAll((elements) => elements.map((element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          bottom: bounds.bottom,
+          label: element.textContent,
+          left: bounds.left,
+          right: bounds.right,
+          top: bounds.top,
+        };
+      }));
+      const clippedLabels = labelBounds.filter((bounds) => (
+        bounds.left < chartBounds!.x
+        || bounds.right > chartBounds!.x + chartBounds!.width
+        || bounds.top < chartBounds!.y
+        || bounds.bottom > chartBounds!.y + chartBounds!.height
+      ));
+
+      expect(
+        clippedLabels,
+        `${theme} ${metric} labels outside visible chart ${JSON.stringify(chartBounds)}`,
+      ).toEqual([]);
+      for (let index = 1; index < labelBounds.length; index += 1) {
+        expect(labelBounds[index - 1].right).toBeLessThanOrEqual(labelBounds[index].left);
+      }
     }
-  }
-});
+  });
+}
 
 test("theme menu supports keyboard selection", async ({ page }) => {
   await loadTheme(page, "/", "light");

@@ -73,7 +73,7 @@ export function AccessibleLineChart({
     <>
       <div aria-label={`${label} line chart for Aug 16–22, 2026`} className={styles.chartRegion} role="img">
         <ResponsiveContainer height="100%" width="100%">
-          <AreaChart data={data} margin={{ bottom: 0, left: -22, right: 12, top: 22 }}>
+          <AreaChart data={data} margin={{ bottom: 0, left: -22, right: 20, top: 22 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.34} />
