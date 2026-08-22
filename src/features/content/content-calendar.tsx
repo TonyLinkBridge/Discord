@@ -1,6 +1,9 @@
+"use client";
+
 import { CalendarBlank, CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import { useState } from "react";
 import type { ContentEntry } from "@/lib/admin-data/types";
-import { contentFormats, summarizeContentMix } from "./content-mix";
+import { contentFormats, partitionContentCycles } from "./content-mix";
 import styles from "./content-screen.module.css";
 
 const formatLabels = Object.fromEntries(
@@ -22,9 +25,26 @@ function dateLabel(value: string): string {
   }).format(new Date(value));
 }
 
+function dateRangeLabel(entries: readonly ContentEntry[]): string {
+  const start = new Date(entries[0].publishAt);
+  const end = new Date(entries.at(-1)?.publishAt ?? entries[0].publishAt);
+  const month = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" });
+  const startMonth = month.format(start);
+  const endMonth = month.format(end);
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  if (startMonth === endMonth && startYear === endYear) {
+    return `${startMonth} ${start.getUTCDate()}–${end.getUTCDate()}, ${endYear}`;
+  }
+  return `${startMonth} ${start.getUTCDate()}, ${startYear}–${endMonth} ${end.getUTCDate()}, ${endYear}`;
+}
+
 export function ContentCalendar({ entries }: Readonly<{ entries: readonly ContentEntry[] }>) {
-  const orderedEntries = [...entries].sort((left, right) => left.publishAt.localeCompare(right.publishAt));
-  const mix = summarizeContentMix(orderedEntries.map((entry) => entry.conversionLevel));
+  const cycles = partitionContentCycles(entries);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const activeIndex = Math.min(selectedIndex, Math.max(0, cycles.length - 1));
+  const selectedCycle = cycles[activeIndex] ?? cycles[0];
+  const cycleLabel = `Cycle ${selectedCycle.number} · ${dateRangeLabel(selectedCycle.entries)}`;
 
   return (
     <section aria-labelledby="content-calendar-title" className={styles.calendarPanel}>
@@ -33,22 +53,41 @@ export function ContentCalendar({ entries }: Readonly<{ entries: readonly Conten
           <p className={styles.eyebrow}>Seven-post publishing cycle</p>
           <h2 id="content-calendar-title">Content calendar</h2>
         </div>
-        <span className={mix.compliant ? styles.compliant : styles.noncompliant}>
-          {mix.compliant
+        <div className={styles.cycleControls}>
+          <label>
+            Publishing cycle
+            <select onChange={(event) => setSelectedIndex(Number(event.target.value))} value={activeIndex}>
+              {cycles.map((cycle, index) => (
+                <option key={cycle.number} value={index}>
+                  {`Cycle ${cycle.number}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <strong className={styles.cycleLabel}>{cycleLabel}</strong>
+        </div>
+        <span className={selectedCycle.compliant ? styles.compliant : styles.noncompliant}>
+          {selectedCycle.compliant
             ? <CheckCircle aria-hidden size={15} weight="fill" />
             : <WarningCircle aria-hidden size={15} weight="fill" />}
-          {mix.compliant ? "4:2:1 cycle compliant" : "4:2:1 cycle needs adjustment"}
+          {selectedCycle.compliant ? "4:2:1 cycle compliant" : "4:2:1 cycle needs adjustment"}
         </span>
       </header>
 
+      {!selectedCycle.complete ? (
+        <p className={styles.incompleteCycle}>
+          {`Incomplete cycle · ${selectedCycle.entries.length} of 7 posts`}
+        </p>
+      ) : null}
+
       <ul aria-label="Publishing mix" className={styles.mixSummary}>
-        <li>{mix.education} education</li>
-        <li>{mix.soft} soft conversion</li>
-        <li>{mix.direct} direct offer</li>
+        <li>{selectedCycle.mix.education} education</li>
+        <li>{selectedCycle.mix.soft} soft conversion</li>
+        <li>{selectedCycle.mix.direct} direct offer</li>
       </ul>
 
       <div className={styles.calendarGrid}>
-        {orderedEntries.map((entry) => (
+        {selectedCycle.entries.map((entry) => (
           <article className={styles.calendarCard} key={entry.id}>
             <header>
               <span><CalendarBlank aria-hidden size={14} />{dateLabel(entry.publishAt)}</span>

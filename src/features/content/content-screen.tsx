@@ -25,8 +25,9 @@ export function ContentScreen() {
     return () => { active = false; };
   }, [provider]);
 
-  function replaceEntry(updated: ContentEntry) {
-    setEntries((items) => items.map((entry) => entry.id === updated.id ? updated : entry));
+  async function refreshEntries() {
+    const state = await provider.getState();
+    setEntries(state.content);
   }
 
   if (loadingState === "loading") {
@@ -39,7 +40,7 @@ export function ContentScreen() {
 
   return (
     <main className={styles.screen}>
-      <ContentEditor entryId={entries[0].id} onUpdated={replaceEntry} showSavedPreview={false} />
+      <ContentEditor onUpdated={refreshEntries} showSavedPreview={false} />
       <ContentCalendar entries={entries} />
     </main>
   );

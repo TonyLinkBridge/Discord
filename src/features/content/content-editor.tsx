@@ -1,13 +1,14 @@
 "use client";
 
 import { CheckCircle, PaperPlaneTilt } from "@phosphor-icons/react";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { ContentEntry } from "@/lib/admin-data/types";
-import { contentFormats, summarizeContentMix, validateContentEntry } from "./content-mix";
+import { contentFormats, partitionContentCycles, validateContentEntry } from "./content-mix";
 import styles from "./content-screen.module.css";
 
 type ContentFormValues = {
+  targetId: string;
   title: string;
   format: ContentEntry["format"] | "";
   conversionLevel: ContentEntry["conversionLevel"] | "";
@@ -19,6 +20,7 @@ type ContentField = keyof ContentFormValues;
 type ContentErrors = Partial<Record<ContentField, string>>;
 
 const emptyValues: ContentFormValues = {
+  targetId: "",
   title: "",
   format: "",
   conversionLevel: "",
@@ -27,6 +29,7 @@ const emptyValues: ContentFormValues = {
 };
 
 const fieldOrder: readonly ContentField[] = [
+  "targetId",
   "title",
   "format",
   "conversionLevel",
@@ -49,6 +52,7 @@ function formatPublishDate(value: string): string {
 
 function validateForm(values: ContentFormValues): ContentErrors {
   const errors: ContentErrors = {};
+  if (!values.targetId) errors.targetId = "Choose a post slot to replace";
   const entryResult = validateContentEntry({ title: values.title, ctas: [values.cta] });
   if (!entryResult.success) {
     for (const issue of entryResult.issues) {
@@ -63,12 +67,10 @@ function validateForm(values: ContentFormValues): ContentErrors {
 }
 
 export function ContentEditor({
-  entryId = "market-pulse-aug-22",
   onUpdated,
   showSavedPreview = true,
 }: Readonly<{
-  entryId?: string;
-  onUpdated?: (entry: ContentEntry) => void;
+  onUpdated?: (entry: ContentEntry) => void | Promise<void>;
   showSavedPreview?: boolean;
 }>) {
   const provider = useAdminData();
@@ -76,12 +78,49 @@ export function ContentEditor({
   const [values, setValues] = useState<ContentFormValues>(emptyValues);
   const [errors, setErrors] = useState<ContentErrors>({});
   const [pending, setPending] = useState(false);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("Loading post slots…");
+  const [entries, setEntries] = useState<ContentEntry[]>([]);
+  const [slotsLoaded, setSlotsLoaded] = useState(false);
+  const [slotLoadError, setSlotLoadError] = useState(false);
   const [savedEntry, setSavedEntry] = useState<ContentEntry | null>(null);
   const [cycleCompliant, setCycleCompliant] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    provider.getState().then((state) => {
+      if (!active) return;
+      setEntries(partitionContentCycles(state.content).flatMap((cycle) => cycle.entries));
+      setSlotsLoaded(true);
+      setStatus("");
+    }).catch(() => {
+      if (!active) return;
+      setSlotLoadError(true);
+      setStatus("Unable to load post slots");
+    });
+    return () => { active = false; };
+  }, [provider]);
+
   function updateField<Field extends ContentField>(field: Field, value: ContentFormValues[Field]) {
     setValues((current) => ({ ...current, [field]: value }));
+  }
+
+  function selectTarget(targetId: string) {
+    const target = entries.find((entry) => entry.id === targetId);
+    if (!target) {
+      setValues(emptyValues);
+      return;
+    }
+    setValues({
+      targetId,
+      cta: target.ctas[0] ?? "",
+      conversionLevel: target.conversionLevel,
+      format: target.format,
+      publishDate: target.publishAt.slice(0, 10),
+      title: target.title,
+    });
+    setErrors({});
+    setSavedEntry(null);
+    setStatus("");
   }
 
   function focusFirstInvalid(nextErrors: ContentErrors) {
@@ -106,7 +145,7 @@ export function ContentEditor({
     setPending(true);
     setStatus("Scheduling post…");
     try {
-      const updated = await provider.updateContentEntry(entryId, {
+      const updated = await provider.updateContentEntry(values.targetId, {
         ctas: [values.cta.trim()],
         conversionLevel: values.conversionLevel as ContentEntry["conversionLevel"],
         format: values.format as ContentEntry["format"],
@@ -115,12 +154,14 @@ export function ContentEditor({
         title: values.title.trim(),
       }, "local-ray");
       const state = await provider.getState();
+      const cycles = partitionContentCycles(state.content);
+      const selectedCycle = cycles.find((cycle) =>
+        cycle.entries.some((entry) => entry.id === updated.id));
+      setEntries(cycles.flatMap((cycle) => cycle.entries));
       setSavedEntry(updated);
-      setCycleCompliant(summarizeContentMix(
-        state.content.map((entry) => entry.conversionLevel),
-      ).compliant);
+      setCycleCompliant(selectedCycle?.compliant ?? false);
       setStatus("Post scheduled");
-      onUpdated?.(updated);
+      await onUpdated?.(updated);
     } catch {
       setStatus("Unable to schedule post");
     } finally {
@@ -129,6 +170,12 @@ export function ContentEditor({
   }
 
   const errorSummary = fieldOrder.filter((field) => errors[field]);
+  const cycles = partitionContentCycles(entries);
+  const selectedPosition = cycles.flatMap((cycle) => cycle.entries.map((entry, index) => ({
+    cycle: cycle.number,
+    entry,
+    slot: index + 1,
+  }))).find((position) => position.entry.id === values.targetId);
 
   return (
     <section aria-labelledby="content-editor-title" className={styles.editorPanel}>
@@ -152,12 +199,48 @@ export function ContentEditor({
       ) : null}
 
       <form aria-busy={pending} className={styles.editorForm} onSubmit={handleSubmit} ref={formRef}>
+        {slotsLoaded ? (
+          <div className={styles.fullField}>
+            <label htmlFor="content-target">Post slot to replace</label>
+            <select
+              aria-describedby={errors.targetId ? "content-target-error" : "content-target-help"}
+              aria-invalid={Boolean(errors.targetId)}
+              disabled={pending}
+              id="content-target"
+              name="targetId"
+              onChange={(event) => selectTarget(event.target.value)}
+              value={values.targetId}
+            >
+              <option disabled value="">Choose a scheduled post</option>
+              {cycles.flatMap((cycle) => cycle.entries.map((entry, index) => (
+                <option key={entry.id} value={entry.id}>
+                  {`Cycle ${cycle.number} · Slot ${index + 1} · ${formatPublishDate(entry.publishAt)} · ${entry.title}`}
+                </option>
+              )))}
+            </select>
+            {errors.targetId
+              ? <span className={styles.fieldError} id="content-target-error">{errors.targetId}</span>
+              : <span className={styles.fieldHelp} id="content-target-help">Select the existing scheduled post that this draft will replace.</span>}
+          </div>
+        ) : (
+          <p className={slotLoadError ? styles.inlineLoadError : styles.fieldHelp}>
+            {slotLoadError ? "Unable to load post slots." : "Loading post slots…"}
+          </p>
+        )}
+
+        {selectedPosition ? (
+          <p className={styles.replacementNotice}>
+            <strong>{`Cycle ${selectedPosition.cycle}, slot ${selectedPosition.slot}`}</strong>
+            {` · ${formatPublishDate(selectedPosition.entry.publishAt)} · ${selectedPosition.entry.title}. Saving will overwrite this existing post.`}
+          </p>
+        ) : null}
+
         <div className={styles.fullField}>
           <label htmlFor="content-title">Title</label>
           <input
             aria-describedby={errors.title ? "content-title-error" : undefined}
             aria-invalid={Boolean(errors.title)}
-            disabled={pending}
+            disabled={pending || !values.targetId}
             id="content-title"
             name="title"
             onChange={(event) => updateField("title", event.target.value)}
@@ -171,7 +254,7 @@ export function ContentEditor({
           <select
             aria-describedby={errors.format ? "content-format-error" : undefined}
             aria-invalid={Boolean(errors.format)}
-            disabled={pending}
+            disabled={pending || !values.targetId}
             id="content-format"
             name="format"
             onChange={(event) => updateField("format", event.target.value as ContentFormValues["format"])}
@@ -189,7 +272,7 @@ export function ContentEditor({
           <select
             aria-describedby={errors.conversionLevel ? "content-level-error" : undefined}
             aria-invalid={Boolean(errors.conversionLevel)}
-            disabled={pending}
+            disabled={pending || !values.targetId}
             id="content-level"
             name="conversionLevel"
             onChange={(event) => updateField("conversionLevel", event.target.value as ContentFormValues["conversionLevel"])}
@@ -207,7 +290,7 @@ export function ContentEditor({
           <input
             aria-describedby={errors.publishDate ? "content-date-error" : undefined}
             aria-invalid={Boolean(errors.publishDate)}
-            disabled={pending}
+            disabled={pending || !values.targetId}
             id="content-date"
             name="publishDate"
             onChange={(event) => updateField("publishDate", event.target.value)}
@@ -221,7 +304,7 @@ export function ContentEditor({
           <input
             aria-describedby={errors.cta ? "content-cta-error" : undefined}
             aria-invalid={Boolean(errors.cta)}
-            disabled={pending}
+            disabled={pending || !values.targetId}
             id="content-cta"
             name="cta"
             onChange={(event) => updateField("cta", event.target.value)}
