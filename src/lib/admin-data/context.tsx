@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type { AdminDataProvider } from "./provider";
+import type { AdminAvailability } from "./availability";
 
 export const AdminDataContext = createContext<AdminDataProvider | null>(null);
 
@@ -23,4 +24,8 @@ export function useAdminData(): AdminDataProvider {
   }
 
   return provider;
+}
+
+export function useAdminAvailability(): AdminAvailability {
+  return useAdminData().availability;
 }

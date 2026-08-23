@@ -7,8 +7,13 @@ import { GlobalSearch } from "./global-search";
 import { navItems } from "./nav-items";
 import { Sidebar } from "./sidebar";
 import styles from "./admin-shell.module.css";
+import type { AdminActorSummary } from "@/lib/auth";
 
-export function AdminShell({ children, title }: Readonly<{ children: React.ReactNode; title?: string }>) {
+export function AdminShell({ actor, children, title }: Readonly<{
+  actor: AdminActorSummary;
+  children: React.ReactNode;
+  title?: string;
+}>) {
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname() ?? "/";
   const derivedTitle = navItems.find((item) =>
@@ -34,7 +39,7 @@ export function AdminShell({ children, title }: Readonly<{ children: React.React
     <div className={styles.shell}>
       <Sidebar />
       <div className={styles.contentColumn}>
-        <CommandBar onSearch={() => setSearchOpen(true)} title={title ?? derivedTitle} />
+        <CommandBar actor={actor} onSearch={() => setSearchOpen(true)} title={title ?? derivedTitle} />
         <div className={styles.routeContent}>{children}</div>
       </div>
       {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}

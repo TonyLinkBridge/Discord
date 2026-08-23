@@ -1,17 +1,18 @@
 "use client";
 
-import { Buildings, CheckCircle } from "@phosphor-icons/react";
+import { Buildings, WarningCircle } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import rayNameMark from "../../../assets/brand/rayname-server-icon.png";
 import { navItems } from "./nav-items";
-import { useAdminData } from "@/lib/admin-data/context";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
 import styles from "./admin-shell.module.css";
 
 export function Sidebar() {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
   const pathname = usePathname() ?? "/";
   const [workspace, setWorkspace] = useState("RayName");
 
@@ -59,16 +60,16 @@ export function Sidebar() {
 
       <div className={styles.sidebarFooter}>
         <div
-          aria-label="System status: All systems operational"
+          aria-label={availability.dataMode === "unavailable" ? "Setup incomplete" : "Live data connected"}
           className={styles.healthCard}
           role="status"
-          title="All systems operational"
+          title={availability.dataMode === "unavailable" ? "Live integrations pending" : "Live data connected"}
         >
-          <span className={styles.healthStatus}><CheckCircle aria-hidden size={14} weight="fill" /> All systems operational</span>
-          <span className={styles.railOnly} aria-hidden><CheckCircle size={18} weight="fill" /></span>
+          <span className={styles.healthStatus}><WarningCircle aria-hidden size={14} weight="fill" /> {availability.dataMode === "unavailable" ? "Setup incomplete" : "Live data connected"}</span>
+          <span className={styles.railOnly} aria-hidden><WarningCircle size={18} weight="fill" /></span>
           <div className={styles.healthDetails}>
-            <span>RayName Time (UTC)</span>
-            <strong>Aug 22, 2026</strong>
+            <span>Data status</span>
+            <strong>{availability.dataMode === "unavailable" ? "Live integrations pending" : "Connected"}</strong>
           </div>
         </div>
       </div>

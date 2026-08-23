@@ -54,9 +54,33 @@ export function getAdminAuthEnvironment() {
   });
 }
 
-export async function getAuthenticatedDiscordUserId(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { discordUserId?: unknown } | undefined;
+export type AdminActorSummary = {
+  id: string;
+  image: string | null;
+  name: string;
+};
 
-  return typeof user?.discordUserId === "string" ? user.discordUserId.trim() || null : null;
+export async function getAuthenticatedAdminActor(): Promise<AdminActorSummary | null> {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as {
+    discordUserId?: unknown;
+    image?: unknown;
+    name?: unknown;
+  } | undefined;
+  const id = typeof user?.discordUserId === "string" ? user.discordUserId.trim() : "";
+
+  if (!id) return null;
+
+  const name = typeof user?.name === "string" ? user.name.trim() : "";
+  const image = typeof user?.image === "string" ? user.image.trim() : "";
+
+  return {
+    id,
+    image: image || null,
+    name: name || "Authorized Discord operator",
+  };
+}
+
+export async function getAuthenticatedDiscordUserId(): Promise<string | null> {
+  return (await getAuthenticatedAdminActor())?.id ?? null;
 }

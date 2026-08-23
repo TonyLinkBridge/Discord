@@ -70,7 +70,7 @@
 .sidebarFooter { margin-top: auto; }
 .healthCard { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px; padding: 13px 14px; }
 .healthStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 11px; gap: 7px; }
-.healthStatus svg, .railOnly svg { color: var(--positive); }
+.healthStatus svg, .railOnly svg { color: var(--warning); }
 .healthDetails { border-top: 1px solid var(--border-subtle); display: grid; gap: 6px; margin-top: 12px; padding-top: 12px; }
 .healthDetails strong { color: var(--text-primary); font-size: 12px; font-weight: 500; }
 .railOnly { display: none; }
@@ -88,6 +88,7 @@
 .dateControl span { font-size: 13px; }
 .systemStatus { align-items: center; color: var(--text-primary); display: flex; font-size: 12px; gap: 7px; white-space: nowrap; }
 .systemStatus i { background: var(--positive); border-radius: 50%; height: 9px; width: 9px; }
+.systemStatus:not(.systemStatusLive) i { background: var(--warning); }
 .iconButton { justify-content: center; height: 40px; position: relative; width: 40px; }
 .notificationCount { align-items: center; background: var(--accent); border: 2px solid var(--bg-canvas); border-radius: 50%; color: var(--on-accent); display: flex; font-size: 9px; font-weight: 700; height: 17px; justify-content: center; position: absolute; right: -5px; top: -5px; width: 17px; }
 .commandOperator { align-items: center; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; display: flex; font: inherit; gap: 7px; padding: 0; }
@@ -118,6 +119,7 @@
 .result small { color: var(--text-secondary); font-size: 12px; }
 .result em { color: var(--accent); font-size: 12px; font-style: normal; }
 .emptyResults { color: var(--text-secondary); font-size: 13px; margin: 0; padding: 24px 10px; text-align: center; }
+.visuallyHidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
 
 button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 

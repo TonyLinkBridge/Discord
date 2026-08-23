@@ -1,7 +1,11 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { AdminAuthenticationError, requireAdminActor } from "./require-admin-actor";
 import type { ResolvedAdminAuthEnvironment } from "@/features/auth/access-policy";
+
+const getServerSession = vi.hoisted(() => vi.fn());
+
+vi.mock("next-auth", () => ({ getServerSession }));
 
 const productionEnvironment = (
   overrides: Partial<ResolvedAdminAuthEnvironment> = {},
@@ -75,5 +79,35 @@ describe("requireAdminActor", () => {
     })).rejects.toEqual(expect.objectContaining<Partial<AdminAuthenticationError>>({
       code: "forbidden",
     }));
+  });
+});
+
+describe("getAuthenticatedAdminActor", () => {
+  beforeEach(() => {
+    getServerSession.mockReset();
+  });
+
+  test("returns the signed-in Discord operator identity", async () => {
+    getServerSession.mockResolvedValue({
+      user: {
+        discordUserId: " 42 ",
+        image: "https://cdn.discordapp.com/avatars/42/avatar.png",
+        name: "Tony",
+      },
+    });
+    const { getAuthenticatedAdminActor } = await import("./auth");
+
+    await expect(getAuthenticatedAdminActor()).resolves.toEqual({
+      id: "42",
+      image: "https://cdn.discordapp.com/avatars/42/avatar.png",
+      name: "Tony",
+    });
+  });
+
+  test("returns null when Discord identity is missing", async () => {
+    getServerSession.mockResolvedValue({ user: { name: "Unknown" } });
+    const { getAuthenticatedAdminActor } = await import("./auth");
+
+    await expect(getAuthenticatedAdminActor()).resolves.toBeNull();
   });
 });

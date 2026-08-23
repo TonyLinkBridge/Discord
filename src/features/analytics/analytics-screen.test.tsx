@@ -136,7 +136,7 @@ test("dismisses the date range list with Escape and restores trigger focus", asy
 test("shares the command-bar range with Analytics", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Analytics">
+    <AdminShell actor={{ id: "42", image: null, name: "Tony" }} title="Analytics">
       <AnalyticsScreen />
     </AdminShell>,
   );

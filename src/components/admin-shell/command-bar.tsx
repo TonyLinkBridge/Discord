@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, CalendarBlank, CaretDown, MagnifyingGlass } from "@phosphor-icons/react";
+import { CalendarBlank, CaretDown, MagnifyingGlass } from "@phosphor-icons/react";
+import { signOut } from "next-auth/react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { ThemeSelector } from "@/components/theme/theme-selector";
 import {
@@ -9,9 +10,19 @@ import {
   useReportingRange,
 } from "@/lib/reporting-range";
 import styles from "./admin-shell.module.css";
+import { useAdminAvailability } from "@/lib/admin-data/context";
+import type { AdminActorSummary } from "@/lib/auth";
 
-export function CommandBar({ onSearch, title }: Readonly<{ onSearch: () => void; title: string }>) {
+export function CommandBar({ actor, onSearch, title }: Readonly<{
+  actor: AdminActorSummary;
+  onSearch: () => void;
+  title: string;
+}>) {
   const { selectedRange, setSelectedRange } = useReportingRange();
+  const availability = useAdminAvailability();
+  const analyticsAvailable = availability.capabilities["read-analytics"].available;
+  const setupIncomplete = availability.dataMode === "unavailable";
+  const actorInitial = actor.name.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <header className={styles.commandBar}>
@@ -23,8 +34,10 @@ export function CommandBar({ onSearch, title }: Readonly<{ onSearch: () => void;
       </button>
       <MenuTrigger>
         <Button
+          aria-describedby={!analyticsAvailable ? "date-range-unavailable" : undefined}
           aria-label={`Date range: ${accessibleReportingRangeLabel(selectedRange.label)}`}
           className={styles.dateControl}
+          isDisabled={!analyticsAvailable}
         >
           <CalendarBlank aria-hidden size={18} weight="regular" />
           <span>{selectedRange.label}</span>
@@ -47,21 +60,29 @@ export function CommandBar({ onSearch, title }: Readonly<{ onSearch: () => void;
           </Menu>
         </Popover>
       </MenuTrigger>
-      <span className={styles.systemStatus}><i aria-hidden />All systems operational</span>
+      {!analyticsAvailable && (
+        <span className={styles.visuallyHidden} id="date-range-unavailable">
+          Connect a reporting data source to choose a date range
+        </span>
+      )}
+      <span className={setupIncomplete ? styles.systemStatus : `${styles.systemStatus} ${styles.systemStatusLive}`}>
+        <i aria-hidden />{setupIncomplete ? "Setup incomplete" : "Live data connected"}
+      </span>
       <ThemeSelector />
-      <button className={styles.iconButton} type="button" aria-label="Notifications">
-        <Bell aria-hidden size={21} weight="regular" />
-        <span className={styles.notificationCount}>7</span>
-      </button>
       <MenuTrigger>
         <Button className={styles.commandOperator} aria-label="Operator menu">
-          <span className={styles.avatar} aria-hidden>R</span>
-          <span className={styles.commandOperatorName}>Ray</span>
+          <span className={styles.avatar} aria-hidden>{actorInitial}</span>
+          <span className={styles.commandOperatorName}>{actor.name}</span>
           <CaretDown aria-hidden size={14} />
         </Button>
         <Popover className={styles.operatorPopover} placement="bottom end" offset={8}>
-          <Menu aria-label="Operator menu" className={styles.operatorMenu}>
-            <MenuItem id="account">Account settings</MenuItem>
+          <Menu
+            aria-label="Operator menu"
+            className={styles.operatorMenu}
+            onAction={(key) => {
+              if (key === "sign-out") void signOut({ callbackUrl: "/sign-in" });
+            }}
+          >
             <MenuItem id="sign-out">Sign out</MenuItem>
           </Menu>
         </Popover>

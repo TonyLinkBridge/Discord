@@ -1,21 +1,25 @@
 import { AdminShell } from "@/components/admin-shell/admin-shell";
 import { RuntimeAdminDataProvider } from "@/components/admin-shell/runtime-admin-data-provider";
 import { evaluateAdminAccess } from "@/features/auth/access-policy";
-import { getAdminAuthEnvironment, getAuthenticatedDiscordUserId } from "@/lib/auth";
+import { getAdminAuthEnvironment, getAuthenticatedAdminActor } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { authorizeAdminMutation } from "./admin-mutation-actions";
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const authEnvironment = getAdminAuthEnvironment();
   const hasDevelopmentBypass = authEnvironment.developmentOperatorId !== null;
-  const authenticatedUserId = hasDevelopmentBypass
-    ? authEnvironment.developmentOperatorId
+  const actor = hasDevelopmentBypass
+    ? {
+        id: authEnvironment.developmentOperatorId!,
+        image: null,
+        name: "Development operator",
+      }
     : authEnvironment.credentialsReady
-      ? await getAuthenticatedDiscordUserId()
+      ? await getAuthenticatedAdminActor()
       : null;
   const decision = evaluateAdminAccess({
     environment: hasDevelopmentBypass ? "development" : "production",
-    authenticatedUserId,
+    authenticatedUserId: actor?.id ?? null,
     allowlist: authEnvironment.allowlist,
     credentialsReady: authEnvironment.credentialsReady,
   });
@@ -43,7 +47,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 
   return (
     <RuntimeAdminDataProvider config={runtimeConfig} mutationGate={authorizeAdminMutation}>
-      <AdminShell>{children}</AdminShell>
+      <AdminShell actor={actor!}>{children}</AdminShell>
     </RuntimeAdminDataProvider>
   );
 }

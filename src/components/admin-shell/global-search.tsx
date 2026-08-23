@@ -3,7 +3,7 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { useAdminData } from "@/lib/admin-data/context";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
 import type { SearchResult } from "@/lib/admin-data/types";
 import styles from "./admin-shell.module.css";
 
@@ -19,6 +19,10 @@ const focusableSelector = [
 
 export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
+  const searchAvailable = ["read-members", "read-leads", "read-campaigns"].some(
+    (capability) => availability.capabilities[capability as keyof typeof availability.capabilities].available,
+  );
   const inputId = useId();
   const [query, setQuery] = useState("");
   const [displayResults, setDisplayResults] = useState<SearchResult[]>([]);
@@ -47,7 +51,7 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
   }, []);
 
   useEffect(() => {
-    if (!query.trim()) {
+    if (!query.trim() || !searchAvailable) {
       return;
     }
 
@@ -69,9 +73,9 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
         clearTimeout(displayTimer);
       }
     };
-  }, [provider, query]);
+  }, [provider, query, searchAvailable]);
 
-  const visibleResults = query.trim() ? displayResults : [];
+  const visibleResults = searchAvailable && query.trim() ? displayResults : [];
 
   const groupedResults = searchGroups.map(
     (type) => [type, visibleResults.filter((result) => result.type === type)] as const,
@@ -187,8 +191,11 @@ export function GlobalSearch({ onClose }: Readonly<{ onClose: () => void }>) {
               })}
             </div>
           ))}
-          {query && !visibleResults.length && <p className={styles.emptyResults}>No matching records</p>}
-          {!query && <p className={styles.emptyResults}>Search RayName admin records</p>}
+          {!searchAvailable && (
+            <p className={styles.emptyResults}>Search is available after a data source is connected</p>
+          )}
+          {searchAvailable && query && !visibleResults.length && <p className={styles.emptyResults}>No matching records</p>}
+          {searchAvailable && !query && <p className={styles.emptyResults}>Search RayName admin records</p>}
         </div>
       </section>
     </dialog>

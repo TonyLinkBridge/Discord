@@ -2,11 +2,15 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdminShell } from "./admin-shell";
 import { renderAdmin } from "@/test/render";
+import { createUnavailableAvailability } from "@/lib/admin-data/availability";
+import { createUnavailableAdminDataStore } from "@/lib/admin-data/unavailable-provider";
+
+const actor = { id: "42", image: null, name: "Tony" };
 
 test("opens grouped search results from the keyboard", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div />
     </AdminShell>,
   );
@@ -20,7 +24,7 @@ test("opens grouped search results from the keyboard", async () => {
 test("moves through results with arrow keys and closes with Escape", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div />
     </AdminShell>,
   );
@@ -43,7 +47,7 @@ test("moves through results with arrow keys and closes with Escape", async () =>
 test("activates the keyboard-selected result through its link", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div />
     </AdminShell>,
   );
@@ -67,7 +71,7 @@ test("activates the keyboard-selected result through its link", async () => {
 test("contains focus and restores the search trigger after Escape", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div />
     </AdminShell>,
   );
@@ -88,4 +92,29 @@ test("contains focus and restores the search trigger after Escape", async () => 
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("dialog", { name: "Global search" })).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
+});
+
+test("does not query records when no searchable data source is connected", async () => {
+  const user = userEvent.setup();
+  const config = {
+    discordOAuthConfigured: true,
+    discordServerName: "RayName Domain Club",
+    operatorAllowlist: ["42"],
+    rayNameApiConfigured: false,
+    timezone: "UTC",
+    workspaceName: "RayName Discord Community",
+  };
+  const provider = createUnavailableAdminDataStore(createUnavailableAvailability(config), config);
+  const search = vi.spyOn(provider, "search");
+
+  renderAdmin(
+    <AdminShell actor={actor} title="Overview"><div /></AdminShell>,
+    { provider },
+  );
+
+  await user.keyboard("{Control>}k{/Control}");
+  await user.type(screen.getByRole("searchbox"), "alex");
+
+  expect(screen.getByText("Search is available after a data source is connected")).toBeVisible();
+  expect(search).not.toHaveBeenCalled();
 });

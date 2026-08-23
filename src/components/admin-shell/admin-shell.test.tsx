@@ -6,6 +6,8 @@ import { RayNameThemeProvider } from "@/components/theme/theme-provider";
 import { AdminShell } from "./admin-shell";
 import { renderAdmin } from "@/test/render";
 import { TodaysPriorities } from "@/features/overview/todays-priorities";
+import { createUnavailableAvailability } from "@/lib/admin-data/availability";
+import { createUnavailableAdminDataStore } from "@/lib/admin-data/unavailable-provider";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
 const authorizeAdminMutation = vi.hoisted(() => vi.fn(async (input: unknown) => ({
@@ -25,14 +27,33 @@ vi.mock("@/lib/auth", () => ({
     allowlist: [],
     developmentOperatorId: "local-ray",
   }),
+  getAuthenticatedAdminActor: vi.fn(),
   getAuthenticatedDiscordUserId: vi.fn(),
 }));
+
+const signOut = vi.hoisted(() => vi.fn());
+
+vi.mock("next-auth/react", () => ({ signOut }));
+
+const actor = { id: "42", image: null, name: "Tony" };
+const unavailableConfig = {
+  discordOAuthConfigured: true,
+  discordServerName: "RayName Domain Club",
+  operatorAllowlist: ["42"],
+  rayNameApiConfigured: false,
+  timezone: "UTC",
+  workspaceName: "RayName Discord Community",
+};
+const unavailableStore = createUnavailableAdminDataStore(
+  createUnavailableAvailability(unavailableConfig),
+  unavailableConfig,
+);
 
 vi.mock("@/app/(admin)/admin-mutation-actions", () => ({ authorizeAdminMutation }));
 
 test("renders the approved navigation in order", () => {
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div>Route content</div>
     </AdminShell>,
   );
@@ -64,7 +85,7 @@ test("mounts the fail-closed provider in the production admin layout", async () 
   await user.keyboard("{Meta>}k{/Meta}");
   await user.type(screen.getByRole("searchbox"), "alex");
 
-  expect(await screen.findByText("No matching records")).toBeVisible();
+  expect(await screen.findByText("Search is available after a data source is connected")).toBeVisible();
   expect(screen.queryByRole("option", { name: /Alex Chen.*Lead/i })).not.toBeInTheDocument();
 });
 
@@ -77,12 +98,13 @@ test("does not expose seeded mutation targets in the production admin layout", a
   expect(authorizeAdminMutation).not.toHaveBeenCalled();
 });
 
-test("shows the current workspace and complete command-bar controls", async () => {
+test("shows honest setup state, real operator identity, and no fabricated alerts", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div />
     </AdminShell>,
+    { provider: unavailableStore },
   );
 
   expect(await screen.findByText("RayName Discord Community")).toBeVisible();
@@ -94,19 +116,21 @@ test("shows the current workspace and complete command-bar controls", async () =
   const operatorMenu = within(commandBar).getByRole("button", { name: "Operator menu" });
   expect(operatorMenu).toBeVisible();
   expect(screen.getAllByRole("button", { name: "Operator menu" })).toHaveLength(1);
-  expect(within(commandBar).getByRole("button", { name: "Notifications" })).toBeVisible();
-  expect(screen.getByLabelText("System status: All systems operational")).toHaveAttribute(
-    "title",
-    "All systems operational",
-  );
+  expect(operatorMenu).toHaveTextContent("Tony");
+  expect(within(commandBar).queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+  expect(screen.getAllByText("Setup incomplete").length).toBeGreaterThan(0);
+  expect(screen.queryByText("All systems operational")).not.toBeInTheDocument();
+  expect(within(commandBar).getByRole("button", { name: /Date range/ })).toBeDisabled();
 
   await user.click(operatorMenu);
-  expect(screen.getByRole("menuitem", { name: "Account settings" })).toBeVisible();
+  expect(screen.queryByRole("menuitem", { name: "Account settings" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
+  expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/sign-in" });
 });
 
 test("renders the official RayName mark with a one-line brand lockup", async () => {
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={actor} title="Overview">
       <div />
     </AdminShell>,
   );
@@ -120,7 +144,7 @@ test("renders the official RayName mark with a one-line brand lockup", async () 
 test("derives the command-bar title and automation destination from the route", () => {
   location.pathname = "/campaigns";
   renderAdmin(
-    <AdminShell>
+    <AdminShell actor={actor}>
       <div />
     </AdminShell>,
   );

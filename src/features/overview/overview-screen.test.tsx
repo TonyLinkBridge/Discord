@@ -82,7 +82,7 @@ test("reads Overview values from the configured admin data provider", async () =
 test("applies the keyboard-selected global range to Overview content and labels", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={{ id: "42", image: null, name: "Tony" }} title="Overview">
       <OverviewScreen />
     </AdminShell>,
   );
@@ -119,7 +119,7 @@ test("does not relabel an old Overview snapshot while the selected range loads",
     },
   };
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={{ id: "42", image: null, name: "Tony" }} title="Overview">
       <OverviewScreen />
     </AdminShell>,
     { provider: delayedProvider },
@@ -144,7 +144,7 @@ test("does not relabel an old Overview snapshot while the selected range loads",
 test("labels the Overview funnel as modeled and removes unavailable non-baseline deltas", async () => {
   const user = userEvent.setup();
   renderAdmin(
-    <AdminShell title="Overview">
+    <AdminShell actor={{ id: "42", image: null, name: "Tony" }} title="Overview">
       <OverviewScreen />
     </AdminShell>,
   );
