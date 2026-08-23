@@ -18,25 +18,29 @@ Object.defineProperty(globalThis, "localStorage", {
   value: testStorage,
 });
 
-Object.defineProperty(window, "localStorage", {
-  configurable: true,
-  value: testStorage,
-});
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: testStorage,
+  });
+}
 
 beforeEach(() => {
   testStorage.clear();
 });
 
-Object.defineProperty(window, "matchMedia", {
-  configurable: true,
-  value: (query: string) => ({
-    addEventListener: () => undefined,
-    addListener: () => undefined,
-    dispatchEvent: () => false,
-    matches: false,
-    media: query,
-    onchange: null,
-    removeEventListener: () => undefined,
-    removeListener: () => undefined,
-  }),
-});
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: (query: string) => ({
+      addEventListener: () => undefined,
+      addListener: () => undefined,
+      dispatchEvent: () => false,
+      matches: false,
+      media: query,
+      onchange: null,
+      removeEventListener: () => undefined,
+      removeListener: () => undefined,
+    }),
+  });
+}

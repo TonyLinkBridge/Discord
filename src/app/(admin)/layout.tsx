@@ -2,6 +2,7 @@ import { AdminShell } from "@/components/admin-shell/admin-shell";
 import { RuntimeAdminDataProvider } from "@/components/admin-shell/runtime-admin-data-provider";
 import { evaluateAdminAccess } from "@/features/auth/access-policy";
 import { getAdminAuthEnvironment, getAuthenticatedAdminActor } from "@/lib/auth";
+import { resolveVerificationRuntimeAvailability } from "@/lib/verification/runtime";
 import { redirect } from "next/navigation";
 import { authorizeAdminMutation } from "./admin-mutation-actions";
 
@@ -44,9 +45,17 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     rayNameApiConfigured: false,
     operatorAllowlist: [...authEnvironment.allowlist],
   };
+  const availability = await resolveVerificationRuntimeAvailability(
+    process.env,
+    runtimeConfig,
+  );
 
   return (
-    <RuntimeAdminDataProvider config={runtimeConfig} mutationGate={authorizeAdminMutation}>
+    <RuntimeAdminDataProvider
+      availability={availability}
+      config={runtimeConfig}
+      mutationGate={authorizeAdminMutation}
+    >
       <AdminShell actor={actor!}>{children}</AdminShell>
     </RuntimeAdminDataProvider>
   );

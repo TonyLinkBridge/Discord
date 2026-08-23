@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
+import { createVerificationRuntime } from "@/lib/verification/runtime";
+
 function authorized(actual: string | null, secret: string): boolean {
   const expectedBytes = Buffer.from(`Bearer ${secret}`);
   const actualBytes = Buffer.from(actual ?? "");
@@ -32,6 +34,8 @@ export function createVerificationRetentionGet(dependencies: {
 export const GET = createVerificationRetentionGet({
   getSecret: () => process.env.CRON_SECRET,
   async purge() {
-    throw new Error("Verification runtime is not connected");
+    const runtime = createVerificationRuntime();
+    if (!runtime.ready) throw new Error("Verification runtime is not connected");
+    return runtime.service.purgeExpiredSensitiveData();
   },
 });

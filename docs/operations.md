@@ -39,6 +39,14 @@ The Discord OAuth redirect URL is:
 6. After Discord accepts the signature challenge, register the guild-scoped `/verify` command.
 7. Keep the bot role above `Verified Customer`; the bot does not need Administrator.
 
+Register the guild command from a trusted operator environment only:
+
+```bash
+npm run discord:register
+```
+
+The command performs one guild-scoped `PUT`, reports only registered command names, and never prints the bot token. The `verification-test` branch should remain temporary and must not use the production connection string in automated tests.
+
 ## Rotation and recovery
 
 - Rotate a Discord bot token in Discord first, replace `DISCORD_BOT_TOKEN` in Vercel, redeploy, then revoke the old token. A token shown in any output is compromised.

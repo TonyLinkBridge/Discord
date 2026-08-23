@@ -1,6 +1,8 @@
 import { getDiscordRuntimeConfig } from "@/lib/discord/config";
 import type { DiscordRuntimeConfig } from "@/lib/discord/config";
+import { handleDiscordInteraction } from "@/lib/discord/interactions";
 import { verifyDiscordSignature } from "@/lib/discord/signature";
+import { createVerificationRuntime } from "@/lib/verification/runtime";
 
 type ConfiguredRoute = Extract<DiscordRuntimeConfig, { configured: true }>;
 
@@ -42,20 +44,21 @@ export function createDiscordInteractionsPost(dependencies: {
 export const POST = createDiscordInteractionsPost({
   getConfig: () => getDiscordRuntimeConfig(process.env),
   async handle(interaction) {
-    if (
-      interaction &&
-      typeof interaction === "object" &&
-      "type" in interaction &&
-      interaction.type === 1
-    ) {
-      return { type: 1 };
+    const runtime = createVerificationRuntime();
+    if (!runtime.ready) {
+      return {
+        type: 4,
+        data: {
+          flags: 64,
+          content: "RayName verification is temporarily unavailable.",
+        },
+      };
     }
-    return {
-      type: 4,
-      data: {
-        flags: 64,
-        content: "RayName verification is temporarily unavailable.",
-      },
-    };
+    return handleDiscordInteraction(interaction, {
+      guildId: runtime.config.guildId,
+      claimInteraction: runtime.service.claimInteraction,
+      getMemberVerificationState: runtime.service.getMemberVerificationState,
+      submit: runtime.service.submit,
+    });
   },
 });
