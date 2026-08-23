@@ -61,7 +61,7 @@ The following server-only Vercel variables are required:
 - `DISCORD_PUBLIC_KEY`: the application public key used to verify interaction signatures.
 - `DISCORD_GUILD_ID`: `1540610722281824336`.
 - `DISCORD_VERIFIED_ROLE_ID`: the server role ID for `Verified Customer`.
-- `VERIFICATION_DATA_KEY`: a random 32-byte key used only for authenticated encryption of applicant email values.
+- `VERIFICATION_DATA_KEY`: a random 32-byte root key. The server derives separate AES-256-GCM encryption and HMAC-SHA-256 lookup subkeys with HKDF and never exposes the root or derived keys.
 
 Existing OAuth variables remain separate. The OAuth client secret is never reused as the bot token or verification encryption key.
 
