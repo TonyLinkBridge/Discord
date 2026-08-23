@@ -23,6 +23,7 @@ import type {
   TrackingInput,
   WorkspaceSettings,
 } from "./types";
+import type { AdminAvailability, AdminCapability } from "./availability";
 
 export type ContentUpdatePrecondition = {
   expectedStatus: ContentEntry["status"];
@@ -47,7 +48,16 @@ export class ContentUpdateConflictError extends Error {
   }
 }
 
+export class IntegrationUnavailableError extends Error {
+  readonly name = "IntegrationUnavailableError";
+
+  constructor(readonly capability: AdminCapability, message: string) {
+    super(message);
+  }
+}
+
 export interface AdminDataReader {
+  readonly availability: AdminAvailability;
   getState(): Promise<AdminState>;
   getOverview(range: DateRange): Promise<OverviewSnapshot>;
   getCommunity(): Promise<CommunitySnapshot>;

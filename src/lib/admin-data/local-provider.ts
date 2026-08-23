@@ -1,4 +1,5 @@
 import { buildTrackedRayNameUrl } from "../tracking";
+import { adminCapabilities, type AdminAvailability } from "./availability";
 import { ContentUpdateConflictError, type ActorAwareAdminDataStore } from "./provider";
 import { localAdminSeed } from "./seed";
 import type {
@@ -33,6 +34,20 @@ export class EntityNotFoundError extends Error {
 }
 
 const clone = <Value>(value: Value): Value => structuredClone(value);
+
+const localAvailability: AdminAvailability = {
+  dataMode: "live",
+  capabilities: Object.fromEntries(
+    adminCapabilities.map((capability) => [capability, { available: true, reason: null }]),
+  ) as AdminAvailability["capabilities"],
+  integrations: {
+    discordOAuth: { status: "connected", detail: "Test provider" },
+    discordBot: { status: "connected", detail: "Test provider" },
+    database: { status: "connected", detail: "Test provider" },
+    rayNameMarketingApi: { status: "connected", detail: "Test provider" },
+    deploymentMonitoring: { status: "connected", detail: "Test provider" },
+  },
+};
 
 const normalizedLabel = (value: string) => value.trim().toLocaleLowerCase();
 
@@ -356,6 +371,7 @@ export function createLocalAdminDataProvider(
   };
 
   return {
+    availability: localAvailability,
     async getState() {
       return clone(state);
     },

@@ -1,9 +1,17 @@
 import { expectTypeOf, test } from "vitest";
 
-import type { AdminDataProvider, ContentUpdatePrecondition } from "./provider";
+import type { AdminAvailability } from "./availability";
+import type {
+  ActorAwareAdminDataStore,
+  AdminDataProvider,
+  ContentUpdatePrecondition,
+} from "./provider";
 import type { CampaignInput, ContentPatch, Member, MemberPatch, TrackingInput } from "./types";
 
 test("keeps caller-controlled actor IDs out of the browser provider contract", () => {
+  expectTypeOf<AdminDataProvider["availability"]>().toMatchTypeOf<AdminAvailability>();
+  expectTypeOf<ActorAwareAdminDataStore["availability"]>()
+    .toMatchTypeOf<AdminAvailability>();
   expectTypeOf<Parameters<AdminDataProvider["completePriority"]>>()
     .toEqualTypeOf<[priorityId: string]>();
   expectTypeOf<Parameters<AdminDataProvider["updateLeadAction"]>>()
