@@ -27,6 +27,21 @@ export function CommunityScreen() {
 
   if (!community) return <p className={styles.loading} role="status">Loading community…</p>;
 
+  if (
+    community.memberGrowth.length === 0
+    && community.roleDistribution.length === 0
+    && community.channelActivity.length === 0
+  ) {
+    return (
+      <main className={styles.screen}>
+        <section className={`${styles.panel} ${styles.emptyState}`}>
+          <h2>No community activity yet</h2>
+          <p>The community connection is ready. Real activity will appear here after Discord sync returns records.</p>
+        </section>
+      </main>
+    );
+  }
+
   const newest = community.memberGrowth.at(-1);
   const maximumMembers = Math.max(...community.memberGrowth.map((point) => point.totalMembers));
   const maximumRole = Math.max(...community.roleDistribution.map((role) => role.value));

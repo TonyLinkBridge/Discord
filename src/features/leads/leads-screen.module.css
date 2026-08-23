@@ -1,5 +1,6 @@
 .screen { min-width: 0; }
 .loading { color: var(--text-secondary); font-size: 13px; margin: 24px 0; }
+.emptyState { color: var(--text-secondary); font-size: 13px; margin: 0; padding: 34px 18px; text-align: center; }
 
 .panel {
   background: var(--bg-panel);

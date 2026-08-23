@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { vi } from "vitest";
 import { createTestAdminDataStore } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { renderAdmin } from "@/test/render";
 import { MembersScreen } from "./members-screen";
 
@@ -175,4 +176,13 @@ test("runs the approved member operations and persists their outcomes", async ()
     "member.review-vip",
     "member.updated",
   ]);
+});
+
+test("shows a connected-empty member directory without an integration warning", async () => {
+  const seed = structuredClone(localAdminSeed);
+  seed.members = [];
+  renderAdmin(<MembersScreen />, { provider: createTestAdminDataStore(seed) });
+
+  expect(await screen.findByText("No members yet")).toBeVisible();
+  expect(screen.queryByText("Data source not connected")).not.toBeInTheDocument();
 });

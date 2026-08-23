@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
+import { createTestAdminDataStore } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { LeadsScreen } from "./leads-screen";
 
 vi.mock("next/navigation", () => ({
@@ -55,4 +57,13 @@ test("resets lead-local detail state when the query-selected id changes", async 
   expect(within(domainNomadDialog).getByRole("status")).toHaveTextContent("");
   expect(within(domainNomadDialog).getByRole("button", { name: "Close lead details" }))
     .toHaveFocus();
+});
+
+test("shows a connected-empty lead workspace without an integration warning", async () => {
+  const seed = structuredClone(localAdminSeed);
+  seed.leads = [];
+  renderAdmin(<LeadsScreen />, { provider: createTestAdminDataStore(seed) });
+
+  expect(await screen.findByText("No leads yet")).toBeVisible();
+  expect(screen.queryByText("Data source not connected")).not.toBeInTheDocument();
 });

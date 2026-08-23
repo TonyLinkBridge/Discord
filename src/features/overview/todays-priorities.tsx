@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   ArrowsClockwise,
   ChatCircleDots,
   CheckCircle,
@@ -91,9 +90,6 @@ export function TodaysPriorities({ priorities: initialPriorities }: Readonly<{ p
         ))}
       </div>
       <p aria-live="polite" className={styles.visuallyHidden} role="status">{status}</p>
-      <a className={styles.panelFooter} href="/priorities">
-        View all priorities <ArrowRight aria-hidden size={13} weight="bold" />
-      </a>
     </section>
   );
 }

@@ -22,6 +22,9 @@
 
 .loading { margin: 24px 0; }
 .eyebrow { margin: 0 0 5px; }
+.emptyState { min-height: 180px; padding: 28px; }
+.emptyState h2 { font-size: 19px; margin: 0 0 8px; }
+.emptyState p { color: var(--text-secondary); font-size: 13px; margin: 0; }
 
 .panelHeader {
   align-items: center;

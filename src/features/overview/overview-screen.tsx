@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAdminData } from "@/lib/admin-data/context";
+import { OverviewUnavailable } from "@/components/data-state/data-unavailable";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
 import type { OverviewSnapshot } from "@/lib/admin-data/types";
 import { useReportingRange } from "@/lib/reporting-range";
 import { CampaignPerformance } from "./campaign-performance";
@@ -14,16 +15,21 @@ import { TodaysPriorities } from "./todays-priorities";
 
 export function OverviewScreen() {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
+  const overviewAvailable = availability.capabilities["read-overview"].available;
   const { selectedRange } = useReportingRange();
   const [snapshot, setSnapshot] = useState<OverviewSnapshot | null>(null);
 
   useEffect(() => {
+    if (!overviewAvailable) return;
     let active = true;
     provider.getOverview(selectedRange).then((overview) => {
       if (active) setSnapshot(overview);
     });
     return () => { active = false; };
-  }, [provider, selectedRange]);
+  }, [overviewAvailable, provider, selectedRange]);
+
+  if (!overviewAvailable) return <OverviewUnavailable />;
 
   const snapshotMatchesSelectedRange = snapshot
     && snapshot.range.from === selectedRange.from

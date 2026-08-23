@@ -1,6 +1,7 @@
 import { adminCapabilities, createUnavailableAvailability } from "@/lib/admin-data/availability";
 import type { AdminAvailability } from "@/lib/admin-data/availability";
 import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { createUnavailableAdminDataStore } from "@/lib/admin-data/unavailable-provider";
 import type { AdminState } from "@/lib/admin-data/types";
 import { localAdminSeed } from "@/test/fixtures/admin-state";
 
@@ -42,4 +43,11 @@ export function createTestAdminDataStore(
   availability: AdminAvailability = connectedTestAvailability,
 ) {
   return createLocalAdminDataProvider(seed, availability);
+}
+
+export function createUnavailableTestAdminDataStore() {
+  return createUnavailableAdminDataStore(
+    createUnavailableAvailability(testRuntimeConfig),
+    { ...testRuntimeConfig, operatorAllowlist: [...testRuntimeConfig.operatorAllowlist] },
+  );
 }

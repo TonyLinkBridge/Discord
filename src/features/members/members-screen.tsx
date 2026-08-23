@@ -134,7 +134,7 @@ export function MembersScreen({ initialSelectedMemberId = null }: Readonly<{
         <DataTable
           caption="RayName community members"
           columns={columns}
-          emptyMessage="No members match these filters."
+          emptyMessage={members.length === 0 ? "No members yet" : "No members match these filters."}
           rows={filteredMembers}
         />
       </section>

@@ -2,7 +2,7 @@ import { act, cleanup, screen, within } from "@testing-library/react";
 import { afterEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { AdminShell } from "@/components/admin-shell/admin-shell";
-import { createTestAdminDataStore } from "@/test/admin-data";
+import { createTestAdminDataStore, createUnavailableTestAdminDataStore } from "@/test/admin-data";
 import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { renderAdmin } from "@/test/render";
 import { OverviewScreen } from "./overview-screen";
@@ -53,19 +53,33 @@ test.each(["light", "dark"])(
     expect(screen.getAllByText("Very High")).toHaveLength(2);
 
     for (const destination of [
-      "View all priorities",
       "View full funnel",
       "View all leads",
       "View all campaigns",
     ]) {
       expect(screen.getByRole("link", { name: destination })).toBeVisible();
     }
+    expect(screen.queryByRole("link", { name: "View all priorities" })).not.toBeInTheDocument();
 
     expect(
       [...container.querySelectorAll("h2")].map((heading) => heading.textContent),
     ).toEqual(approvedSections);
   },
 );
+
+test("shows metric structure without invented values when overview data is unavailable", () => {
+  renderAdmin(<OverviewScreen />, { provider: createUnavailableTestAdminDataStore() });
+
+  expect(screen.getByText("Data source not connected")).toBeVisible();
+  const metricStrip = screen.getByRole("region", { name: "Overview metrics" });
+  for (const [label] of approvedMetrics) {
+    expect(within(metricStrip).getByText(label)).toBeVisible();
+  }
+  expect(within(metricStrip).getAllByText("—")).toHaveLength(approvedMetrics.length);
+  expect(screen.queryByText("1,248")).not.toBeInTheDocument();
+  expect(screen.queryByText("$18,420")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "View all priorities" })).not.toBeInTheDocument();
+});
 
 test("reads Overview values from the configured admin data provider", async () => {
   const seed = structuredClone(localAdminSeed);

@@ -1,4 +1,5 @@
 import { MembersScreen } from "@/features/members/members-screen";
+import { CapabilityBoundary } from "@/components/data-state/data-unavailable";
 
 export default async function MembersPage({
   searchParams,
@@ -7,5 +8,13 @@ export default async function MembersPage({
 }>) {
   const requestedMember = (await searchParams).member;
 
-  return <MembersScreen initialSelectedMemberId={typeof requestedMember === "string" ? requestedMember : null} />;
+  return (
+    <CapabilityBoundary
+      capability="read-members"
+      description="Connect Discord member sync to use the member directory and verification tools."
+      title="Member data is not connected"
+    >
+      <MembersScreen initialSelectedMemberId={typeof requestedMember === "string" ? requestedMember : null} />
+    </CapabilityBoundary>
+  );
 }

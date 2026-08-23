@@ -38,3 +38,17 @@ test("reads community outcomes from the configured admin data provider", async (
   expect(screen.getByText("#domain-lab")).toBeVisible();
   expect(screen.getByText("777 messages")).toBeVisible();
 });
+
+test("distinguishes a connected community with no activity from a missing integration", async () => {
+  const seed = structuredClone(localAdminSeed);
+  seed.community.memberGrowth = [];
+  seed.community.roleDistribution = [];
+  seed.community.channelActivity = [];
+  seed.community.onboarding = { started: 0, completed: 0, completionRate: 0 };
+  seed.community.conversion = { visitors: 0, verifiedCustomers: 0, paidCustomers: 0 };
+
+  renderAdmin(<CommunityScreen />, { provider: createTestAdminDataStore(seed) });
+
+  expect(await screen.findByText("No community activity yet")).toBeVisible();
+  expect(screen.queryByText("Data source not connected")).not.toBeInTheDocument();
+});

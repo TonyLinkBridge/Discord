@@ -117,7 +117,9 @@ export function LeadsScreen({ initialSelectedLeadId = null }: Readonly<{
           </label>
         </div>
 
-        {view === "table" ? (
+        {leads.length === 0 ? (
+          <p className={styles.emptyState}>No leads yet</p>
+        ) : view === "table" ? (
           <LeadTable leads={filteredLeads} onOpen={(lead) => setSelectedId(lead.id)} />
         ) : (
           <LeadPipeline leads={filteredLeads} onOpen={(lead) => setSelectedId(lead.id)} />
