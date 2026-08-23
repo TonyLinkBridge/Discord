@@ -21,7 +21,8 @@ export function DataUnavailable({ description, title }: Readonly<{
   );
 }
 
-export function CapabilityBoundary({ capability, children, description, title }: Readonly<{
+export function CapabilityBoundary({ as = "main", capability, children, description, title }: Readonly<{
+  as?: "main" | "section";
   capability: AdminCapability;
   children: React.ReactNode;
   description?: string;
@@ -32,13 +33,15 @@ export function CapabilityBoundary({ capability, children, description, title }:
 
   if (state.available) return children;
 
+  const Boundary = as;
+
   return (
-    <main className={styles.boundary}>
+    <Boundary className={styles.boundary}>
       <DataUnavailable
         description={description ?? state.reason ?? "This data source is not connected."}
         title={title}
       />
-    </main>
+    </Boundary>
   );
 }
 

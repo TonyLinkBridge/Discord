@@ -27,7 +27,12 @@ export function CommandBar({ actor, onSearch, title }: Readonly<{
   return (
     <header className={styles.commandBar}>
       <h1>{title}</h1>
-      <button className={styles.searchTrigger} type="button" onClick={onSearch}>
+      <button
+        aria-label="Search members, domains, leads, campaigns"
+        className={styles.searchTrigger}
+        onClick={onSearch}
+        type="button"
+      >
         <MagnifyingGlass aria-hidden size={18} weight="regular" />
         <span>Search members, domains, leads, campaigns...</span>
         <kbd className={styles.keyHint}>⌘ K</kbd>

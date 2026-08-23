@@ -29,6 +29,32 @@ function unavailable(reason: string): DiscordRuntimeConfig {
   return { configured: false, reason };
 }
 
+function resolveApiBaseUrl(
+  env: Record<string, string | undefined>,
+): string | null {
+  const productionUrl = "https://discord.com/api/v10";
+  const override = env.DISCORD_API_BASE_URL?.trim();
+  if (env.NODE_ENV === "production" || !override) return productionUrl;
+
+  try {
+    const url = new URL(override);
+    if (
+      url.protocol !== "http:" ||
+      url.hostname !== "127.0.0.1" ||
+      url.pathname !== "/" ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      return null;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 export function getDiscordRuntimeConfig(
   env: Record<string, string | undefined>,
 ): DiscordRuntimeConfig {
@@ -41,6 +67,7 @@ export function getDiscordRuntimeConfig(
   const roleId = env.DISCORD_VERIFIED_ROLE_ID?.trim() ?? "";
   const botToken = env.DISCORD_BOT_TOKEN?.trim() ?? "";
   const verificationDataKey = env.VERIFICATION_DATA_KEY?.trim() ?? "";
+  const apiBaseUrl = resolveApiBaseUrl(env);
 
   if (!discordIdPattern.test(applicationId)) {
     return unavailable("DISCORD_APPLICATION_ID is invalid");
@@ -59,6 +86,9 @@ export function getDiscordRuntimeConfig(
   }
   if (Buffer.from(verificationDataKey, "base64").length !== 32) {
     return unavailable("VERIFICATION_DATA_KEY is invalid");
+  }
+  if (!apiBaseUrl) {
+    return unavailable("DISCORD_API_BASE_URL is invalid");
   }
 
   const configured = {
@@ -79,7 +109,7 @@ export function getDiscordRuntimeConfig(
     botToken,
     databaseUrl: database.url,
     verificationDataKey,
-    apiBaseUrl: "https://discord.com/api/v10",
+    apiBaseUrl,
   };
   for (const [key, value] of Object.entries(privateValues)) {
     Object.defineProperty(configured, key, {

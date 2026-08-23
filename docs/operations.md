@@ -39,6 +39,23 @@ The Discord OAuth redirect URL is:
 6. After Discord accepts the signature challenge, register the guild-scoped `/verify` command.
 7. Keep the bot role above `Verified Customer`; the bot does not need Administrator.
 
+Run the browser verification journey only against the disposable Neon branch:
+
+```bash
+VERIFICATION_TEST_DATABASE_URL="<temporary Neon branch URL>" \
+VERIFICATION_TEST_BRANCH_ID="<temporary Neon branch ID>" \
+VERIFICATION_PRODUCTION_BRANCH_ID="<production Neon branch ID>" \
+npm run test:e2e
+```
+
+The test runner asks Neon which branch it is connected to before cleanup, requires
+that branch to match the designated test ID, and separately refuses the production
+branch ID even when pooled and direct connection URLs differ. It also refuses the
+configured production `DATABASE_URL`, uses fixed test-only Discord identities, and
+sends role requests only to a loopback Discord API stub. Do not set
+`DISCORD_API_BASE_URL` in Vercel; production always uses Discord's official API
+endpoint.
+
 Register the guild command from a trusted operator environment only:
 
 ```bash

@@ -49,4 +49,43 @@ describe("getDiscordRuntimeConfig", () => {
       configured: false,
     });
   });
+
+  test("uses an HTTP loopback REST stub only outside production", () => {
+    const result = getDiscordRuntimeConfig({
+      ...validEnv,
+      NODE_ENV: "development",
+      DISCORD_API_BASE_URL: "http://127.0.0.1:3114",
+    });
+
+    expect(result.configured).toBe(true);
+    if (!result.configured) throw new Error("Expected configured runtime");
+    expect(result.apiBaseUrl).toBe("http://127.0.0.1:3114");
+  });
+
+  test("ignores REST URL overrides in production", () => {
+    const result = getDiscordRuntimeConfig({
+      ...validEnv,
+      NODE_ENV: "production",
+      DISCORD_API_BASE_URL: "http://127.0.0.1:3114",
+    });
+
+    expect(result.configured).toBe(true);
+    if (!result.configured) throw new Error("Expected configured runtime");
+    expect(result.apiBaseUrl).toBe("https://discord.com/api/v10");
+  });
+
+  test.each([
+    "http://localhost:3114",
+    "http://0.0.0.0:3114",
+    "https://127.0.0.1:3114",
+    "http://127.0.0.1:3114/api",
+  ])("fails closed for a non-loopback development REST URL: %s", (apiBaseUrl) => {
+    expect(
+      getDiscordRuntimeConfig({
+        ...validEnv,
+        NODE_ENV: "development",
+        DISCORD_API_BASE_URL: apiBaseUrl,
+      }),
+    ).toMatchObject({ configured: false });
+  });
 });

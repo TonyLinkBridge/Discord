@@ -53,7 +53,12 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className={styles.workspace} aria-label={`Workspace: ${workspace}`} title={workspace}>
+      <div
+        aria-label={`Workspace: ${workspace}`}
+        className={styles.workspace}
+        role="group"
+        title={workspace}
+      >
         <Buildings aria-hidden size={17} weight="regular" />
         <span className={styles.workspaceName}>{workspace}</span>
       </div>

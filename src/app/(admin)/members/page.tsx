@@ -28,6 +28,7 @@ export default async function MembersPage({
   return (
     <>
       <CapabilityBoundary
+        as="section"
         capability="review-verifications"
         description="Connect Neon and the Discord bot to review real verification requests."
         title="Verification queue is not connected"

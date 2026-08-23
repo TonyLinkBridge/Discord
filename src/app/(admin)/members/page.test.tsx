@@ -76,4 +76,33 @@ test("loads the real verification queue only after independent admin authorizati
   expect(
     screen.getByRole("heading", { name: "Member data is not connected" }),
   ).toBeVisible();
+  expect(screen.getAllByRole("main")).toHaveLength(1);
+});
+
+test("keeps one main landmark when both member capabilities are unavailable", async () => {
+  const config = {
+    workspaceName: "RayName Discord Community",
+    timezone: "UTC",
+    discordServerName: "RayName Domain Club",
+    discordOAuthConfigured: true,
+    rayNameApiConfigured: false,
+    operatorAllowlist: ["323456789012345678"],
+  };
+  const availability = createVerificationAvailability({
+    ...config,
+    databaseStatus: "not-connected",
+    discordBotConfigured: false,
+  });
+  const provider = createUnavailableAdminDataStore(availability, config);
+  const page = await MembersPage({ searchParams: Promise.resolve({}) });
+
+  renderAdmin(page, { provider });
+
+  expect(
+    screen.getByRole("heading", { name: "Verification queue is not connected" }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "Member data is not connected" }),
+  ).toBeVisible();
+  expect(screen.getAllByRole("main")).toHaveLength(1);
 });

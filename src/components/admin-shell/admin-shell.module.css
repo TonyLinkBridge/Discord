@@ -146,3 +146,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .dateControl svg:last-child { display: none; }
   .routeContent { padding: 0 14px 24px; }
 }
+
+@media (max-width: 480px) {
+  .commandBar { gap: 6px; padding: 10px; }
+  .commandBar h1 { font-size: 18px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .commandOperator { flex: 0 0 30px; justify-content: center; }
+  .commandOperatorName,
+  .commandOperator > svg { display: none; }
+}
