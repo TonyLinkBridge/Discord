@@ -246,24 +246,31 @@ export type LatestSnapshotSemantics = {
   description: string;
 };
 
+export type UnavailableSemantics = {
+  basis: "unavailable";
+  label: "Data unavailable";
+  description: string;
+};
+
 export type DataSemantics =
   | ExactDatedSemantics
   | ModeledSemantics
-  | LatestSnapshotSemantics;
+  | LatestSnapshotSemantics
+  | UnavailableSemantics;
 
-export type FunnelSemantics = ModeledSemantics & {
+export type FunnelSemantics = (ModeledSemantics | UnavailableSemantics) & {
   comparisonLabel: string | null;
 };
 
 export interface AnalyticsSemantics {
-  trend: ExactDatedSemantics;
-  campaignAttribution: ExactDatedSemantics;
+  trend: ExactDatedSemantics | UnavailableSemantics;
+  campaignAttribution: ExactDatedSemantics | UnavailableSemantics;
   funnel: FunnelSemantics;
-  revenueBySource: ModeledSemantics;
-  conversionBySegment: ModeledSemantics;
-  leadVelocity: ModeledSemantics;
-  offerPerformance: ModeledSemantics;
-  retentionRate: LatestSnapshotSemantics;
+  revenueBySource: ModeledSemantics | UnavailableSemantics;
+  conversionBySegment: ModeledSemantics | UnavailableSemantics;
+  leadVelocity: ModeledSemantics | UnavailableSemantics;
+  offerPerformance: ModeledSemantics | UnavailableSemantics;
+  retentionRate: LatestSnapshotSemantics | UnavailableSemantics;
 }
 
 export interface AnalyticsSnapshot {
@@ -276,7 +283,7 @@ export interface AnalyticsSnapshot {
   trend: TrendPoint[];
   leadVelocity: DistributionItem[];
   offerPerformance: DistributionItem[];
-  retentionRate: number;
+  retentionRate: number | null;
 }
 
 export interface CampaignAttributionEvent {
