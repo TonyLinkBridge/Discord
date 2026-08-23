@@ -1,6 +1,9 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createTestAdminDataStore, createUnavailableTestAdminDataStore } from "@/test/admin-data";
+import { testRuntimeConfig } from "@/test/admin-data";
+import { createVerificationAvailability } from "@/lib/admin-data/availability";
+import { createUnavailableAdminDataStore } from "@/lib/admin-data/unavailable-provider";
 import type { ServiceStatus } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { BotAutomationsScreen } from "./bot-automations-screen";
@@ -17,6 +20,26 @@ test("reports setup state without fabricated health or activity", () => {
   expect(screen.queryByRole("button", { name: "Verify customer manually" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Create tracked link" })).not.toBeInTheDocument();
   expect(screen.getByText("No operational activity is available until integrations are connected.")).toBeVisible();
+});
+
+test("reports the real partial-live verification readiness without fake activity", () => {
+  const availability = createVerificationAvailability({
+    ...testRuntimeConfig,
+    discordBotConfigured: true,
+    databaseStatus: "connected",
+  });
+  const provider = createUnavailableAdminDataStore(availability, {
+    ...testRuntimeConfig,
+    operatorAllowlist: [...testRuntimeConfig.operatorAllowlist],
+  });
+  renderAdmin(<BotAutomationsScreen />, { provider });
+
+  expect(screen.getByText("Discord bot").closest("li")).toHaveTextContent("Connected");
+  expect(screen.getByText("Database").closest("li")).toHaveTextContent("Connected");
+  expect(screen.getByText("Verification endpoint ready")).toBeVisible();
+  expect(screen.getByText("RayName Marketing API").closest("li")).toHaveTextContent("Awaiting access");
+  expect(screen.getByText("No operational activity is available until integrations are connected.")).toBeVisible();
+  expect(screen.queryByText("No recent failures")).not.toBeInTheDocument();
 });
 
 test("keeps provider-backed manual operations available while RayName API access is pending", async () => {

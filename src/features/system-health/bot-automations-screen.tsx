@@ -68,7 +68,7 @@ export function BotAutomationsScreen() {
     return () => { active = false; };
   }, [availability.dataMode, healthRetryRevision, provider]);
 
-  if (availability.dataMode === "unavailable") {
+  if (availability.dataMode !== "live") {
     const integrations = Object.entries(availability.integrations) as Array<[
       keyof AdminAvailability["integrations"],
       AdminAvailability["integrations"][keyof AdminAvailability["integrations"]],
@@ -94,6 +94,11 @@ export function BotAutomationsScreen() {
               );
             })}
           </ul>
+          <p className={styles.supportingCopy}>
+            {availability.capabilities["review-verifications"].available
+              ? "Verification endpoint ready"
+              : "Verification endpoint is not ready"}
+          </p>
         </section>
         <section className={`${styles.panel} ${styles.activityPanel}`}>
           <header className={styles.panelHeader}><h2>Operational activity</h2></header>

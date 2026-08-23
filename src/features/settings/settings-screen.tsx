@@ -67,6 +67,13 @@ export function SettingsScreen() {
             </span>
           </article>
           <article>
+            <span className={styles.connectionIcon}><DiscordLogo aria-hidden size={23} weight="duotone" /></span>
+            <div><h3>Discord bot</h3><p>Verification command and role assignment</p></div>
+            <span className={availability.integrations.discordBot.status === "connected" ? styles.configured : styles.notConfigured}>
+              {availability.integrations.discordBot.status === "connected" ? "Configured" : "Not configured"}
+            </span>
+          </article>
+          <article>
             <span className={styles.connectionIcon}><PlugsConnected aria-hidden size={23} weight="duotone" /></span>
             <div>
               <h3>RayName Marketing API</h3>
@@ -89,6 +96,16 @@ export function SettingsScreen() {
           <div><dt>Timezone</dt><dd>{settings.workspace.timezone}</dd></div>
         </dl>
       </section>
+
+      {availability.capabilities["review-verifications"].available ? (
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}><h2><ClockCounterClockwise aria-hidden size={18} />Verification request data</h2></header>
+          <div className={styles.settingSummary}>
+            <strong>90 days</strong>
+            <span>Encrypted email and lookup data are removed 90 days after approval or rejection. Non-sensitive audit history remains.</span>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.panel}>
         <header className={styles.panelHeader}><h2><UsersThree aria-hidden size={18} />Operator access</h2></header>

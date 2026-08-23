@@ -2,7 +2,7 @@
 
 ## Current production mode
 
-Production uses `DATA_MODE=unavailable` until a live provider is implemented. In this mode the dashboard shows configuration and connection state only. It does not load sample members, leads, campaigns, offers, content, analytics, alerts, or operational health.
+Production remains fail-closed for RayName Marketing API data. Discord customer verification may run in `partial-live` mode: only the real verification queue is enabled, while member sync, leads, campaigns, offers, content, analytics, price checks, domain availability, VIP automation, and reminders remain unavailable.
 
 `DEV_OPERATOR_ID` is for local development only and must be blank in Vercel.
 
@@ -16,10 +16,40 @@ Discord OAuth protects access but does not connect the Discord bot, member sync,
 - `ADMIN_DISCORD_USER_IDS`: comma-separated Discord user IDs allowed into the admin console.
 - `DEV_OPERATOR_ID`: blank in production.
 - `DATA_MODE`: `unavailable` until the live provider exists.
+- `DATABASE_URL`: Neon serverless/pooled Postgres connection string.
+- `DISCORD_BOT_TOKEN`: private bot token, separate from the OAuth client secret.
+- `DISCORD_APPLICATION_ID`: Discord application ID.
+- `DISCORD_PUBLIC_KEY`: Discord application public key used for interaction signatures.
+- `DISCORD_GUILD_ID`: RayName Domain Club server ID.
+- `DISCORD_VERIFIED_ROLE_ID`: ID of the `Verified Customer` role.
+- `VERIFICATION_DATA_KEY`: base64-encoded random 32-byte root key used to derive separate encryption and lookup keys.
+- `CRON_SECRET`: long random value protecting the retention endpoint.
 
 The Discord OAuth redirect URL is:
 
 `https://rayname-admin.vercel.app/api/auth/callback/discord`
+
+## Discord verification deployment
+
+1. Create a Neon branch named `verification-test` from production and apply checked-in migrations there first with `env DATABASE_URL="$VERIFICATION_TEST_DATABASE_URL" npx drizzle-kit migrate`.
+2. Run repository integration, route, UI, type, lint, build, and browser tests against the test branch.
+3. Apply the same checked-in migration to Neon production. Never use `drizzle-kit push` on production.
+4. Add every verification variable to Vercel as Sensitive for Production and Preview. Do not paste values into source, screenshots, issues, or logs.
+5. Deploy before setting Discord's Interactions Endpoint URL to `https://rayname-admin.vercel.app/api/discord/interactions`.
+6. After Discord accepts the signature challenge, register the guild-scoped `/verify` command.
+7. Keep the bot role above `Verified Customer`; the bot does not need Administrator.
+
+## Rotation and recovery
+
+- Rotate a Discord bot token in Discord first, replace `DISCORD_BOT_TOKEN` in Vercel, redeploy, then revoke the old token. A token shown in any output is compromised.
+- Rotate `VERIFICATION_DATA_KEY` only with a planned data migration. Existing encrypted email cannot be decrypted after an uncoordinated key change.
+- `role_failed` is durable. Fix the Discord permission, hierarchy, member, or rate-limit condition, then use Retry; Retry reuses the same role-operation record.
+- To disable verification without deleting records, remove one required verification variable and redeploy. The capability returns to unavailable while Neon records remain.
+- Roll back application code to the previous verified commit; do not drop tables during application rollback.
+
+## Retention
+
+Vercel calls `/api/internal/verification-retention` daily at `03:17 UTC`. It requires `Authorization: Bearer <CRON_SECRET>`. The idempotent job removes encrypted email, IV, auth tag, lookup hash, and submitted domain 90 days after approval or rejection, while preserving non-sensitive audit history.
 
 ## What is still required for live business data
 
