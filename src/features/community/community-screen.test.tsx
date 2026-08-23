@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
-import { localAdminSeed } from "@/lib/admin-data/seed";
+import { createTestAdminDataStore } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { renderAdmin } from "@/test/render";
 import { CommunityScreen } from "./community-screen";
 
@@ -29,7 +29,7 @@ test("reads community outcomes from the configured admin data provider", async (
   };
 
   renderAdmin(<CommunityScreen />, {
-    provider: createLocalAdminDataProvider(seed),
+    provider: createTestAdminDataStore(seed),
   });
 
   expect(await screen.findByRole("img", { name: "Member growth chart" })).toBeVisible();

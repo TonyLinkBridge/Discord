@@ -1,13 +1,13 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { createTestAdminDataStore } from "@/test/admin-data";
 import type { ServiceStatus } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { BotAutomationsScreen } from "./bot-automations-screen";
 
 test("keeps provider-backed manual operations available while RayName API access is pending", async () => {
   const user = userEvent.setup();
-  const backingProvider = createLocalAdminDataProvider();
+  const backingProvider = createTestAdminDataStore();
   let verificationCalls = 0;
   const provider = {
     ...backingProvider,
@@ -60,7 +60,7 @@ test("keeps provider-backed manual operations available while RayName API access
 test.each(["operational", "degraded"] satisfies ServiceStatus[])(
   "keeps API controls disabled without provider mutations when the API is %s",
   async (apiStatus) => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createTestAdminDataStore();
     const statusProvider = {
       ...provider,
       async getSystemHealth() {
@@ -94,7 +94,7 @@ test.each(["operational", "degraded"] satisfies ServiceStatus[])(
 
 test("shows an accessible health error and recovers through an explicit retry", async () => {
   const user = userEvent.setup();
-  const provider = createLocalAdminDataProvider();
+  const provider = createTestAdminDataStore();
   let requests = 0;
   const recoveringProvider = {
     ...provider,

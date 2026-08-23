@@ -1,7 +1,6 @@
 import { buildTrackedRayNameUrl } from "../tracking";
 import { adminCapabilities, type AdminAvailability } from "./availability";
 import { ContentUpdateConflictError, type ActorAwareAdminDataStore } from "./provider";
-import { localAdminSeed } from "./seed";
 import type {
   ActivityEvent,
   AdminState,
@@ -175,7 +174,8 @@ const analyticsSemanticsForRange = (range: { from: string; to: string }): Analyt
 };
 
 export function createLocalAdminDataProvider(
-  seed: AdminState = localAdminSeed,
+  seed: AdminState,
+  availability: AdminAvailability = localAvailability,
 ): ActorAwareAdminDataStore {
   const state = clone(seed);
 
@@ -371,7 +371,7 @@ export function createLocalAdminDataProvider(
   };
 
   return {
-    availability: localAvailability,
+    availability,
     async getState() {
       return clone(state);
     },

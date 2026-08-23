@@ -2,12 +2,12 @@ import { describe, expect, test } from "vitest";
 
 import { EntityNotFoundError, createLocalAdminDataProvider } from "./local-provider";
 import { ContentUpdateConflictError } from "./provider";
-import { localAdminSeed } from "./seed";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import type { MemberPatch } from "./types";
 
 describe("local admin data provider", () => {
   test("returns the approved overview totals for Aug 16–22", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const overview = await provider.getOverview({
       from: "2026-08-16",
@@ -28,7 +28,7 @@ describe("local admin data provider", () => {
   });
 
   test("derives selected-period Overview flows from canonical dated facts", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const overview = await provider.getOverview({
       from: "2026-08-18",
@@ -52,7 +52,7 @@ describe("local admin data provider", () => {
   });
 
   test("keeps Overview period KPI totals equal to their dated trend facts", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const ranges = [
       { from: "2026-08-16", to: "2026-08-22" },
       { from: "2026-08-18", to: "2026-08-22" },
@@ -76,7 +76,7 @@ describe("local admin data provider", () => {
   });
 
   test("completing a priority removes it from the active queue and records activity", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     await provider.completePriority("verify-new-members", "local-ray");
 
@@ -95,7 +95,7 @@ describe("local admin data provider", () => {
   });
 
   test("returns clones so callers cannot mutate provider state", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const firstState = await provider.getState();
     firstState.members[0].roles.push("mutated-role");
     firstState.overview.metrics[0].value = "0";
@@ -107,7 +107,7 @@ describe("local admin data provider", () => {
   });
 
   test("updates a lead and member while recording operator activity", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     await provider.updateLeadAction("alex-chen", "mark-converted", "local-ray");
     const member = await provider.updateMember(
@@ -132,7 +132,7 @@ describe("local admin data provider", () => {
     { label: "Verified role", patch: { roles: ["Verified"] } },
     { label: "verified customer status", patch: { customerStatus: "Verified customer" } },
   ])("rejects a generic member patch that bypasses verification via $label", async ({ patch }) => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const before = await provider.getMember("domainnomad");
 
     await expect(
@@ -148,7 +148,7 @@ describe("local admin data provider", () => {
   });
 
   test("allows normal role edits on a verified member without resubmitting the reserved role", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const member = await provider.updateMember("alex-chen", { roles: ["VIP"] }, "role-editor");
 
@@ -194,7 +194,7 @@ describe("local admin data provider", () => {
   });
 
   test("persists one completed lead action across canonical and overview state", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const completed = await provider.completeLeadAction("alex-chen", "message", "local-ray");
 
@@ -214,7 +214,7 @@ describe("local admin data provider", () => {
   });
 
   test("searches the supported entities and returns no result for an empty query", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     expect(await provider.search("  ")).toEqual([]);
     expect(await provider.search("alex")).toEqual([
@@ -252,7 +252,7 @@ describe("local admin data provider", () => {
   });
 
   test("exposes deterministic supporting-route snapshots", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     expect((await provider.getCommunity()).onboarding.completed).toBe(78);
     expect((await provider.getSystemHealth()).services.find((service) => service.id === "rayname-api")).toMatchObject({
@@ -267,7 +267,7 @@ describe("local admin data provider", () => {
   });
 
   test("computes distinct analytics aggregates for every approved date range", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const preLaunch = await provider.getAnalytics({ from: "2026-08-01", to: "2026-08-15" });
     const monthToDate = await provider.getAnalytics({ from: "2026-08-01", to: "2026-08-22" });
@@ -310,7 +310,7 @@ describe("local admin data provider", () => {
   });
 
   test("classifies exact facts, modeled estimates, and the retention snapshot", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const analytics = await provider.getAnalytics({
       from: "2026-08-18",
@@ -375,7 +375,7 @@ describe("local admin data provider", () => {
   });
 
   test("exposes funnel comparisons only for their actual baseline range", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const baseline = await provider.getOverview({
       from: "2026-08-16",
@@ -405,7 +405,7 @@ describe("local admin data provider", () => {
   });
 
   test("returns genuine single-day campaign activity at historical and current boundaries", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const cases = [
       ["2026-08-01", "early-august-portfolio", 45, 1, 150],
       ["2026-08-08", "early-august-portfolio", 60, 1, 220],
@@ -452,7 +452,7 @@ describe("local admin data provider", () => {
   });
 
   test("reconciles the sum of daily campaign activity with the month-to-date range", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const rangeSnapshot = await provider.getAnalytics({
       from: "2026-08-01",
       to: "2026-08-22",
@@ -482,7 +482,7 @@ describe("local admin data provider", () => {
   });
 
   test("throws a typed error when a requested entity does not exist", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     await expect(provider.getOffer("missing-offer")).rejects.toEqual(
       new EntityNotFoundError("offer", "missing-offer"),
@@ -495,7 +495,7 @@ describe("local admin data provider", () => {
   });
 
   test("throws typed errors for every supported missing entity category", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const missingRequests = [
       ["member", "missing-member", provider.getMember("missing-member")],
       ["lead", "missing-lead", provider.getLead("missing-lead")],
@@ -514,7 +514,7 @@ describe("local admin data provider", () => {
   });
 
   test("records a member action against the selected member", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     await provider.recordMemberAction("alex-chen", "open-ticket", "local-ray");
 
@@ -526,7 +526,7 @@ describe("local admin data provider", () => {
   });
 
   test("creates a tracked link in state and records its activity", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const link = await provider.createTrackedLink(
       {
@@ -552,7 +552,7 @@ describe("local admin data provider", () => {
   });
 
   test("atomically creates a campaign, tracked link, and both audit events", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const creation = await provider.createCampaignWithTrackedLink(
       {
@@ -597,7 +597,7 @@ describe("local admin data provider", () => {
   });
 
   test("does not partially create a campaign when its tracked link is invalid", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     await expect(provider.createCampaignWithTrackedLink(
       {
@@ -627,7 +627,7 @@ describe("local admin data provider", () => {
   });
 
   test("updates an offer and records its activity", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const offer = await provider.updateOffer(
       "com-transfer-offer",
@@ -645,7 +645,7 @@ describe("local admin data provider", () => {
   });
 
   test("updates a content entry and records its activity", async () => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
 
     const entry = await provider.updateContentEntry(
       "market-pulse-aug-22",
@@ -671,7 +671,7 @@ describe("local admin data provider", () => {
     { ctas: ["Read", "Transfer"] },
     { ctas: ["   "] },
   ])("rejects a content patch with invalid CTA cardinality: $ctas", async ({ ctas }) => {
-    const provider = createLocalAdminDataProvider();
+    const provider = createLocalAdminDataProvider(localAdminSeed);
     const before = await provider.getContentEntry("market-pulse-aug-22");
 
     await expect(provider.updateContentEntry(
@@ -687,7 +687,7 @@ describe("local admin data provider", () => {
   test.each(["published", "draft"] as const)(
     "rejects a scheduled-content update after the entry becomes %s",
     async (status) => {
-      const provider = createLocalAdminDataProvider();
+      const provider = createLocalAdminDataProvider(localAdminSeed);
       await provider.getContentEntry("market-pulse-aug-22");
       await provider.updateContentEntry(
         "market-pulse-aug-22",

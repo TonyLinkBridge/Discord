@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { vi } from "vitest";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { createTestAdminDataStore } from "@/test/admin-data";
 import { renderAdmin } from "@/test/render";
 import { MembersScreen } from "./members-screen";
 
@@ -52,7 +52,7 @@ test("resets member-local detail state when the query-selected id changes", asyn
 
 test("filters unverified VIP signals and manually verifies one member", async () => {
   const user = userEvent.setup();
-  const backingProvider = createLocalAdminDataProvider();
+  const backingProvider = createTestAdminDataStore();
   let verificationCalls = 0;
   const provider = {
     ...backingProvider,

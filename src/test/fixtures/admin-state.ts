@@ -1,4 +1,4 @@
-import type { AdminState } from "./types";
+import type { AdminState } from "@/lib/admin-data/types";
 
 const aug16To22Trend = [
   ["2026-08-16", 9, 3, 22, 1800],

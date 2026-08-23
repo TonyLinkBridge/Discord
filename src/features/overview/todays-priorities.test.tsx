@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
-import { localAdminSeed } from "@/lib/admin-data/seed";
+import { createTestAdminDataStore } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { renderAdmin } from "@/test/render";
 import { TodaysPriorities } from "./todays-priorities";
 
@@ -55,7 +55,7 @@ test("moves focus to the previous priority after completing the final remaining 
   const user = userEvent.setup();
   const seed = structuredClone(localAdminSeed);
   seed.overview.priorities = seed.overview.priorities.slice(0, 2);
-  renderAdmin(<TodaysPriorities />, { provider: createLocalAdminDataProvider(seed) });
+  renderAdmin(<TodaysPriorities />, { provider: createTestAdminDataStore(seed) });
 
   await user.click(await screen.findByRole("button", { name: "Open leads Follow up with 7 high-intent leads" }));
   await user.click(screen.getByRole("menuitem", { name: "Mark complete" }));
@@ -67,7 +67,7 @@ test("moves focus to the priority section after completing the final row", async
   const user = userEvent.setup();
   const seed = structuredClone(localAdminSeed);
   seed.overview.priorities = [seed.overview.priorities[0]];
-  renderAdmin(<TodaysPriorities />, { provider: createLocalAdminDataProvider(seed) });
+  renderAdmin(<TodaysPriorities />, { provider: createTestAdminDataStore(seed) });
 
   await user.click(await screen.findByRole("button", { name: "Review Verify 12 new members" }));
   await user.click(screen.getByRole("menuitem", { name: "Mark complete" }));

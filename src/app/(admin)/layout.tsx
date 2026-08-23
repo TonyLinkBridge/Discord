@@ -1,5 +1,5 @@
 import { AdminShell } from "@/components/admin-shell/admin-shell";
-import { LocalAdminDataProvider } from "@/components/admin-shell/admin-data-provider";
+import { RuntimeAdminDataProvider } from "@/components/admin-shell/runtime-admin-data-provider";
 import { evaluateAdminAccess } from "@/features/auth/access-policy";
 import { getAdminAuthEnvironment, getAuthenticatedDiscordUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -32,9 +32,18 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     redirect("/access-denied?reason=misconfigured");
   }
 
+  const runtimeConfig = {
+    workspaceName: "RayName Discord Community",
+    timezone: "UTC",
+    discordServerName: "RayName Domain Club",
+    discordOAuthConfigured: authEnvironment.credentialsReady,
+    rayNameApiConfigured: false,
+    operatorAllowlist: [...authEnvironment.allowlist],
+  };
+
   return (
-    <LocalAdminDataProvider mutationGate={authorizeAdminMutation}>
+    <RuntimeAdminDataProvider config={runtimeConfig} mutationGate={authorizeAdminMutation}>
       <AdminShell>{children}</AdminShell>
-    </LocalAdminDataProvider>
+    </RuntimeAdminDataProvider>
   );
 }

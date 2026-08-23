@@ -1,9 +1,9 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { createTestAdminDataStore } from "@/test/admin-data";
 import type { ActorAwareAdminDataStore } from "@/lib/admin-data/provider";
-import { localAdminSeed } from "@/lib/admin-data/seed";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import type { AdminState, ContentEntry } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { ContentEditor } from "./content-editor";
@@ -51,7 +51,7 @@ test("sorts slots independently of provider order and discloses the selected rep
   const user = userEvent.setup();
   const reorderedSeed: AdminState = structuredClone(localAdminSeed);
   reorderedSeed.content.reverse();
-  const provider = createLocalAdminDataProvider(reorderedSeed);
+  const provider = createTestAdminDataStore(reorderedSeed);
   renderAdmin(<ContentEditor />, { provider });
 
   const target = await screen.findByLabelText("Post slot to replace");
@@ -84,7 +84,7 @@ test("offers scheduled slots only and leaves published and draft records unchang
     ...entry,
     status: index === 0 ? "scheduled" : index % 2 ? "published" : "draft",
   }));
-  const provider = createLocalAdminDataProvider(mixedStatusSeed);
+  const provider = createTestAdminDataStore(mixedStatusSeed);
   renderAdmin(<ContentEditor />, { provider });
 
   const target = await screen.findByLabelText("Post slot to replace");
@@ -142,7 +142,7 @@ test.each(["published", "draft"] as const)(
   "preserves a post that becomes %s during the conditional update",
   async (status) => {
     const user = userEvent.setup();
-    const baseProvider = createLocalAdminDataProvider();
+    const baseProvider = createTestAdminDataStore();
     const provider: ActorAwareAdminDataStore = {
       ...baseProvider,
       async updateContentEntry(entryId, patch, actorId, precondition) {
@@ -187,7 +187,7 @@ test.each(["published", "draft"] as const)(
       ...entry,
       status: index === 0 ? "scheduled" : index % 2 ? "published" : "draft",
     }));
-    const baseProvider = createLocalAdminDataProvider(finalSlotSeed);
+    const baseProvider = createTestAdminDataStore(finalSlotSeed);
     const provider: ActorAwareAdminDataStore = {
       ...baseProvider,
       async updateContentEntry(entryId, patch, actorId, precondition) {
@@ -232,7 +232,7 @@ test("explains and disables scheduling when no eligible slots exist", async () =
     ...entry,
     status: index % 2 ? "published" : "draft",
   }));
-  const provider = createLocalAdminDataProvider(noEligibleSeed);
+  const provider = createTestAdminDataStore(noEligibleSeed);
   renderAdmin(<ContentEditor />, { provider });
 
   const target = await screen.findByLabelText("Post slot to replace");
@@ -359,7 +359,7 @@ test("reports compliance per selected cycle and identifies an incomplete cycle",
     publishAt: `2026-09-${String(index + 1).padStart(2, "0")}T13:00:00Z`,
   }));
   multiCycleSeed.content = [...multiCycleSeed.content, ...secondCycle];
-  const provider = createLocalAdminDataProvider(multiCycleSeed);
+  const provider = createTestAdminDataStore(multiCycleSeed);
   const multiCycleView = renderAdmin(<ContentScreen />, { provider });
 
   const cycle = await screen.findByLabelText("Publishing cycle");
@@ -376,7 +376,7 @@ test("reports compliance per selected cycle and identifies an incomplete cycle",
     publishAt: "2026-09-01T13:00:00Z",
   });
   const incompleteView = renderAdmin(<ContentScreen />, {
-    provider: createLocalAdminDataProvider(incompleteSeed),
+    provider: createTestAdminDataStore(incompleteSeed),
   });
   await user.selectOptions(await screen.findByLabelText("Publishing cycle"), "1");
   expect(screen.getByText("Incomplete cycle · 1 of 7 posts")).toBeVisible();
@@ -386,7 +386,7 @@ test("reports compliance per selected cycle and identifies an incomplete cycle",
 
 test("refreshes the calendar from provider state after an editor update", async () => {
   const user = userEvent.setup();
-  const baseProvider = createLocalAdminDataProvider();
+  const baseProvider = createTestAdminDataStore();
   const provider: ActorAwareAdminDataStore = {
     ...baseProvider,
     async updateContentEntry(entryId, patch, actorId, precondition) {

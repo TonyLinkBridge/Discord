@@ -28,7 +28,7 @@ export default defineConfig({
       AUTH_DISCORD_ID: "playwright-discord-client",
       AUTH_DISCORD_SECRET: "playwright-discord-secret",
       AUTH_SECRET: "playwright-local-auth-secret",
-      DATA_MODE: "local",
+      DATA_MODE: "unavailable",
       DEV_OPERATOR_ID: "local-ray",
     },
     reuseExistingServer: false,

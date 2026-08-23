@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createAuthorizedAdminDataProvider } from "./authorized-provider";
-import { createLocalAdminDataProvider } from "./local-provider";
+import { createTestAdminDataStore } from "@/test/admin-data";
 import { adminMutationCommandSchema, type AdminMutationCommand } from "./mutation-command";
 import type { AdminDataProvider } from "./provider";
 
@@ -86,7 +86,7 @@ const mutationCases: ReadonlyArray<{
 
 describe("createAuthorizedAdminDataProvider", () => {
   test.each(mutationCases)("authorizes and binds actor 42 for $kind", async ({ kind, mutate }) => {
-    const store = createLocalAdminDataProvider();
+    const store = createTestAdminDataStore();
     const gate = authorizeAs("42");
     gate.mockImplementation(async (input) => {
       expect(await store.getActivity()).toEqual([]);
@@ -104,7 +104,7 @@ describe("createAuthorizedAdminDataProvider", () => {
   });
 
   test("does not mutate local state when the current session is denied", async () => {
-    const store = createLocalAdminDataProvider();
+    const store = createTestAdminDataStore();
     const provider = createAuthorizedAdminDataProvider(
       store,
       vi.fn().mockRejectedValue(new Error("forbidden")),

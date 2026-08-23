@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { createTestAdminDataStore } from "@/test/admin-data";
 import { AdminShell } from "@/components/admin-shell/admin-shell";
 import { renderAdmin } from "@/test/render";
 import { AnalyticsScreen } from "./analytics-screen";
@@ -71,7 +71,7 @@ test("renders 5, 7, and 22 trend points on one responsive chronological axis", a
 
 test("never relabels the previous snapshot while the selected range is loading", async () => {
   const user = userEvent.setup();
-  const provider = createLocalAdminDataProvider();
+  const provider = createTestAdminDataStore();
   let releaseRecentRange = () => {};
   const recentRangeGate = new Promise<void>((resolve) => {
     releaseRecentRange = resolve;
@@ -99,7 +99,7 @@ test("never relabels the previous snapshot while the selected range is loading",
 
 test("retries a failed provider read from an explicit operator action", async () => {
   const user = userEvent.setup();
-  const provider = createLocalAdminDataProvider();
+  const provider = createTestAdminDataStore();
   let requests = 0;
   const recoveringProvider = {
     ...provider,

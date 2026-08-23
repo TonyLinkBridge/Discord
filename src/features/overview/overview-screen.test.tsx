@@ -2,8 +2,8 @@ import { act, cleanup, screen, within } from "@testing-library/react";
 import { afterEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { AdminShell } from "@/components/admin-shell/admin-shell";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
-import { localAdminSeed } from "@/lib/admin-data/seed";
+import { createTestAdminDataStore } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { renderAdmin } from "@/test/render";
 import { OverviewScreen } from "./overview-screen";
 
@@ -72,7 +72,7 @@ test("reads Overview values from the configured admin data provider", async () =
   seed.community.memberGrowth.at(-1)!.totalMembers = 9999;
 
   renderAdmin(<OverviewScreen />, {
-    provider: createLocalAdminDataProvider(seed),
+    provider: createTestAdminDataStore(seed),
   });
 
   expect(await screen.findByText("9,999")).toBeVisible();
@@ -106,7 +106,7 @@ test("applies the keyboard-selected global range to Overview content and labels"
 
 test("does not relabel an old Overview snapshot while the selected range loads", async () => {
   const user = userEvent.setup();
-  const provider = createLocalAdminDataProvider();
+  const provider = createTestAdminDataStore();
   let releaseRecentRange = () => {};
   const recentRangeGate = new Promise<void>((resolve) => {
     releaseRecentRange = resolve;

@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
-import { createLocalAdminDataProvider } from "@/lib/admin-data/local-provider";
+import { createTestAdminDataStore } from "@/test/admin-data";
 import type { LeadAction } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { LeadsScreen } from "./leads-screen";
@@ -61,7 +61,7 @@ test("shows a completed action after reopening without offering duplicate comple
 
 test("keeps the delayed mutation lock across dismissal attempts", async () => {
   const user = userEvent.setup();
-  const provider = createLocalAdminDataProvider();
+  const provider = createTestAdminDataStore();
   let releaseCompletion = () => {};
   const completionGate = new Promise<void>((resolve) => {
     releaseCompletion = resolve;
