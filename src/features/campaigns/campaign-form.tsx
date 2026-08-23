@@ -3,7 +3,7 @@
 import { LinkSimple, Megaphone } from "@phosphor-icons/react";
 import { useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
-import { useAdminData } from "@/lib/admin-data/context";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
 import type { CampaignCreationResult } from "@/lib/admin-data/types";
 import { rayNameDestinationError } from "@/lib/tracking";
 import styles from "./campaigns-screen.module.css";
@@ -56,10 +56,15 @@ const deriveCampaignStatus = (startDate: string, endDate: string) => {
   return "active";
 };
 
+const campaignUnavailableReason =
+  "Campaign creation requires a persistent database and tracked-link provider.";
+
 export function CampaignForm({
   onCreated,
 }: Readonly<{ onCreated?: (creation: CampaignCreationResult) => void }>) {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
+  const mutationAvailable = availability.capabilities["manage-campaigns"].available;
   const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<CampaignErrors>({});
   const [pending, setPending] = useState(false);
@@ -77,6 +82,10 @@ export function CampaignForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    if (!mutationAvailable) {
+      setStatus(campaignUnavailableReason);
+      return;
+    }
 
     const formData = new FormData(event.currentTarget);
     const result = campaignSchema.safeParse(Object.fromEntries(formData));
@@ -177,10 +186,21 @@ export function CampaignForm({
           <input aria-describedby={errors.endDate ? "campaign-end-date-error" : undefined} aria-invalid={Boolean(errors.endDate)} disabled={pending} id="campaign-end-date" name="endDate" type="date" />
           {errors.endDate ? <span className={styles.fieldError} id="campaign-end-date-error">{errors.endDate}</span> : null}
         </div>
-        <button className={styles.primaryButton} disabled={pending} type="submit">
+        <button
+          aria-describedby={!mutationAvailable ? "campaign-mutation-unavailable" : undefined}
+          className={styles.primaryButton}
+          disabled={pending || !mutationAvailable}
+          type="submit"
+        >
           <Megaphone aria-hidden size={16} weight="bold" /> {pending ? "Creating campaign…" : "Create campaign"}
         </button>
       </form>
+
+      {!mutationAvailable ? (
+        <p className={styles.capabilityNote} id="campaign-mutation-unavailable">
+          {campaignUnavailableReason}
+        </p>
+      ) : null}
 
       {trackedUrl ? (
         <label className={styles.trackedField}>

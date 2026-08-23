@@ -36,7 +36,13 @@ export function OffersScreen() {
 
   return (
     <main className={styles.screen}>
-      {loaded && offers[0] ? <OfferForm offerId={offers[0].id} onUpdated={replaceOffer} /> : <p className={styles.loading} role="status">Loading offer editor…</p>}
+      {!loaded ? (
+        <p className={styles.loading} role="status">Loading offer editor…</p>
+      ) : offers[0] ? (
+        <OfferForm offerId={offers[0].id} onUpdated={replaceOffer} />
+      ) : (
+        <p className={styles.emptyState}>No offers yet</p>
+      )}
       <section aria-labelledby="offer-list-title" className={styles.listPanel}>
         <header className={styles.listHeader}><div><p><ChartLineUp aria-hidden size={14} /> Lifecycle and performance</p><h2 id="offer-list-title">Offers</h2></div><span>{offers.length} offers</span></header>
         <div className={styles.offerGrid}>

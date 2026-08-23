@@ -2,7 +2,7 @@
 
 import { CheckCircle, PaperPlaneTilt } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useAdminData } from "@/lib/admin-data/context";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
 import { ContentUpdateConflictError } from "@/lib/admin-data/provider";
 import type { ContentEntry } from "@/lib/admin-data/types";
 import { contentFormats, partitionContentCycles, validateContentEntry } from "./content-mix";
@@ -47,6 +47,8 @@ const noEligibleSlotsMessage =
 const ineligibleSelectionStatus = "Selected post is no longer eligible";
 const ineligibleSelectionNoSlotsStatus =
   "Selected post is no longer eligible. No scheduled post slots are available.";
+const contentUnavailableReason =
+  "Content scheduling requires a persistent database and Discord publishing provider.";
 
 function formatPublishDate(value: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -81,6 +83,8 @@ export function ContentEditor({
   showSavedPreview?: boolean;
 }>) {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
+  const mutationAvailable = availability.capabilities["schedule-content"].available;
   const formRef = useRef<HTMLFormElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const [values, setValues] = useState<ContentFormValues>(emptyValues);
@@ -164,6 +168,10 @@ export function ContentEditor({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    if (!mutationAvailable) {
+      setStatus(contentUnavailableReason);
+      return;
+    }
 
     const nextErrors = validateForm(values);
     if (Object.keys(nextErrors).length) {
@@ -362,14 +370,21 @@ export function ContentEditor({
           {errors.cta ? <span className={styles.fieldError} id="content-cta-error">{errors.cta}</span> : null}
         </div>
         <button
+          aria-describedby={!mutationAvailable ? "content-mutation-unavailable" : undefined}
           className={styles.primaryButton}
-          disabled={pending || slotLoadError || (slotsLoaded && !hasEligibleSlots)}
+          disabled={!mutationAvailable || pending || slotLoadError || (slotsLoaded && !hasEligibleSlots)}
           type="submit"
         >
           <PaperPlaneTilt aria-hidden size={16} weight="bold" />
           {pending ? "Scheduling post…" : "Schedule post"}
         </button>
       </form>
+
+      {!mutationAvailable ? (
+        <p className={styles.capabilityNote} id="content-mutation-unavailable">
+          {contentUnavailableReason}
+        </p>
+      ) : null}
 
       {showSavedPreview && savedEntry ? (
         <div className={styles.savedPreview}>

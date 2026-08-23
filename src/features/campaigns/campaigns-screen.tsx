@@ -64,7 +64,9 @@ export function CampaignsScreen({ initialSelectedCampaignId = null }: Readonly<{
             <table>
               <caption className={styles.visuallyHidden}>Campaign management and attribution</caption>
               <thead><tr><th scope="col">Campaign</th><th scope="col">Channel</th><th scope="col">Dates</th><th scope="col">Clicks</th><th scope="col">Verified</th><th scope="col">Conversions</th><th scope="col">Revenue</th><th scope="col">Status</th></tr></thead>
-              <tbody>{campaigns.map((campaign) => {
+              <tbody>{campaigns.length === 0 ? (
+                <tr><td className={styles.emptyRow} colSpan={8}>No campaigns yet</td></tr>
+              ) : campaigns.map((campaign) => {
                 const trackedLink = trackedLinks.find((link) => link.id === campaign.trackedLinkId);
                 return (
                 <tr

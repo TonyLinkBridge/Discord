@@ -34,9 +34,11 @@ export function ContentScreen() {
     return <p className={styles.loading} role="status">Loading content operations…</p>;
   }
 
-  if (loadingState === "error" || !entries[0]) {
+  if (loadingState === "error") {
     return <p className={styles.loadError} role="alert">Unable to load the content calendar.</p>;
   }
+
+  if (!entries[0]) return <p className={styles.emptyState}>No scheduled content yet</p>;
 
   return (
     <main className={styles.screen}>

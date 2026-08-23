@@ -3,7 +3,7 @@
 import { CalendarBlank, FloppyDisk, Tag } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
-import { useAdminData } from "@/lib/admin-data/context";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
 import type { Offer } from "@/lib/admin-data/types";
 import { rayNameDestinationError } from "@/lib/tracking";
 import styles from "./offers-screen.module.css";
@@ -57,6 +57,9 @@ const lifecycleLabels: Record<Offer["status"], string> = {
   scheduled: "Scheduled",
 };
 
+const offerUnavailableReason =
+  "Offer publishing requires a persistent database and Discord publishing provider.";
+
 export function deriveOfferLifecycle(
   selectedStatus: Offer["status"],
   startDate: string,
@@ -90,6 +93,8 @@ export function OfferForm({
   today,
 }: Readonly<{ offerId: string; onUpdated?: (offer: Offer) => void; today?: string }>) {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
+  const mutationAvailable = availability.capabilities["manage-offers"].available;
   const todayValue = today ?? new Date().toISOString().slice(0, 10);
   const formRef = useRef<HTMLFormElement>(null);
   const touched = useRef(new Set<OfferField>());
@@ -165,6 +170,10 @@ export function OfferForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || loading || !recordId) return;
+    if (!mutationAvailable) {
+      setStatusMessage(offerUnavailableReason);
+      return;
+    }
     const result = offerSchema.safeParse(values);
     if (!result.success) {
       const nextErrors = result.error.issues.reduce<OfferErrors>((issues, issue) => {
@@ -255,8 +264,18 @@ export function OfferForm({
         </div>
         <label>Campaign association<input disabled={pending} name="campaignId" onChange={(event) => updateField("campaignId", event.target.value)} type="text" value={values.campaignId} /></label>
         <label>Status<select disabled={pending} name="status" onChange={(event) => updateField("status", event.target.value as Offer["status"])} value={values.status}>{offerStatuses.map((status) => <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>)}</select></label>
-        <button className={styles.primaryButton} disabled={loading || pending || !recordId} type="submit"><FloppyDisk aria-hidden size={16} weight="bold" />{pending ? "Saving offer…" : "Save offer"}</button>
+        <button
+          aria-describedby={!mutationAvailable ? `offer-mutation-unavailable-${offerId}` : undefined}
+          className={styles.primaryButton}
+          disabled={loading || pending || !recordId || !mutationAvailable}
+          type="submit"
+        ><FloppyDisk aria-hidden size={16} weight="bold" />{pending ? "Saving offer…" : "Save offer"}</button>
       </form>
+      {!mutationAvailable ? (
+        <p className={styles.capabilityNote} id={`offer-mutation-unavailable-${offerId}`}>
+          {offerUnavailableReason}
+        </p>
+      ) : null}
       <p aria-live="polite" className={styles.status} role="status">{statusMessage}</p>
     </section>
   );

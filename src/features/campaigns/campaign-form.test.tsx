@@ -3,12 +3,35 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
+import { createTestAdminDataStore, createTestAvailability } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { CampaignForm } from "./campaign-form";
 import { CampaignsScreen } from "./campaigns-screen";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
 }));
+
+test("disables campaign creation when durable campaign storage is unavailable", () => {
+  const reason = "Campaign creation requires a persistent database and tracked-link provider.";
+  const provider = createTestAdminDataStore(localAdminSeed, createTestAvailability({
+    "manage-campaigns": { available: false, reason },
+  }));
+  renderAdmin(<CampaignForm />, { provider });
+
+  expect(screen.getByRole("button", { name: "Create campaign" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Create campaign" })).toHaveAccessibleDescription(reason);
+  expect(screen.getByText(reason)).toBeVisible();
+});
+
+test("shows a connected-empty campaign list", async () => {
+  const seed = structuredClone(localAdminSeed);
+  seed.campaigns = [];
+  seed.trackedLinks = [];
+  renderAdmin(<CampaignsScreen />, { provider: createTestAdminDataStore(seed) });
+
+  expect(await screen.findByText("No campaigns yet")).toBeVisible();
+});
 
 test("focuses a requested campaign in the canonical campaign workflow", async () => {
   renderAdmin(<CampaignsScreen initialSelectedCampaignId="com-transfer-week" />);

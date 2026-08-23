@@ -2,7 +2,32 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { renderAdmin } from "@/test/render";
+import { createTestAdminDataStore, createTestAvailability } from "@/test/admin-data";
+import { localAdminSeed } from "@/test/fixtures/admin-state";
 import { OfferForm } from "./offer-form";
+import { OffersScreen } from "./offers-screen";
+
+test("disables offer publishing when durable publishing is unavailable", async () => {
+  const reason = "Offer publishing requires a persistent database and Discord publishing provider.";
+  const provider = createTestAdminDataStore(localAdminSeed, createTestAvailability({
+    "manage-offers": { available: false, reason },
+  }));
+  renderAdmin(<OfferForm offerId="com-transfer-offer" />, { provider });
+
+  const button = await screen.findByRole("button", { name: "Save offer" });
+  expect(button).toBeDisabled();
+  expect(button).toHaveAccessibleDescription(reason);
+  expect(screen.getByText(reason)).toBeVisible();
+});
+
+test("shows a connected-empty offer list", async () => {
+  const seed = structuredClone(localAdminSeed);
+  seed.offers = [];
+  renderAdmin(<OffersScreen />, { provider: createTestAdminDataStore(seed) });
+
+  expect(await screen.findByText("No offers yet")).toBeVisible();
+  expect(screen.queryByText("Loading offer editor…")).not.toBeInTheDocument();
+});
 
 test("extends and activates the .com Transfer Week offer", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });

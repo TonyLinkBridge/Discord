@@ -1,13 +1,35 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
-import { createTestAdminDataStore } from "@/test/admin-data";
+import { createTestAdminDataStore, createTestAvailability } from "@/test/admin-data";
 import type { ActorAwareAdminDataStore } from "@/lib/admin-data/provider";
 import { localAdminSeed } from "@/test/fixtures/admin-state";
 import type { AdminState, ContentEntry } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { ContentEditor } from "./content-editor";
 import { ContentScreen } from "./content-screen";
+
+test("disables content scheduling when durable publishing is unavailable", async () => {
+  const reason = "Content scheduling requires a persistent database and Discord publishing provider.";
+  const provider = createTestAdminDataStore(localAdminSeed, createTestAvailability({
+    "schedule-content": { available: false, reason },
+  }));
+  renderAdmin(<ContentEditor />, { provider });
+
+  const button = await screen.findByRole("button", { name: "Schedule post" });
+  expect(button).toBeDisabled();
+  expect(button).toHaveAccessibleDescription(reason);
+  expect(screen.getByText(reason)).toBeVisible();
+});
+
+test("shows a connected-empty content workspace", async () => {
+  const seed = structuredClone(localAdminSeed);
+  seed.content = [];
+  renderAdmin(<ContentScreen />, { provider: createTestAdminDataStore(seed) });
+
+  expect(await screen.findByText("No scheduled content yet")).toBeVisible();
+  expect(screen.queryByText("Unable to load the content calendar.")).not.toBeInTheDocument();
+});
 
 test("schedules a Domain Breakdown education post with one CTA", async () => {
   const user = userEvent.setup();

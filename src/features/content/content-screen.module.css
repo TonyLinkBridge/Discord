@@ -123,7 +123,9 @@
   min-height: 38px;
 }
 
-.primaryButton:disabled { cursor: wait; opacity: .65; }
+.primaryButton:disabled { cursor: not-allowed; opacity: .65; }
+.capabilityNote { color: var(--text-secondary); font-size: 11px; line-height: 1.5; margin: 10px 0 0; }
+.emptyState { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-secondary); margin: 0; padding: 30px 18px; text-align: center; }
 
 .errorSummary,
 .loadError {
