@@ -85,6 +85,7 @@ export function createUnavailableAvailability(
   };
 }
 
-export function resolveRuntimeDataMode(_requestedMode: string | undefined): "unavailable" {
+export function resolveRuntimeDataMode(requestedMode: string | undefined): "unavailable" {
+  void requestedMode;
   return "unavailable";
 }

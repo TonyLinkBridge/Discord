@@ -50,7 +50,7 @@ describe("createUnavailableAdminDataStore", () => {
 
     expect(settings).toMatchObject({
       workspace: { name: "RayName Discord Community", timezone: "UTC" },
-      discord: { serverName: "RayName Domain Club", configured: false },
+      discord: { serverName: "RayName Domain Club", configured: true },
       operatorAllowlist: ["42"],
       rayNameApi: { status: "awaiting-access" },
     });

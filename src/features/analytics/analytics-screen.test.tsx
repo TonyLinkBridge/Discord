@@ -1,9 +1,23 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createTestAdminDataStore } from "@/test/admin-data";
+import { createTestAdminDataStore, createUnavailableTestAdminDataStore } from "@/test/admin-data";
 import { AdminShell } from "@/components/admin-shell/admin-shell";
+import { CapabilityBoundary } from "@/components/data-state/data-unavailable";
 import { renderAdmin } from "@/test/render";
 import { AnalyticsScreen } from "./analytics-screen";
+
+test("does not render charts or seeded totals when analytics is unavailable", () => {
+  renderAdmin(
+    <CapabilityBoundary capability="read-analytics" title="Analytics data is not connected">
+      <AnalyticsScreen />
+    </CapabilityBoundary>,
+    { provider: createUnavailableTestAdminDataStore() },
+  );
+
+  expect(screen.getByRole("heading", { name: "Analytics data is not connected" })).toBeVisible();
+  expect(screen.queryByText("Provider-backed reporting")).not.toBeInTheDocument();
+  expect(screen.queryByText("$18,420")).not.toBeInTheDocument();
+});
 
 test("applies one date range to every analytics section", async () => {
   const user = userEvent.setup();

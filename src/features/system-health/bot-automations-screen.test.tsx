@@ -1,9 +1,23 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createTestAdminDataStore } from "@/test/admin-data";
+import { createTestAdminDataStore, createUnavailableTestAdminDataStore } from "@/test/admin-data";
 import type { ServiceStatus } from "@/lib/admin-data/types";
 import { renderAdmin } from "@/test/render";
 import { BotAutomationsScreen } from "./bot-automations-screen";
+
+test("reports setup state without fabricated health or activity", () => {
+  renderAdmin(<BotAutomationsScreen />, { provider: createUnavailableTestAdminDataStore() });
+
+  expect(screen.getByText("Discord bot").closest("li")).toHaveTextContent("Not connected");
+  expect(screen.getByText("Database").closest("li")).toHaveTextContent("Not connected");
+  expect(screen.getByText("RayName Marketing API").closest("li")).toHaveTextContent("Awaiting access");
+  expect(screen.getByText("Deployment monitoring").closest("li")).toHaveTextContent("Unknown");
+  expect(screen.queryByText("Commands responding normally")).not.toBeInTheDocument();
+  expect(screen.queryByText("No recent failures")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Verify customer manually" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Create tracked link" })).not.toBeInTheDocument();
+  expect(screen.getByText("No operational activity is available until integrations are connected.")).toBeVisible();
+});
 
 test("keeps provider-backed manual operations available while RayName API access is pending", async () => {
   const user = userEvent.setup();

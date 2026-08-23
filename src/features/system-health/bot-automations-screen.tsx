@@ -10,7 +10,8 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { useAdminData } from "@/lib/admin-data/context";
+import { useAdminAvailability, useAdminData } from "@/lib/admin-data/context";
+import type { AdminAvailability } from "@/lib/admin-data/availability";
 import type { Member, SystemHealth } from "@/lib/admin-data/types";
 import styles from "./bot-automations-screen.module.css";
 
@@ -24,8 +25,25 @@ const apiAutomationLabels = [
 const serviceStatusLabel = (status: SystemHealth["services"][number]["status"]) =>
   status === "operational" ? "Healthy" : status === "degraded" ? "Degraded" : "Awaiting access";
 
+const integrationLabels: Record<keyof AdminAvailability["integrations"], string> = {
+  database: "Database",
+  deploymentMonitoring: "Deployment monitoring",
+  discordBot: "Discord bot",
+  discordOAuth: "Discord OAuth",
+  rayNameMarketingApi: "RayName Marketing API",
+};
+
+const integrationStatusLabels = {
+  "awaiting-access": "Awaiting access",
+  connected: "Connected",
+  degraded: "Degraded",
+  "not-connected": "Not connected",
+  unknown: "Unknown",
+} as const;
+
 export function BotAutomationsScreen() {
   const provider = useAdminData();
+  const availability = useAdminAvailability();
   const operationLockRef = useRef(false);
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [verificationQueue, setVerificationQueue] = useState<Member[] | null>(null);
@@ -35,6 +53,7 @@ export function BotAutomationsScreen() {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
+    if (availability.dataMode === "unavailable") return;
     let active = true;
     Promise.all([provider.getSystemHealth(), provider.getState()])
       .then(([snapshot, state]) => {
@@ -47,7 +66,44 @@ export function BotAutomationsScreen() {
         if (active) setHealthError("Unable to load system health");
       });
     return () => { active = false; };
-  }, [healthRetryRevision, provider]);
+  }, [availability.dataMode, healthRetryRevision, provider]);
+
+  if (availability.dataMode === "unavailable") {
+    const integrations = Object.entries(availability.integrations) as Array<[
+      keyof AdminAvailability["integrations"],
+      AdminAvailability["integrations"][keyof AdminAvailability["integrations"]],
+    ]>;
+    return (
+      <main className={styles.screen}>
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <div><p className={styles.eyebrow}>Setup state</p><h2>Connection health</h2></div>
+            <span className={styles.summary}><PlugsConnected aria-hidden size={17} />5 integrations</span>
+          </header>
+          <ul className={styles.serviceGrid}>
+            {integrations.map(([id, integration]) => {
+              const StatusIcon = integration.status === "connected" ? CheckCircle : WarningCircle;
+              return (
+                <li data-status={integration.status} key={id}>
+                  <StatusIcon aria-hidden size={21} weight="duotone" />
+                  <div><strong>{integrationLabels[id]}</strong><span>{integration.detail}</span></div>
+                  <span className={integration.status === "connected" ? styles.healthy : styles.awaiting}>
+                    {integrationStatusLabels[integration.status]}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+        <section className={`${styles.panel} ${styles.activityPanel}`}>
+          <header className={styles.panelHeader}><h2>Operational activity</h2></header>
+          <p className={styles.supportingCopy}>
+            No operational activity is available until integrations are connected.
+          </p>
+        </section>
+      </main>
+    );
+  }
 
   async function createTrackedLink() {
     if (operationLockRef.current) return;
@@ -119,6 +175,8 @@ export function BotAutomationsScreen() {
       ? "RayName Marketing API is degraded."
       : "RayName Marketing API access is pending.";
   const verificationTarget = verificationQueue?.[0] ?? null;
+  const canCreateTrackedLink = availability.capabilities["create-tracked-links"].available;
+  const canVerifyMember = availability.capabilities["mutate-members"].available;
 
   return (
     <main className={styles.screen}>
@@ -186,12 +244,12 @@ export function BotAutomationsScreen() {
           </strong>
         </p>
         <div className={styles.manualActions}>
-          <button disabled={pending !== null} onClick={createTrackedLink} type="button">
+          {canCreateTrackedLink ? <button disabled={pending !== null} onClick={createTrackedLink} type="button">
             <LinkSimple aria-hidden size={16} />Create tracked link
-          </button>
-          <button disabled={pending !== null || !verificationTarget} onClick={verifyCustomer} type="button">
+          </button> : null}
+          {canVerifyMember ? <button disabled={pending !== null || !verificationTarget} onClick={verifyCustomer} type="button">
             <UserCheck aria-hidden size={16} />Verify customer manually
-          </button>
+          </button> : null}
         </div>
         <p aria-live="polite" className={styles.operationStatus} role="status">{status}</p>
       </section>

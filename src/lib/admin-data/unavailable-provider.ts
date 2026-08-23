@@ -71,7 +71,7 @@ export function createUnavailableAdminDataStore(
     analyticsEvents: [],
     workspaceSettings: {
       workspace: { name: config.workspaceName, timezone: config.timezone },
-      discord: { serverName: config.discordServerName, configured: false },
+      discord: { serverName: config.discordServerName, configured: config.discordOAuthConfigured },
       operatorAllowlist: [...config.operatorAllowlist],
       rayNameApi: { status: config.rayNameApiConfigured ? "configured" : "awaiting-access" },
       trackingDefaults: { source: "discord", medium: "community" },
