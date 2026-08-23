@@ -95,6 +95,22 @@ const contentPatchSchema = z.object({
   title: textSchema.optional(),
 }).strict().refine((patch) => Object.keys(patch).length > 0, "Content patch cannot be empty.");
 
+export const verificationReviewCommandSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("approve-verification"),
+    requestId: identifierSchema,
+  }).strict(),
+  z.object({
+    kind: z.literal("reject-verification"),
+    requestId: identifierSchema,
+    reason: textSchema,
+  }).strict(),
+  z.object({
+    kind: z.literal("retry-verification-role"),
+    requestId: identifierSchema,
+  }).strict(),
+]);
+
 export const adminMutationCommandSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("complete-priority"),
@@ -144,6 +160,7 @@ export const adminMutationCommandSchema = z.discriminatedUnion("kind", [
     patch: contentPatchSchema,
     precondition: z.object({ expectedStatus: contentStatusSchema }).strict().optional(),
   }).strict(),
+  ...verificationReviewCommandSchema.options,
 ]).superRefine((command, context) => {
   if (
     command.kind === "create-campaign-with-tracked-link"
@@ -158,6 +175,9 @@ export const adminMutationCommandSchema = z.discriminatedUnion("kind", [
 });
 
 export type AdminMutationCommand = z.infer<typeof adminMutationCommandSchema>;
+export type VerificationReviewCommand = z.infer<
+  typeof verificationReviewCommandSchema
+>;
 
 export interface AuthorizedAdminMutation {
   actorId: string;

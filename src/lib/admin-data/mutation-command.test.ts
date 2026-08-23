@@ -50,6 +50,19 @@ const commands = [
     patch: { status: "scheduled", title: "Updated title" },
     precondition: { expectedStatus: "scheduled" },
   },
+  {
+    kind: "approve-verification",
+    requestId: "72345678-1234-4234-8234-123456789012",
+  },
+  {
+    kind: "reject-verification",
+    requestId: "72345678-1234-4234-8234-123456789012",
+    reason: "Account details did not match",
+  },
+  {
+    kind: "retry-verification-role",
+    requestId: "72345678-1234-4234-8234-123456789012",
+  },
 ] satisfies AdminMutationCommand[];
 
 describe("adminMutationCommandSchema", () => {
@@ -104,6 +117,13 @@ describe("adminMutationCommandSchema", () => {
       entryId: "content",
       patch: { format: "unknown" },
     },
+    { kind: "approve-verification", requestId: "" },
+    {
+      kind: "reject-verification",
+      requestId: "72345678-1234-4234-8234-123456789012",
+      reason: "   ",
+    },
+    { kind: "retry-verification-role", requestId: "" },
   ])("rejects the invalid $kind command", (command) => {
     expect(() => adminMutationCommandSchema.parse(command)).toThrow();
   });
