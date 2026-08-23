@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { useAdminData } from "@/lib/admin-data/context";
 import type { AdminMutationGate } from "@/lib/admin-data/mutation-command";
 import type { SafeAdminRuntimeConfig } from "@/lib/admin-data/availability";
+import { createVerificationAvailability } from "@/lib/admin-data/availability";
 import { RuntimeAdminDataProvider } from "./runtime-admin-data-provider";
 
 const config = {
@@ -44,5 +45,26 @@ describe("RuntimeAdminDataProvider", () => {
     expect(screen.getByTestId("data-mode")).toHaveTextContent("unavailable");
     expect(await screen.findByTestId("member-count")).toHaveTextContent("0");
     expect(screen.queryByText("Alex Chen")).not.toBeInTheDocument();
+  });
+
+  test("preserves a server-resolved partial-live verification capability", async () => {
+    const availability = createVerificationAvailability({
+      discordOAuthConfigured: true,
+      rayNameApiConfigured: false,
+      discordBotConfigured: true,
+      databaseStatus: "connected",
+    });
+    render(
+      <RuntimeAdminDataProvider
+        availability={availability}
+        config={config}
+        mutationGate={mutationGate}
+      >
+        <ProviderProbe />
+      </RuntimeAdminDataProvider>,
+    );
+
+    expect(screen.getByTestId("data-mode")).toHaveTextContent("partial-live");
+    expect(await screen.findByTestId("member-count")).toHaveTextContent("0");
   });
 });

@@ -14,6 +14,7 @@ export const adminCapabilities = [
   "manage-offers",
   "schedule-content",
   "view-notifications",
+  "review-verifications",
 ] as const;
 
 export type AdminCapability = (typeof adminCapabilities)[number];
@@ -25,7 +26,7 @@ export type IntegrationStatus =
   | "degraded";
 
 export type AdminAvailability = {
-  dataMode: "unavailable" | "live";
+  dataMode: "unavailable" | "partial-live" | "live";
   capabilities: Record<AdminCapability, { available: boolean; reason: string | null }>;
   integrations: Record<
     | "discordOAuth"
@@ -83,6 +84,41 @@ export function createUnavailableAvailability(
       },
     },
   };
+}
+
+export function createVerificationAvailability(input: Pick<
+  SafeAdminRuntimeConfig,
+  "discordOAuthConfigured" | "rayNameApiConfigured"
+> & {
+  discordBotConfigured: boolean;
+  databaseStatus: "connected" | "degraded" | "not-connected";
+}): AdminAvailability {
+  const availability = createUnavailableAvailability(input);
+  availability.integrations.discordBot = {
+    status: input.discordBotConfigured ? "connected" : "not-connected",
+    detail: input.discordBotConfigured
+      ? "Discord bot configured"
+      : "Discord bot is not connected",
+  };
+  availability.integrations.database = {
+    status: input.databaseStatus,
+    detail:
+      input.databaseStatus === "connected"
+        ? "Persistent database connected"
+        : input.databaseStatus === "degraded"
+          ? "Database connection failed"
+          : "Persistent database is not connected",
+  };
+
+  if (input.discordBotConfigured && input.databaseStatus === "connected") {
+    availability.dataMode = "partial-live";
+    availability.capabilities["review-verifications"] = {
+      available: true,
+      reason: null,
+    };
+  }
+
+  return availability;
 }
 
 export function resolveRuntimeDataMode(requestedMode: string | undefined): "unavailable" {
