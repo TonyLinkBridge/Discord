@@ -32,10 +32,14 @@ export function CapabilityBoundary({ capability, children, description, title }:
 
   if (state.available) return children;
 
-  return <DataUnavailable
-    description={description ?? state.reason ?? "This data source is not connected."}
-    title={title}
-  />;
+  return (
+    <main className={styles.boundary}>
+      <DataUnavailable
+        description={description ?? state.reason ?? "This data source is not connected."}
+        title={title}
+      />
+    </main>
+  );
 }
 
 const overviewMetricLabels = [

@@ -4,6 +4,7 @@
 .unavailable p { color: var(--text-secondary); font-size: 13px; line-height: 1.55; margin: 0; max-width: 650px; }
 .unavailable .eyebrow { color: var(--warning); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .overviewUnavailable { display: grid; gap: 14px; }
+.boundary { min-width: 0; }
 .metricStrip { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 20px 10px; }
 .metric { display: grid; gap: 7px; min-width: 0; padding: 3px 13px; }
 .metric + .metric { border-left: 1px solid var(--border-subtle); }

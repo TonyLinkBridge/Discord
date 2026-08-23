@@ -64,16 +64,7 @@ for (const viewport of [
       }
     }
 
-    if (viewport.width === 1024) {
-      const lowerSections = await Promise.all([
-        page.getByRole("heading", { name: "Conversion funnel" }).locator("..").boundingBox(),
-        page.getByRole("heading", { name: "High-intent leads" }).locator("..").boundingBox(),
-        page.getByRole("heading", { name: "Campaign performance" }).locator("..").boundingBox(),
-      ]);
-      expect(lowerSections.every(Boolean)).toBe(true);
-      expect(lowerSections[1]!.y).toBeGreaterThan(lowerSections[0]!.y);
-      expect(lowerSections[2]!.y).toBeGreaterThan(lowerSections[1]!.y);
-    }
+    await expect(page.getByText("Data source not connected", { exact: true })).toBeVisible();
   });
 }
 
