@@ -107,6 +107,14 @@ export interface VerificationRepository {
     interactionType: number;
     discordUserId: string | null;
   }): Promise<"claimed" | "duplicate">;
+  getMemberVerificationState(discordUserId: string): Promise<{
+    status:
+      | "none"
+      | "pending"
+      | "processing"
+      | "role_failed"
+      | "verified";
+  }>;
   submit(input: SubmitVerificationInput): Promise<SubmitVerificationResult>;
   listForAdmin(): Promise<StoredVerificationRequest[]>;
   claimRoleAssignment(input: {

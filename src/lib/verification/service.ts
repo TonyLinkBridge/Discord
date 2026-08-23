@@ -135,6 +135,8 @@ export function createVerificationService({
 
   return {
     claimInteraction: repository.claimInteraction.bind(repository),
+    getMemberVerificationState:
+      repository.getMemberVerificationState.bind(repository),
     submit,
     listForAdmin,
     approve: (requestId: string, actorId: string) =>

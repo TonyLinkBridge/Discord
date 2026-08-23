@@ -56,6 +56,20 @@ export function createTestVerificationRepository(): VerificationRepository & {
       return "claimed" as const;
     },
 
+    async getMemberVerificationState(discordUserId: string) {
+      const member = members.get(discordUserId);
+      if (member?.verifiedAt) return { status: "verified" as const };
+      const active = requests.find(
+        (request) =>
+          request.discordUserId === discordUserId &&
+          activeStatuses.has(request.status),
+      );
+      if (!active) return { status: "none" as const };
+      return {
+        status: active.status as "pending" | "processing" | "role_failed",
+      };
+    },
+
     async submit(input: SubmitVerificationInput): Promise<SubmitVerificationResult> {
       const member = members.get(input.discordUserId);
       if (member?.verifiedAt) return { status: "already-verified" };
