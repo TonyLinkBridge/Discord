@@ -39,6 +39,10 @@ test.each(["light", "dark"])(
     expect(screen.getByText("Domain Investor")).toBeVisible();
     expect(screen.getByText("Discord data connected · RayName Marketing API pending"))
       .toBeVisible();
+    expect(screen.getByText(/Aug 24, 2026, 5:00 AM/)).toHaveAttribute(
+      "datetime",
+      facts.asOf,
+    );
 
     for (const unavailable of [
       "Channel activity unavailable",

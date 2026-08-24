@@ -21,11 +21,13 @@ function formatDate(value: string): string {
 export function MemberSyncStatus({
   activeMemberCount,
   botCount,
+  currentTime,
   status,
   syncAction,
 }: Readonly<{
   activeMemberCount: number;
   botCount: number;
+  currentTime: string;
   status: MemberSyncViewStatus;
   syncAction: (
     previousState: MemberSyncActionResult,
@@ -33,6 +35,14 @@ export function MemberSyncStatus({
 }>) {
   const [result, action, pending] = useActionState(syncAction, initialResult);
   const serverRunning = status.state === "running";
+  const startedAt = status.lastRunStartedAt
+    ? new Date(status.lastRunStartedAt).getTime()
+    : Number.NaN;
+  const staleRunning =
+    serverRunning &&
+    Number.isFinite(startedAt) &&
+    new Date(currentTime).getTime() - startedAt >= 15 * 60 * 1_000;
+  const activeServerRun = serverRunning && !staleRunning;
 
   return (
     <section aria-labelledby="member-sync-title" className={styles.syncPanel}>
@@ -52,14 +62,26 @@ export function MemberSyncStatus({
         <form action={action}>
           <button
             aria-label={
-              pending ? "Syncing" : serverRunning ? "Sync in progress" : undefined
+              pending
+                ? "Syncing"
+                : activeServerRun
+                  ? "Sync in progress"
+                  : staleRunning
+                    ? "Recover sync"
+                    : undefined
             }
             className={styles.syncButton}
-            disabled={pending || serverRunning}
+            disabled={pending || activeServerRun}
             type="submit"
           >
             <ArrowsClockwise aria-hidden size={16} weight="bold" />
-            {pending ? "Syncing…" : serverRunning ? "Sync in progress" : "Sync now"}
+            {pending
+              ? "Syncing…"
+              : activeServerRun
+                ? "Sync in progress"
+                : staleRunning
+                  ? "Recover sync"
+                  : "Sync now"}
           </button>
         </form>
       </div>
@@ -93,7 +115,10 @@ export function MemberSyncStatus({
         </p>
       ) : status.state === "degraded" && status.safeErrorMessage ? (
         <p className={styles.syncFailure} role="alert">
-          Latest attempt failed: {status.safeErrorMessage}. The last successful data remains available.
+          Latest attempt failed: {status.safeErrorMessage}.{" "}
+          {status.lastSuccessfulSyncAt
+            ? "The last successful data remains available."
+            : "No successful member snapshot is available."}
         </p>
       ) : null}
     </section>

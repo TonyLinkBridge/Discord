@@ -78,6 +78,7 @@ export default async function MembersPage({
         <MemberSyncStatus
           activeMemberCount={memberFacts.activeMembers}
           botCount={memberFacts.botMembers}
+          currentTime={new Date().toISOString()}
           status={memberStatus}
           syncAction={syncDiscordMembersNow}
         />

@@ -42,6 +42,7 @@ function renderStatus(
     <MemberSyncStatus
       activeMemberCount={41}
       botCount={1}
+      currentTime={new Date().toISOString()}
       status={syncStatus}
       syncAction={syncAction}
     />,
@@ -89,11 +90,46 @@ describe("member sync status control", () => {
       status({
         state: "running",
         lastRunStatus: "running",
+        lastRunStartedAt: new Date().toISOString(),
         lastRunCompletedAt: null,
       }),
     );
 
     expect(screen.getByRole("button", { name: "Sync in progress" })).toBeDisabled();
+  });
+
+  test("allows an abandoned running lease to be recovered after 15 minutes", () => {
+    renderStatus(
+      status({
+        state: "running",
+        lastRunStatus: "running",
+        lastRunStartedAt: "2020-01-01T00:00:00.000Z",
+        lastRunCompletedAt: null,
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: "Recover sync" })).toBeEnabled();
+  });
+
+  test("does not claim stale data exists after the first-ever failed sync", () => {
+    renderStatus({
+      ...never,
+      state: "degraded",
+      lastRunId: "run-first",
+      lastRunStatus: "failed",
+      lastRunTrigger: "manual",
+      lastRunStartedAt: "2026-08-24T05:00:00.000Z",
+      lastRunCompletedAt: "2026-08-24T05:01:00.000Z",
+      safeErrorCode: "members_intent_required",
+      safeErrorMessage: "Enable Server Members Intent for RayFox",
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No successful member snapshot is available",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(
+      "last successful data remains available",
+    );
   });
 
   test("disables and labels the button while a manual action is pending", async () => {

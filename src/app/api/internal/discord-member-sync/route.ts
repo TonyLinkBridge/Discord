@@ -19,8 +19,8 @@ export function createDiscordMemberSyncGet(dependencies: {
   run(): Promise<MemberSyncRunResult>;
 }) {
   return async function GET(request: Request): Promise<Response> {
-    const secret = dependencies.getSecret()?.trim();
-    if (!secret) {
+    const secret = dependencies.getSecret();
+    if (secret === undefined || secret.length === 0) {
       return Response.json(
         { error: "Member synchronization unavailable" },
         { status: 503 },

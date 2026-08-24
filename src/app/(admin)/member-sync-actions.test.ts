@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { requireAdminActor } from "@/lib/require-admin-actor";
 
-import { executeDiscordMemberSyncNow } from "./member-sync-actions";
+import { executeDiscordMemberSyncNow } from "./member-sync-action-core";
 
 describe("manual Discord member sync action", () => {
   test.each([

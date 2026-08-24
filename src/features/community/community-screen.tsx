@@ -14,6 +14,14 @@ const factCards = [
   { id: "verifiedMembers", label: "Verified members", Icon: ShieldCheck },
 ] as const;
 
+function formatSnapshotTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
+
 export function CommunityScreen({
   facts,
 }: Readonly<{ facts: DiscordCommunityFacts | null }>) {
@@ -36,7 +44,10 @@ export function CommunityScreen({
   return (
     <main className={styles.screen}>
       <p className={styles.integrationNote}>
-        Discord data connected · RayName Marketing API pending
+        <span>Discord data connected · RayName Marketing API pending</span>
+        <span aria-hidden> · </span>
+        Latest snapshot: {" "}
+        <time dateTime={facts.asOf}>{formatSnapshotTime(facts.asOf)} UTC</time>
       </p>
 
       <section aria-label="Community snapshot" className={styles.factGrid}>
