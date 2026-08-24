@@ -26,6 +26,11 @@ export type DiscordMemberSnapshot = {
   isBot: boolean;
 };
 
+export type DiscordGuildSnapshotClient = {
+  listGuildRoles(guildId: string): Promise<DiscordRoleSnapshot[]>;
+  listAllGuildMembers(guildId: string): Promise<DiscordMemberSnapshot[]>;
+};
+
 export type MemberSyncSafeFailure = {
   code:
     | "invalid_bot_token"
