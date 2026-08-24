@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { migrate } from "drizzle-orm/neon-http/migrator";
+import { readMigrationFiles } from "drizzle-orm/migrator";
+
+import { runTransactionalMigrations } from "./neon-transactional-migrations.mjs";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
@@ -10,9 +11,9 @@ if (!databaseUrl) {
 } else {
   try {
     const sql = neon(databaseUrl);
-    const db = drizzle(sql);
+    const migrations = readMigrationFiles({ migrationsFolder: "./drizzle" });
 
-    await migrate(db, { migrationsFolder: "./drizzle" });
+    await runTransactionalMigrations(sql, migrations);
     console.log("Database migrations applied successfully");
   } catch (error) {
     const message =
