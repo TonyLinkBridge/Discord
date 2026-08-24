@@ -42,6 +42,7 @@ const localAvailability: AdminAvailability = {
   integrations: {
     discordOAuth: { status: "connected", detail: "Test provider" },
     discordBot: { status: "connected", detail: "Test provider" },
+    discordMemberSync: { status: "connected", detail: "Test provider" },
     database: { status: "connected", detail: "Test provider" },
     rayNameMarketingApi: { status: "connected", detail: "Test provider" },
     deploymentMonitoring: { status: "connected", detail: "Test provider" },

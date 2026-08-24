@@ -3,6 +3,10 @@ import { MemberSyncStatus } from "@/features/members/member-sync-status";
 import { MembersScreen } from "@/features/members/members-screen";
 import { VerificationQueue } from "@/features/members/verification-queue";
 import { getAdminAuthEnvironment, getAuthenticatedDiscordUserId } from "@/lib/auth";
+import {
+  toMemberDirectoryRows,
+  type MemberDirectoryRow,
+} from "@/lib/member-sync/read-model";
 import { createMemberSyncRuntime } from "@/lib/member-sync/runtime";
 import type { DiscordFacts, MemberSyncViewStatus } from "@/lib/member-sync/types";
 import { requireAdminActor } from "@/lib/require-admin-actor";
@@ -27,6 +31,7 @@ export default async function MembersPage({
   let verificationRows: VerificationReviewRow[] = [];
   let memberStatus: MemberSyncViewStatus | null = null;
   let memberFacts: DiscordFacts | null = null;
+  let memberRows: MemberDirectoryRow[] = [];
 
   if (verificationRuntime.ready || memberRuntime.ready) {
     await requireAdminActor({
@@ -45,16 +50,25 @@ export default async function MembersPage({
 
   if (memberRuntime.ready) {
     try {
-      [memberStatus, memberFacts] = await Promise.all([
+      const [status, facts, members] = await Promise.all([
         memberRuntime.repository.getLatestStatus(memberRuntime.config.guildId),
         memberRuntime.repository.getDiscordFacts(
           memberRuntime.config.guildId,
           memberRuntime.config.verifiedRoleId,
         ),
+        memberRuntime.repository.listMembers(memberRuntime.config.guildId),
       ]);
+      memberStatus = status;
+      memberFacts = facts;
+      memberRows = toMemberDirectoryRows(
+        members,
+        memberRuntime.config.guildId,
+        memberRuntime.config.verifiedRoleId,
+      );
     } catch {
       memberStatus = null;
       memberFacts = null;
+      memberRows = [];
     }
   }
 
@@ -92,6 +106,7 @@ export default async function MembersPage({
           initialSelectedMemberId={
             typeof requestedMember === "string" ? requestedMember : null
           }
+          members={memberRows}
         />
       </CapabilityBoundary>
     </>

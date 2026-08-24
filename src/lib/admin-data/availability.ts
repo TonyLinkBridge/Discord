@@ -31,6 +31,7 @@ export type AdminAvailability = {
   integrations: Record<
     | "discordOAuth"
     | "discordBot"
+    | "discordMemberSync"
     | "database"
     | "rayNameMarketingApi"
     | "deploymentMonitoring",
@@ -68,6 +69,10 @@ export function createUnavailableAvailability(
         status: "not-connected",
         detail: "Discord bot is not connected",
       },
+      discordMemberSync: {
+        status: "not-connected",
+        detail: "No successful member snapshot yet",
+      },
       database: {
         status: "not-connected",
         detail: "Persistent database is not connected",
@@ -92,6 +97,11 @@ export function createVerificationAvailability(input: Pick<
 > & {
   discordBotConfigured: boolean;
   databaseStatus: "connected" | "degraded" | "not-connected";
+  discordMemberSync?: {
+    status: "connected" | "degraded" | "not-connected";
+    detail: string;
+    hasSuccessfulSnapshot: boolean;
+  };
 }): AdminAvailability {
   const availability = createUnavailableAvailability(input);
   availability.integrations.discordBot = {
@@ -109,6 +119,12 @@ export function createVerificationAvailability(input: Pick<
           ? "Database connection failed"
           : "Persistent database is not connected",
   };
+  if (input.discordMemberSync) {
+    availability.integrations.discordMemberSync = {
+      status: input.discordMemberSync.status,
+      detail: input.discordMemberSync.detail,
+    };
+  }
 
   if (input.discordBotConfigured && input.databaseStatus === "connected") {
     availability.dataMode = "partial-live";
@@ -116,6 +132,13 @@ export function createVerificationAvailability(input: Pick<
       available: true,
       reason: null,
     };
+
+    if (input.discordMemberSync?.hasSuccessfulSnapshot) {
+      availability.capabilities["read-members"] = {
+        available: true,
+        reason: null,
+      };
+    }
   }
 
   return availability;

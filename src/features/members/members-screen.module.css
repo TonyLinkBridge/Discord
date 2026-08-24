@@ -151,9 +151,12 @@
 .identity strong { color: var(--text-primary); font-size: 12px; font-weight: 590; }
 .identity small { color: var(--text-secondary); font-size: 10px; }
 .avatar { align-items: center; background: var(--accent-muted); border-radius: 50%; color: var(--accent); display: inline-flex; height: 30px; justify-content: center; width: 30px; }
+.avatarImage { background-position: center; background-repeat: no-repeat; background-size: cover; }
 
 .verified,
 .unverified,
+.activeMember,
+.leftMember,
 .vip {
   border-radius: 999px;
   display: inline-flex;
@@ -164,6 +167,8 @@
 
 .verified { background: color-mix(in srgb, var(--positive) 14%, transparent); color: var(--positive); }
 .unverified { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
+.activeMember { background: color-mix(in srgb, var(--positive) 14%, transparent); color: var(--positive); }
+.leftMember { background: var(--bg-subtle); color: var(--text-secondary); }
 .vip { background: var(--accent-muted); color: var(--accent); }
 
 .openButton,

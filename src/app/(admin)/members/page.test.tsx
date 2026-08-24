@@ -3,14 +3,21 @@ import { beforeEach, expect, test, vi } from "vitest";
 
 import { createVerificationAvailability } from "@/lib/admin-data/availability";
 import { createUnavailableAdminDataStore } from "@/lib/admin-data/unavailable-provider";
+import type { SyncedDiscordMember } from "@/lib/member-sync/types";
 import type { VerificationReviewRow } from "@/lib/verification/types";
 import { renderAdmin } from "@/test/render";
 
 const mocks = vi.hoisted(() => ({
   getDiscordFacts: vi.fn(),
   getLatestStatus: vi.fn(),
+  listMembers: vi.fn(),
   listForAdmin: vi.fn(),
   requireAdminActor: vi.fn(),
+  routerReplace: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: mocks.routerReplace }),
 }));
 
 vi.mock("@/lib/verification/runtime", () => ({
@@ -34,6 +41,7 @@ vi.mock("@/lib/member-sync/runtime", () => ({
     repository: {
       getDiscordFacts: mocks.getDiscordFacts,
       getLatestStatus: mocks.getLatestStatus,
+      listMembers: mocks.listMembers,
     },
   }),
 }));
@@ -59,8 +67,25 @@ const pending: VerificationReviewRow = {
   safeFailure: null,
 };
 
+const syncedMember: SyncedDiscordMember = {
+  discordUserId: "423456789012345678",
+  username: "real.member",
+  globalName: "Real Member",
+  guildDisplayName: "Ray Builder",
+  avatarHash: "user:avatar_hash",
+  joinedAt: "2026-08-20T05:00:00.000Z",
+  roleIds: ["1540611679023276114"],
+  roleNames: ["Verified Customer"],
+  isBot: false,
+  membershipStatus: "active",
+  verifiedAt: "2026-08-20T05:00:00.000Z",
+  lastSeenAt: "2026-08-24T05:00:00.000Z",
+  leftAt: null,
+};
+
 beforeEach(() => {
   mocks.listForAdmin.mockReset().mockResolvedValue([pending]);
+  mocks.listMembers.mockReset().mockResolvedValue([syncedMember]);
   mocks.getDiscordFacts.mockReset().mockResolvedValue({
     activeMembers: 41,
     verifiedMembers: 20,
@@ -95,6 +120,11 @@ test("loads the real verification queue only after independent admin authorizati
     ...config,
     databaseStatus: "connected",
     discordBotConfigured: true,
+    discordMemberSync: {
+      status: "connected",
+      detail: "Last member snapshot completed successfully",
+      hasSuccessfulSnapshot: true,
+    },
   });
   const provider = createUnavailableAdminDataStore(availability, config);
   const page = await MembersPage({ searchParams: Promise.resolve({}) });
@@ -108,6 +138,7 @@ test("loads the real verification queue only after independent admin authorizati
     "1540610722281824336",
     "1540611679023276114",
   );
+  expect(mocks.listMembers).toHaveBeenCalledWith("1540610722281824336");
   expect(
     screen.getByRole("heading", { name: "Discord member sync" }),
   ).toBeVisible();
@@ -116,8 +147,10 @@ test("loads the real verification queue only after independent admin authorizati
   ).toBeVisible();
   expect(screen.getByText("DomainNomad")).toBeVisible();
   expect(
-    screen.getByRole("heading", { name: "Member data is not connected" }),
+    screen.getByRole("heading", { name: "Member directory" }),
   ).toBeVisible();
+  expect(screen.getByText("Ray Builder")).toBeVisible();
+  expect(screen.queryByText("Alex Chen")).not.toBeInTheDocument();
   expect(screen.getAllByRole("main")).toHaveLength(1);
 });
 

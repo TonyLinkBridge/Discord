@@ -23,6 +23,7 @@ describe("createUnavailableAvailability", () => {
     }
     expect(availability.integrations.discordOAuth.status).toBe("connected");
     expect(availability.integrations.discordBot.status).toBe("not-connected");
+    expect(availability.integrations.discordMemberSync.status).toBe("not-connected");
     expect(availability.integrations.database.status).toBe("not-connected");
     expect(availability.integrations.rayNameMarketingApi.status).toBe("awaiting-access");
     expect(availability.integrations.deploymentMonitoring.status).toBe("unknown");
@@ -71,5 +72,62 @@ describe("createVerificationAvailability", () => {
     expect(availability.capabilities["review-verifications"].available).toBe(
       false,
     );
+  });
+
+  test("enables only read-members after a successful Discord snapshot", () => {
+    const availability = createVerificationAvailability({
+      discordOAuthConfigured: true,
+      rayNameApiConfigured: false,
+      discordBotConfigured: true,
+      databaseStatus: "connected",
+      discordMemberSync: {
+        status: "connected",
+        detail: "Last member snapshot completed successfully",
+        hasSuccessfulSnapshot: true,
+      },
+    });
+
+    expect(availability.capabilities["read-members"]).toEqual({
+      available: true,
+      reason: null,
+    });
+    expect(availability.capabilities["mutate-members"].available).toBe(false);
+    expect(availability.integrations.discordMemberSync).toEqual({
+      status: "connected",
+      detail: "Last member snapshot completed successfully",
+    });
+  });
+
+  test("keeps stale member snapshots readable after a later failed run", () => {
+    const availability = createVerificationAvailability({
+      discordOAuthConfigured: true,
+      rayNameApiConfigured: false,
+      discordBotConfigured: true,
+      databaseStatus: "connected",
+      discordMemberSync: {
+        status: "degraded",
+        detail: "Latest sync failed; last successful snapshot remains available",
+        hasSuccessfulSnapshot: true,
+      },
+    });
+
+    expect(availability.capabilities["read-members"].available).toBe(true);
+    expect(availability.integrations.discordMemberSync.status).toBe("degraded");
+  });
+
+  test("keeps a configured but never-synced directory unavailable", () => {
+    const availability = createVerificationAvailability({
+      discordOAuthConfigured: true,
+      rayNameApiConfigured: false,
+      discordBotConfigured: true,
+      databaseStatus: "connected",
+      discordMemberSync: {
+        status: "not-connected",
+        detail: "No successful member snapshot yet",
+        hasSuccessfulSnapshot: false,
+      },
+    });
+
+    expect(availability.capabilities["read-members"].available).toBe(false);
   });
 });

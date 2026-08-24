@@ -16,6 +16,18 @@ const configuredEnv = {
   VERIFICATION_DATA_KEY: Buffer.alloc(32, 4).toString("base64"),
 };
 
+const neverSynced = {
+  state: "never" as const,
+  lastRunId: null,
+  lastRunStatus: null,
+  lastRunTrigger: null,
+  lastRunStartedAt: null,
+  lastRunCompletedAt: null,
+  lastSuccessfulSyncAt: null,
+  safeErrorCode: null,
+  safeErrorMessage: null,
+};
+
 describe("verification runtime availability", () => {
   test("stays unavailable and skips database access when config is missing", async () => {
     const ping = vi.fn();
@@ -23,7 +35,7 @@ describe("verification runtime availability", () => {
     const availability = await resolveVerificationRuntimeAvailability(
       {},
       base,
-      { ping },
+      { ping, getMemberSyncStatus: vi.fn().mockResolvedValue(neverSynced) },
     );
 
     expect(availability.dataMode).toBe("unavailable");
@@ -38,7 +50,7 @@ describe("verification runtime availability", () => {
     const availability = await resolveVerificationRuntimeAvailability(
       configuredEnv,
       base,
-      { ping },
+      { ping, getMemberSyncStatus: vi.fn().mockResolvedValue(neverSynced) },
     );
 
     expect(availability.dataMode).toBe("partial-live");
@@ -52,11 +64,37 @@ describe("verification runtime availability", () => {
     const availability = await resolveVerificationRuntimeAvailability(
       configuredEnv,
       base,
-      { ping },
+      { ping, getMemberSyncStatus: vi.fn().mockResolvedValue(neverSynced) },
     );
 
     expect(availability.dataMode).toBe("unavailable");
     expect(availability.integrations.database.status).toBe("degraded");
     expect(availability.capabilities["review-verifications"].available).toBe(false);
+  });
+
+  test("keeps a prior snapshot readable when the latest member sync failed", async () => {
+    const ping = vi.fn().mockResolvedValue(undefined);
+    const availability = await resolveVerificationRuntimeAvailability(
+      configuredEnv,
+      base,
+      {
+        ping,
+        getMemberSyncStatus: vi.fn().mockResolvedValue({
+          ...neverSynced,
+          state: "degraded",
+          lastRunId: "run-2",
+          lastRunStatus: "failed",
+          lastRunTrigger: "cron",
+          lastRunStartedAt: "2026-08-25T05:00:00.000Z",
+          lastRunCompletedAt: "2026-08-25T05:01:00.000Z",
+          lastSuccessfulSyncAt: "2026-08-24T05:00:00.000Z",
+          safeErrorCode: "rate_limited",
+          safeErrorMessage: "Discord is rate limiting member synchronization",
+        }),
+      },
+    );
+
+    expect(availability.capabilities["read-members"].available).toBe(true);
+    expect(availability.integrations.discordMemberSync.status).toBe("degraded");
   });
 });

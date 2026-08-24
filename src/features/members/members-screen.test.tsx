@@ -1,188 +1,169 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { vi } from "vitest";
-import { createTestAdminDataStore } from "@/test/admin-data";
-import { localAdminSeed } from "@/test/fixtures/admin-state";
+import { expect, test, vi } from "vitest";
+
+import type { MemberDirectoryRow } from "@/lib/member-sync/read-model";
 import { renderAdmin } from "@/test/render";
+
 import { MembersScreen } from "./members-screen";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
 }));
 
-test("opens a requested member in the canonical member workflow", async () => {
-  renderAdmin(<MembersScreen initialSelectedMemberId="alex-chen" />);
+const members: MemberDirectoryRow[] = [
+  {
+    id: "223456789012345678",
+    displayName: "Alex Chen",
+    discordHandle: "@alex.chen",
+    avatarUrl: null,
+    membershipStatus: "active",
+    verified: true,
+    roles: ["Verified Customer", "Investor"],
+    joinedAt: "2026-08-20T00:00:00.000Z",
+    lastSeenAt: "2026-08-24T05:00:00.000Z",
+    isBot: false,
+  },
+  {
+    id: "223456789012345679",
+    displayName: "DomainNomad",
+    discordHandle: "@domain.nomad",
+    avatarUrl: null,
+    membershipStatus: "left",
+    verified: false,
+    roles: ["Flipper"],
+    joinedAt: null,
+    lastSeenAt: "2026-08-23T05:00:00.000Z",
+    isBot: false,
+  },
+  {
+    id: "223456789012345680",
+    displayName: "RayFox",
+    discordHandle: "@rayfox",
+    avatarUrl: null,
+    membershipStatus: "active",
+    verified: false,
+    roles: ["RayName Bot"],
+    joinedAt: "2026-08-19T00:00:00.000Z",
+    lastSeenAt: "2026-08-24T05:00:00.000Z",
+    isBot: true,
+  },
+];
 
-  expect(await screen.findByRole("dialog", { name: "Alex Chen" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Member directory" })).toBeVisible();
+test("renders only truthful Discord member columns and filters", () => {
+  renderAdmin(<MembersScreen members={members} />);
+
+  for (const header of [
+    "Discord identity",
+    "Membership",
+    "Verification",
+    "Roles",
+    "Joined",
+    "Last snapshot",
+  ]) {
+    expect(screen.getByRole("columnheader", { name: header })).toBeVisible();
+  }
+  for (const oldField of [
+    "Segment",
+    "Registration source",
+    "Customer status",
+    "VIP signal",
+    "Last activity",
+  ]) {
+    expect(screen.queryByRole("columnheader", { name: oldField })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(oldField)).not.toBeInTheDocument();
+  }
+  expect(screen.getByLabelText("Membership")).toBeVisible();
+  expect(screen.getByLabelText("Verification")).toBeVisible();
+  expect(screen.getByLabelText("Role")).toBeVisible();
+  expect(screen.getByLabelText("Account type")).toBeVisible();
 });
 
-test("resets member-local detail state when the query-selected id changes", async () => {
+test("filters by membership, verification, role, account type, and search", async () => {
+  const user = userEvent.setup();
+  renderAdmin(<MembersScreen members={members} />);
+
+  await user.selectOptions(screen.getByLabelText("Membership"), "left");
+  expect(screen.getByText("DomainNomad")).toBeVisible();
+  expect(screen.queryByText("Alex Chen")).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Membership"), "all");
+  await user.selectOptions(screen.getByLabelText("Verification"), "verified");
+  expect(screen.getByText("Alex Chen")).toBeVisible();
+  expect(screen.queryByText("DomainNomad")).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Verification"), "all");
+  await user.selectOptions(screen.getByLabelText("Role"), "Flipper");
+  expect(screen.getByText("DomainNomad")).toBeVisible();
+  expect(screen.queryByText("RayFox")).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Role"), "all");
+  await user.selectOptions(screen.getByLabelText("Account type"), "bot");
+  expect(screen.getByText("RayFox")).toBeVisible();
+  expect(screen.queryByText("DomainNomad")).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Account type"), "all");
+  await user.type(screen.getByRole("searchbox", { name: "Search members" }), "domain.nomad");
+  expect(screen.getByText("DomainNomad")).toBeVisible();
+  expect(screen.queryByText("Alex Chen")).not.toBeInTheDocument();
+});
+
+test("opens a query-selected read-only Discord member detail", () => {
+  renderAdmin(
+    <MembersScreen
+      initialSelectedMemberId="223456789012345678"
+      members={members}
+    />,
+  );
+
+  const dialog = screen.getByRole("dialog", { name: "Alex Chen" });
+  expect(within(dialog).getByText("Verified Customer")).toBeVisible();
+  expect(within(dialog).getByText("Member", { selector: "dd" })).toBeVisible();
+  expect(within(dialog).queryByRole("button", { name: "Verify customer" }))
+    .not.toBeInTheDocument();
+  expect(within(dialog).queryByRole("button", { name: "Assign role" }))
+    .not.toBeInTheDocument();
+  expect(within(dialog).queryByRole("textbox", { name: "Internal note" }))
+    .not.toBeInTheDocument();
+});
+
+test("resets detail when a query-selected Discord ID changes", async () => {
   const user = userEvent.setup();
   function Harness() {
     const [memberId, setMemberId] = useState<string | null>(null);
-    return <>
-      <button onClick={() => setMemberId("alex-chen")} type="button">Select Alex member</button>
-      <button onClick={() => setMemberId("domainnomad")} type="button">Select DomainNomad member</button>
-      <MembersScreen initialSelectedMemberId={memberId} />
-    </>;
+    return (
+      <>
+        <button onClick={() => setMemberId(members[0].id)} type="button">Select Alex</button>
+        <button onClick={() => setMemberId(members[1].id)} type="button">Select DomainNomad</button>
+        <MembersScreen initialSelectedMemberId={memberId} members={members} />
+      </>
+    );
   }
-  const { provider } = renderAdmin(<Harness />);
-  await screen.findByRole("heading", { name: "Member directory" });
+  renderAdmin(<Harness />);
 
-  await user.click(screen.getByRole("button", { name: "Select Alex member" }));
-  const alexDialog = await screen.findByRole("dialog", { name: "Alex Chen" });
-  await user.selectOptions(within(alexDialog).getByLabelText("Role to assign"), "Builder");
-  await user.type(within(alexDialog).getByRole("textbox", { name: "Internal note" }), "Alex-only draft");
-  await user.click(within(alexDialog).getByRole("button", { name: "Create tracked link" }));
-  expect(await within(alexDialog).findByRole("textbox", { name: "Tracked RayName URL" }))
-    .toHaveValue("https://www.rayname.com/domain/search?utm_campaign=member-outreach&utm_content=member-alex-chen&utm_medium=community&utm_source=discord");
-
-  await user.click(screen.getByRole("button", { name: "Select DomainNomad member" }));
-  const domainNomadDialog = await screen.findByRole("dialog", { name: "DomainNomad" });
-  expect(within(domainNomadDialog).getByLabelText("Role to assign")).toHaveValue("VIP");
-  expect(within(domainNomadDialog).getByRole("textbox", { name: "Internal note" })).toHaveValue("");
-  expect(within(domainNomadDialog).queryByRole("textbox", { name: "Tracked RayName URL" }))
-    .not.toBeInTheDocument();
-  expect(within(domainNomadDialog).getByRole("status")).toHaveTextContent("");
-  expect(within(domainNomadDialog).getByRole("button", { name: "Close member details" }))
-    .toHaveFocus();
-  expect(await provider.getMember("domainnomad")).toMatchObject({ notes: [] });
-});
-
-test("filters unverified VIP signals and manually verifies one member", async () => {
-  const user = userEvent.setup();
-  const backingProvider = createTestAdminDataStore();
-  let verificationCalls = 0;
-  const provider = {
-    ...backingProvider,
-    async verifyMember(memberId: string, actorId: string) {
-      verificationCalls += 1;
-      return backingProvider.verifyMember(memberId, actorId);
-    },
-  };
-  renderAdmin(<MembersScreen />, { provider });
-  const verificationFilter = await screen.findByLabelText("Verification");
-  await user.selectOptions(verificationFilter, "unverified");
-  await user.selectOptions(screen.getByLabelText("VIP signal"), "candidate");
-
-  expect(await screen.findByText("DomainNomad")).toBeVisible();
-  expect(screen.queryByText("Alex Chen")).not.toBeInTheDocument();
-
-  await user.click(screen.getByRole("button", { name: "Open DomainNomad" }));
-  await user.click(screen.getByRole("button", { name: "Verify customer" }));
-
-  expect(screen.getByRole("status")).toHaveTextContent("Customer verified manually");
-  expect(await provider.getMember("domainnomad")).toMatchObject({
-    customerStatus: "Verified customer",
-    roles: ["Flipper", "Verified"],
-    verified: true,
-  });
-  expect((await provider.getActivity())[0]).toMatchObject({
-    action: "member.updated",
-    actorId: "local-ray",
-    entityId: "domainnomad",
-  });
-  expect(verificationCalls).toBe(1);
-  expect(screen.queryByRole("button", { name: "Open DomainNomad" })).not.toBeInTheDocument();
-
-  await user.click(screen.getByRole("button", { name: "Close member details" }));
-
-  expect(verificationFilter).toHaveFocus();
-});
-
-test("keeps the Verified role exclusive to the complete verification transition", async () => {
-  const user = userEvent.setup();
-  const { provider } = renderAdmin(<MembersScreen />);
-
-  await user.click(await screen.findByRole("button", { name: "Open DomainNomad" }));
-  const roleSelect = screen.getByLabelText("Role to assign");
-
-  expect(within(roleSelect).queryByRole("option", { name: "Verified" })).not.toBeInTheDocument();
-
-  await user.selectOptions(roleSelect, "VIP");
-  await user.click(screen.getByRole("button", { name: "Assign role" }));
-
-  expect(await provider.getMember("domainnomad")).toMatchObject({
-    roles: ["Flipper", "VIP"],
-    verified: false,
-  });
-  expect((await provider.getMember("domainnomad")).roles).not.toContain("Verified");
-});
-
-test("moves focus into the member dialog and traps both Tab boundaries", async () => {
-  const user = userEvent.setup();
-  renderAdmin(<MembersScreen />);
-
-  await user.click(await screen.findByRole("button", { name: "Open Alex Chen" }));
-  const dialog = screen.getByRole("dialog", { name: "Alex Chen" });
-  const closeButton = within(dialog).getByRole("button", { name: "Close member details" });
-  const lastButton = within(dialog).getByRole("button", { name: "Create tracked link" });
-
-  expect(closeButton).toHaveFocus();
-  await user.tab({ shift: true });
-  expect(lastButton).toHaveFocus();
-  await user.tab();
-  expect(closeButton).toHaveFocus();
+  await user.click(screen.getByRole("button", { name: "Select Alex" }));
+  expect(screen.getByRole("dialog", { name: "Alex Chen" })).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Select DomainNomad" }));
+  expect(screen.getByRole("dialog", { name: "DomainNomad" })).toBeVisible();
 });
 
 test("closes the member dialog on Escape and restores focus to its opener", async () => {
   const user = userEvent.setup();
-  renderAdmin(<MembersScreen />);
+  renderAdmin(<MembersScreen members={members} />);
 
-  const opener = await screen.findByRole("button", { name: "Open DomainNomad" });
+  const opener = screen.getByRole("button", { name: "Open DomainNomad" });
   await user.click(opener);
   expect(screen.getByRole("button", { name: "Close member details" })).toHaveFocus();
-
   await user.keyboard("{Escape}");
 
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(opener).toHaveFocus();
 });
 
-test("runs the approved member operations and persists their outcomes", async () => {
-  const user = userEvent.setup();
-  const { provider } = renderAdmin(<MembersScreen />);
+test("shows a connected-empty member directory", () => {
+  renderAdmin(<MembersScreen members={[]} />);
 
-  await user.click(await screen.findByRole("button", { name: "Open Alex Chen" }));
-  await user.selectOptions(screen.getByLabelText("Role to assign"), "VIP");
-  await user.click(screen.getByRole("button", { name: "Assign role" }));
-  await user.click(screen.getByRole("button", { name: "Review VIP" }));
-  await user.click(screen.getByRole("button", { name: "Open private support ticket" }));
-  await user.type(screen.getByRole("textbox", { name: "Internal note" }), "Requested transfer concierge follow-up");
-  await user.click(screen.getByRole("button", { name: "Add internal note" }));
-  await user.click(screen.getByRole("button", { name: "Create tracked link" }));
-
-  expect(
-    (screen.getByRole("textbox", { name: "Tracked RayName URL" }) as HTMLInputElement).value,
-  ).toMatch(/utm_content=member-alex-chen/);
-  await user.click(screen.getByRole("button", { name: "Copy tracked link" }));
-  expect(screen.getByRole("status")).toHaveTextContent("Tracked RayName link copied");
-  expect(await provider.getMember("alex-chen")).toMatchObject({
-    roles: ["Investor", "Verified", "VIP"],
-    notes: [
-      "Interested in .com portfolio transfers",
-      "Requested transfer concierge follow-up",
-    ],
-  });
-  expect((await provider.getState()).trackedLinks[0].url).toContain(
-    "utm_campaign=member-outreach",
-  );
-  expect((await provider.getActivity()).slice(0, 5).map((event) => event.action)).toEqual([
-    "tracking.link.created",
-    "member.updated",
-    "member.open-ticket",
-    "member.review-vip",
-    "member.updated",
-  ]);
-});
-
-test("shows a connected-empty member directory without an integration warning", async () => {
-  const seed = structuredClone(localAdminSeed);
-  seed.members = [];
-  renderAdmin(<MembersScreen />, { provider: createTestAdminDataStore(seed) });
-
-  expect(await screen.findByText("No members yet")).toBeVisible();
+  expect(screen.getByText("No members yet")).toBeVisible();
   expect(screen.queryByText("Data source not connected")).not.toBeInTheDocument();
 });

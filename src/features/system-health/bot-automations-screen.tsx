@@ -29,6 +29,7 @@ const integrationLabels: Record<keyof AdminAvailability["integrations"], string>
   database: "Database",
   deploymentMonitoring: "Deployment monitoring",
   discordBot: "Discord bot",
+  discordMemberSync: "Discord member sync",
   discordOAuth: "Discord OAuth",
   rayNameMarketingApi: "RayName Marketing API",
 };
@@ -78,7 +79,7 @@ export function BotAutomationsScreen() {
         <section className={styles.panel}>
           <header className={styles.panelHeader}>
             <div><p className={styles.eyebrow}>Setup state</p><h2>Connection health</h2></div>
-            <span className={styles.summary}><PlugsConnected aria-hidden size={17} />5 integrations</span>
+            <span className={styles.summary}><PlugsConnected aria-hidden size={17} />{integrations.length} integrations</span>
           </header>
           <ul className={styles.serviceGrid}>
             {integrations.map(([id, integration]) => {
