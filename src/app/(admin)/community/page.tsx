@@ -1,14 +1,38 @@
 import { CommunityScreen } from "@/features/community/community-screen";
-import { CapabilityBoundary } from "@/components/data-state/data-unavailable";
+import { getAdminAuthEnvironment, getAuthenticatedDiscordUserId } from "@/lib/auth";
+import {
+  toDiscordCommunityFacts,
+  type DiscordCommunityFacts,
+} from "@/lib/member-sync/read-model";
+import { createMemberSyncRuntime } from "@/lib/member-sync/runtime";
+import { requireAdminActor } from "@/lib/require-admin-actor";
 
-export default function CommunityPage() {
-  return (
-    <CapabilityBoundary
-      capability="read-community"
-      description="Connect Discord community sync to show real growth, roles, and channel activity."
-      title="Community data is not connected"
-    >
-      <CommunityScreen />
-    </CapabilityBoundary>
-  );
+export default async function CommunityPage() {
+  const runtime = createMemberSyncRuntime();
+  let facts: DiscordCommunityFacts | null = null;
+
+  if (runtime.ready) {
+    await requireAdminActor({
+      getAuthenticatedUserId: getAuthenticatedDiscordUserId,
+      getEnvironment: getAdminAuthEnvironment,
+    });
+    try {
+      const [discordFacts, members] = await Promise.all([
+        runtime.repository.getDiscordFacts(
+          runtime.config.guildId,
+          runtime.config.verifiedRoleId,
+        ),
+        runtime.repository.listMembers(runtime.config.guildId),
+      ]);
+      facts = toDiscordCommunityFacts(
+        members,
+        discordFacts,
+        runtime.config.verifiedRoleId,
+      );
+    } catch {
+      facts = null;
+    }
+  }
+
+  return <CommunityScreen facts={facts} />;
 }

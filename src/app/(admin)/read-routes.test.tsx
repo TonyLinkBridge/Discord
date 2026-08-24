@@ -5,8 +5,8 @@ import CommunityPage from "./community/page";
 import LeadsPage from "./leads/page";
 import MembersPage from "./members/page";
 
-test("community route does not mount sample community data without a connection", () => {
-  renderAdmin(<CommunityPage />, { provider: createUnavailableTestAdminDataStore() });
+test("community route does not mount sample community data without a connection", async () => {
+  renderAdmin(await CommunityPage(), { provider: createUnavailableTestAdminDataStore() });
 
   expect(screen.getByRole("heading", { name: "Community data is not connected" })).toBeVisible();
   expect(screen.queryByText("1,248")).not.toBeInTheDocument();

@@ -1,54 +1,64 @@
-import { screen } from "@testing-library/react";
-import { createTestAdminDataStore } from "@/test/admin-data";
-import { localAdminSeed } from "@/test/fixtures/admin-state";
+import { cleanup, screen, within } from "@testing-library/react";
+import { afterEach, expect, test } from "vitest";
+
+import type { DiscordCommunityFacts } from "@/lib/member-sync/read-model";
 import { renderAdmin } from "@/test/render";
+
 import { CommunityScreen } from "./community-screen";
 
-test("shows the community health and conversion sections", async () => {
-  renderAdmin(<CommunityScreen />);
+const facts: DiscordCommunityFacts = {
+  activeMembers: 1240,
+  leftMembers: 18,
+  botMembers: 7,
+  verifiedMembers: 325,
+  roleDistribution: [
+    { label: "Verified Customer", value: 325 },
+    { label: "Domain Investor", value: 96 },
+  ],
+  asOf: "2026-08-24T05:00:00.000Z",
+};
 
-  expect(await screen.findByRole("heading", { name: "Member growth" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Role distribution" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Channel activity" })).toBeVisible();
-  expect(screen.getByText("78% onboarding completion")).toBeVisible();
-  expect(screen.getByText("13.5% community-to-customer conversion")).toBeVisible();
+afterEach(() => {
+  cleanup();
+  document.documentElement.className = "";
 });
 
-test("reads community outcomes from the configured admin data provider", async () => {
-  const seed = structuredClone(localAdminSeed);
-  seed.community.memberGrowth[6] = {
-    date: "2026-08-22",
-    totalMembers: 1500,
-    activeMembers: 620,
-  };
-  seed.community.roleDistribution[0] = { label: "Collectors", value: 501 };
-  seed.community.channelActivity[0] = {
-    channel: "#domain-lab",
-    messages: 777,
-    activeMembers: 203,
-  };
+test.each(["light", "dark"])(
+  "shows truthful synchronized community facts in %s mode",
+  (theme) => {
+    document.documentElement.className = theme;
+    renderAdmin(<CommunityScreen facts={facts} />);
 
-  renderAdmin(<CommunityScreen />, {
-    provider: createTestAdminDataStore(seed),
-  });
+    const snapshot = screen.getByRole("region", { name: "Community snapshot" });
+    expect(within(snapshot).getByText("1,240")).toBeVisible();
+    expect(within(snapshot).getByText("18")).toBeVisible();
+    expect(within(snapshot).getByText("7")).toBeVisible();
+    expect(within(snapshot).getByText("325")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Role distribution" })).toBeVisible();
+    expect(screen.getByText("Verified Customer")).toBeVisible();
+    expect(screen.getByText("Domain Investor")).toBeVisible();
+    expect(screen.getByText("Discord data connected · RayName Marketing API pending"))
+      .toBeVisible();
 
-  expect(await screen.findByRole("img", { name: "Member growth chart" })).toBeVisible();
-  expect(screen.getByRole("cell", { name: "1500" })).toBeVisible();
-  expect(screen.getByText("Collectors")).toBeVisible();
-  expect(screen.getByText("#domain-lab")).toBeVisible();
-  expect(screen.getByText("777 messages")).toBeVisible();
-});
+    for (const unavailable of [
+      "Channel activity unavailable",
+      "Onboarding unavailable",
+      "Paid conversion unavailable",
+    ]) {
+      expect(screen.getByRole("heading", { name: unavailable })).toBeVisible();
+    }
+    expect(screen.queryByText(/% onboarding completion/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/community-to-customer conversion/))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText(/messages/)).not.toBeInTheDocument();
+  },
+);
 
-test("distinguishes a connected community with no activity from a missing integration", async () => {
-  const seed = structuredClone(localAdminSeed);
-  seed.community.memberGrowth = [];
-  seed.community.roleDistribution = [];
-  seed.community.channelActivity = [];
-  seed.community.onboarding = { started: 0, completed: 0, completionRate: 0 };
-  seed.community.conversion = { visitors: 0, verifiedCustomers: 0, paidCustomers: 0 };
+test("renders an explicit empty role state without fabricating values", () => {
+  renderAdmin(
+    <CommunityScreen facts={{ ...facts, roleDistribution: [] }} />,
+  );
 
-  renderAdmin(<CommunityScreen />, { provider: createTestAdminDataStore(seed) });
-
-  expect(await screen.findByText("No community activity yet")).toBeVisible();
-  expect(screen.queryByText("Data source not connected")).not.toBeInTheDocument();
+  expect(screen.getByText("No assignable roles were present in the latest snapshot."))
+    .toBeVisible();
 });

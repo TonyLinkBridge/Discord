@@ -1,7 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import { toMemberDirectoryRows } from "./read-model";
-import type { SyncedDiscordMember } from "./types";
+import {
+  toDiscordCommunityFacts,
+  toDiscordOverviewFacts,
+  toMemberDirectoryRows,
+} from "./read-model";
+import type { DiscordFacts, SyncedDiscordMember } from "./types";
 
 const guildId = "1540610722281824336";
 const userId = "223456789012345678";
@@ -92,5 +96,98 @@ describe("Discord member directory read model", () => {
     expect(
       toMemberDirectoryRows([member({ lastSeenAt: null })], guildId, verifiedRoleId),
     ).toEqual([]);
+  });
+});
+
+const discordFacts: DiscordFacts = {
+  activeMembers: 4,
+  verifiedMembers: 2,
+  botMembers: 1,
+  roleDistribution: [
+    { roleId: verifiedRoleId, label: "Verified Customer", value: 2 },
+    { roleId: "1540611700000000000", label: "Flipper", value: 1 },
+  ],
+  lastSuccessfulSyncAt: "2026-08-24T05:00:00.000Z",
+};
+
+const factMembers = [
+  member(),
+  member({
+    discordUserId: "223456789012345679",
+    username: "new.member",
+    roleIds: [],
+    roleNames: [],
+  }),
+  member({
+    discordUserId: "223456789012345680",
+    username: "rayfox",
+    isBot: true,
+    roleIds: [verifiedRoleId],
+    roleNames: ["Verified Customer"],
+  }),
+  member({
+    discordUserId: "223456789012345681",
+    username: "former.member",
+    membershipStatus: "left",
+    roleIds: [],
+    roleNames: [],
+    leftAt: "2026-08-23T05:00:00.000Z",
+  }),
+];
+
+describe("Discord Overview and Community facts", () => {
+  test("counts active people and verified customers without counting bots", () => {
+    expect(
+      toDiscordOverviewFacts(factMembers, discordFacts, verifiedRoleId),
+    ).toEqual({
+      discordMembers: 2,
+      verifiedCustomers: 1,
+      asOf: "2026-08-24T05:00:00.000Z",
+    });
+  });
+
+  test("exposes only synchronized membership and role facts", () => {
+    const facts = toDiscordCommunityFacts(
+      factMembers,
+      discordFacts,
+      verifiedRoleId,
+    );
+
+    expect(facts).toEqual({
+      activeMembers: 2,
+      leftMembers: 1,
+      botMembers: 1,
+      verifiedMembers: 1,
+      roleDistribution: [
+        { label: "Verified Customer", value: 2 },
+        { label: "Flipper", value: 1 },
+      ],
+      asOf: "2026-08-24T05:00:00.000Z",
+    });
+    for (const forbidden of [
+      "channelActivity",
+      "engagement",
+      "onboarding",
+      "visitors",
+      "paidCustomers",
+      "conversion",
+    ]) {
+      expect(JSON.stringify(facts)).not.toContain(forbidden);
+    }
+  });
+
+  test("returns no fact model before the first successful snapshot", () => {
+    expect(
+      toDiscordOverviewFacts(factMembers, {
+        ...discordFacts,
+        lastSuccessfulSyncAt: null,
+      }, verifiedRoleId),
+    ).toBeNull();
+    expect(
+      toDiscordCommunityFacts(factMembers, {
+        ...discordFacts,
+        lastSuccessfulSyncAt: null,
+      }, verifiedRoleId),
+    ).toBeNull();
   });
 });

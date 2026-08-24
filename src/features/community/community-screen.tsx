@@ -1,155 +1,98 @@
 "use client";
 
-import { ArrowSquareOut, CheckCircle, TrendUp, UsersThree } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
-import { useAdminData } from "@/lib/admin-data/context";
-import type { CommunitySnapshot } from "@/lib/admin-data/types";
+import { Robot, ShieldCheck, SignOut, UsersThree } from "@phosphor-icons/react";
+
+import { DataUnavailable } from "@/components/data-state/data-unavailable";
+import type { DiscordCommunityFacts } from "@/lib/member-sync/read-model";
+
 import styles from "./community-screen.module.css";
 
-const dateLabel = (date: string) =>
-  new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
+const factCards = [
+  { id: "activeMembers", label: "Active members", Icon: UsersThree },
+  { id: "leftMembers", label: "Left members", Icon: SignOut },
+  { id: "botMembers", label: "Bots", Icon: Robot },
+  { id: "verifiedMembers", label: "Verified members", Icon: ShieldCheck },
+] as const;
 
-export function CommunityScreen() {
-  const provider = useAdminData();
-  const [community, setCommunity] = useState<CommunitySnapshot | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    provider.getState().then((state) => {
-      if (active) setCommunity(state.community);
-    });
-    return () => { active = false; };
-  }, [provider]);
-
-  if (!community) return <p className={styles.loading} role="status">Loading community…</p>;
-
-  if (
-    community.memberGrowth.length === 0
-    && community.roleDistribution.length === 0
-    && community.channelActivity.length === 0
-  ) {
+export function CommunityScreen({
+  facts,
+}: Readonly<{ facts: DiscordCommunityFacts | null }>) {
+  if (!facts) {
     return (
       <main className={styles.screen}>
-        <section className={`${styles.panel} ${styles.emptyState}`}>
-          <h2>No community activity yet</h2>
-          <p>The community connection is ready. Real activity will appear here after Discord sync returns records.</p>
-        </section>
+        <DataUnavailable
+          description="Run a successful Discord member sync to show real community facts."
+          title="Community data is not connected"
+        />
       </main>
     );
   }
 
-  const newest = community.memberGrowth.at(-1);
-  const maximumMembers = Math.max(...community.memberGrowth.map((point) => point.totalMembers));
-  const maximumRole = Math.max(...community.roleDistribution.map((role) => role.value));
-  const customerConversion = newest
-    ? (community.conversion.paidCustomers / newest.totalMembers) * 100
-    : 0;
+  const maximumRole = Math.max(
+    1,
+    ...facts.roleDistribution.map((role) => role.value),
+  );
 
   return (
     <main className={styles.screen}>
-      <section className={`${styles.panel} ${styles.growthPanel}`}>
-        <header className={styles.panelHeader}>
-          <div>
-            <p className={styles.eyebrow}>Community health</p>
-            <h2>Member growth</h2>
-          </div>
-          {newest ? (
-            <span className={styles.total}>
-              <UsersThree aria-hidden size={17} weight="duotone" />
-              {newest.totalMembers.toLocaleString()} members
+      <p className={styles.integrationNote}>
+        Discord data connected · RayName Marketing API pending
+      </p>
+
+      <section aria-label="Community snapshot" className={styles.factGrid}>
+        {factCards.map(({ id, label, Icon }) => (
+          <article className={styles.factCard} key={id}>
+            <span className={styles.metricIcon}>
+              <Icon aria-hidden size={21} weight="duotone" />
             </span>
-          ) : null}
-        </header>
-        <div aria-label="Member growth chart" className={styles.growthChart} role="img">
-          {community.memberGrowth.map((point) => (
-            <div className={styles.growthColumn} key={point.date}>
-              <div className={styles.growthBars}>
-                <span
-                  className={styles.totalBar}
-                  style={{ height: `${(point.totalMembers / maximumMembers) * 100}%` }}
-                  title={`${point.totalMembers} total members`}
-                />
-                <span
-                  className={styles.activeBar}
-                  style={{ height: `${(point.activeMembers / maximumMembers) * 100}%` }}
-                  title={`${point.activeMembers} active members`}
-                />
-              </div>
-              <span>{dateLabel(point.date)}</span>
-            </div>
-          ))}
-        </div>
-        <div className={styles.legend}>
-          <span><i className={styles.totalKey} />Total members</span>
-          <span><i className={styles.activeKey} />Active members</span>
-        </div>
-        <table className={styles.visuallyHidden}>
-          <caption>Member growth data</caption>
-          <thead><tr><th scope="col">Date</th><th scope="col">Total members</th><th scope="col">Active members</th></tr></thead>
-          <tbody>
-            {community.memberGrowth.map((point) => (
-              <tr key={point.date}>
-                <th scope="row">{dateLabel(point.date)}</th>
-                <td>{point.totalMembers}</td>
-                <td>{point.activeMembers}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            <span>{label}</span>
+            <strong>{facts[id].toLocaleString("en-US")}</strong>
+          </article>
+        ))}
       </section>
 
       <section className={`${styles.panel} ${styles.rolesPanel}`}>
-        <header className={styles.panelHeader}><h2>Role distribution</h2></header>
-        <ul className={styles.roleList}>
-          {community.roleDistribution.map((role) => (
-            <li key={role.label}>
-              <div><span>{role.label}</span><strong>{role.value.toLocaleString()}</strong></div>
-              <span aria-hidden className={styles.roleTrack}>
-                <i style={{ width: `${(role.value / maximumRole) * 100}%` }} />
-              </span>
-            </li>
-          ))}
-        </ul>
+        <header className={styles.panelHeader}>
+          <div>
+            <p className={styles.eyebrow}>Latest Discord snapshot</p>
+            <h2>Role distribution</h2>
+          </div>
+        </header>
+        {facts.roleDistribution.length ? (
+          <ul className={styles.roleList}>
+            {facts.roleDistribution.map((role) => (
+              <li key={role.label}>
+                <div>
+                  <span>{role.label}</span>
+                  <strong>{role.value.toLocaleString("en-US")}</strong>
+                </div>
+                <span aria-hidden className={styles.roleTrack}>
+                  <i style={{ width: `${(role.value / maximumRole) * 100}%` }} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.emptyCopy}>
+            No assignable roles were present in the latest snapshot.
+          </p>
+        )}
       </section>
 
-      <section className={`${styles.panel} ${styles.activityPanel}`}>
-        <header className={styles.panelHeader}><h2>Channel activity</h2></header>
-        <ul className={styles.channelList}>
-          {community.channelActivity.map((item) => (
-            <li key={item.channel}>
-              <div><strong>{item.channel}</strong><span>{item.activeMembers} active members</span></div>
-              <span>{item.messages.toLocaleString()} messages</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section aria-label="Community conversion" className={`${styles.panel} ${styles.conversionPanel}`}>
-        <article>
-          <span className={styles.metricIcon}><CheckCircle aria-hidden size={20} weight="duotone" /></span>
-          <div>
-            <strong>{community.onboarding.completionRate}% onboarding completion</strong>
-            <span>{community.onboarding.completed} of {community.onboarding.started} new members completed onboarding</span>
-          </div>
-        </article>
-        <article>
-          <span className={styles.metricIcon}><TrendUp aria-hidden size={20} weight="duotone" /></span>
-          <div>
-            <strong>{customerConversion.toFixed(1)}% community-to-customer conversion</strong>
-            <span>{community.conversion.paidCustomers} paid customers from {newest?.totalMembers.toLocaleString() ?? 0} members</span>
-          </div>
-        </article>
-        <nav aria-label="Community shortcuts" className={styles.shortcuts}>
-          <a href={community.discordServerUrl} rel="noreferrer" target="_blank">
-            Open Discord <ArrowSquareOut aria-hidden size={14} weight="bold" />
-          </a>
-          <a href="/members">View members</a>
-        </nav>
-      </section>
+      <div className={styles.unavailableGrid}>
+        <DataUnavailable
+          description="Message and channel activity are not collected by the current privacy-minimal Discord sync."
+          title="Channel activity unavailable"
+        />
+        <DataUnavailable
+          description="Onboarding completion requires a dedicated onboarding event source."
+          title="Onboarding unavailable"
+        />
+        <DataUnavailable
+          description="Paid conversion requires RayName Marketing API data."
+          title="Paid conversion unavailable"
+        />
+      </div>
     </main>
   );
 }

@@ -5,6 +5,63 @@
   min-width: 0;
 }
 
+.integrationNote,
+.factGrid,
+.unavailableGrid {
+  grid-column: 1 / -1;
+}
+
+.integrationNote {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+.factGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.factCard {
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  display: grid;
+  gap: 6px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 17px;
+}
+
+.factCard > span:not(.metricIcon) {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.factCard strong {
+  font-size: 25px;
+  grid-column: 2;
+  letter-spacing: -.03em;
+}
+
+.rolesPanel {
+  grid-column: 1 / -1;
+}
+
+.emptyCopy {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 22px 0 2px;
+}
+
+.unavailableGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .panel {
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
@@ -209,10 +266,13 @@
 
 @media (max-width: 900px) {
   .screen { grid-template-columns: 1fr; }
+  .factGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .unavailableGrid { grid-template-columns: 1fr; }
   .conversionPanel { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
+  .factGrid { grid-template-columns: 1fr; }
   .growthChart { gap: 7px; }
   .total { display: none; }
 }

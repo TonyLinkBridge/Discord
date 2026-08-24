@@ -1,4 +1,19 @@
-import type { SyncedDiscordMember } from "./types";
+import type { DiscordFacts, SyncedDiscordMember } from "./types";
+
+export type DiscordOverviewFacts = {
+  discordMembers: number;
+  verifiedCustomers: number;
+  asOf: string;
+};
+
+export type DiscordCommunityFacts = {
+  activeMembers: number;
+  leftMembers: number;
+  botMembers: number;
+  verifiedMembers: number;
+  roleDistribution: Array<{ label: string; value: number }>;
+  asOf: string;
+};
 
 export type MemberDirectoryRow = {
   id: string;
@@ -66,4 +81,61 @@ export function toMemberDirectoryRows(
       },
     ];
   });
+}
+
+function currentSnapshotMembers(members: SyncedDiscordMember[]) {
+  return members.filter((member) => member.lastSeenAt !== null);
+}
+
+export function toDiscordOverviewFacts(
+  members: SyncedDiscordMember[],
+  facts: DiscordFacts,
+  verifiedRoleId: string,
+): DiscordOverviewFacts | null {
+  if (!facts.lastSuccessfulSyncAt) return null;
+  const currentMembers = currentSnapshotMembers(members);
+
+  return {
+    discordMembers: currentMembers.filter(
+      (member) => member.membershipStatus === "active" && !member.isBot,
+    ).length,
+    verifiedCustomers: currentMembers.filter(
+      (member) =>
+        member.membershipStatus === "active" &&
+        !member.isBot &&
+        member.roleIds.includes(verifiedRoleId),
+    ).length,
+    asOf: facts.lastSuccessfulSyncAt,
+  };
+}
+
+export function toDiscordCommunityFacts(
+  members: SyncedDiscordMember[],
+  facts: DiscordFacts,
+  verifiedRoleId: string,
+): DiscordCommunityFacts | null {
+  if (!facts.lastSuccessfulSyncAt) return null;
+  const currentMembers = currentSnapshotMembers(members);
+
+  return {
+    activeMembers: currentMembers.filter(
+      (member) => member.membershipStatus === "active" && !member.isBot,
+    ).length,
+    leftMembers: currentMembers.filter(
+      (member) => member.membershipStatus === "left" && !member.isBot,
+    ).length,
+    botMembers: currentMembers.filter(
+      (member) => member.membershipStatus === "active" && member.isBot,
+    ).length,
+    verifiedMembers: currentMembers.filter(
+      (member) =>
+        member.membershipStatus === "active" &&
+        !member.isBot &&
+        member.roleIds.includes(verifiedRoleId),
+    ).length,
+    roleDistribution: facts.roleDistribution
+      .filter((role) => role.label !== "@everyone")
+      .map(({ label, value }) => ({ label, value })),
+    asOf: facts.lastSuccessfulSyncAt,
+  };
 }

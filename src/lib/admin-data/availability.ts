@@ -134,10 +134,16 @@ export function createVerificationAvailability(input: Pick<
     };
 
     if (input.discordMemberSync?.hasSuccessfulSnapshot) {
-      availability.capabilities["read-members"] = {
-        available: true,
-        reason: null,
-      };
+      for (const capability of [
+        "read-overview",
+        "read-community",
+        "read-members",
+      ] as const) {
+        availability.capabilities[capability] = {
+          available: true,
+          reason: null,
+        };
+      }
     }
   }
 

@@ -32,14 +32,20 @@ vi.mock("@/lib/auth", () => ({
   getAuthenticatedDiscordUserId: vi.fn(),
 }));
 
-import OverviewPage from "./page";
+import CommunityPage from "./page";
 
 beforeEach(() => {
   mocks.getDiscordFacts.mockReset().mockResolvedValue({
-    activeMembers: 3,
-    verifiedMembers: 2,
-    botMembers: 1,
-    roleDistribution: [],
+    activeMembers: 2,
+    verifiedMembers: 1,
+    botMembers: 0,
+    roleDistribution: [
+      {
+        roleId: "1540611679023276114",
+        label: "Verified Customer",
+        value: 1,
+      },
+    ],
     lastSuccessfulSyncAt: "2026-08-24T05:00:00.000Z",
   });
   mocks.listMembers.mockReset().mockResolvedValue([
@@ -62,25 +68,22 @@ beforeEach(() => {
   mocks.requireAdminActor.mockReset().mockResolvedValue("323456789012345678");
 });
 
-test("mounts real Discord facts at the default admin route", async () => {
-  renderAdmin(await OverviewPage());
+test("mounts synchronized Discord Community facts", async () => {
+  renderAdmin(await CommunityPage());
 
-  expect(screen.getByText("Discord Members")).toBeVisible();
-  expect(screen.getByText("Verified Customers")).toBeVisible();
-  expect(screen.getAllByText("1")).toHaveLength(2);
+  expect(screen.getByRole("heading", { name: "Role distribution" })).toBeVisible();
+  expect(screen.getByText("Verified Customer")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Channel activity unavailable" }))
+    .toBeVisible();
   expect(mocks.requireAdminActor).toHaveBeenCalledOnce();
-  expect(mocks.getDiscordFacts).toHaveBeenCalledWith(
-    "1540610722281824336",
-    "1540611679023276114",
-  );
-  expect(mocks.listMembers).toHaveBeenCalledWith("1540610722281824336");
 });
 
-test("shows unavailable values when member snapshot storage cannot be read", async () => {
-  mocks.getDiscordFacts.mockRejectedValue(new Error("database unavailable"));
+test("does not mount a sample community when snapshot storage fails", async () => {
+  mocks.listMembers.mockRejectedValue(new Error("database unavailable"));
 
-  renderAdmin(await OverviewPage());
+  renderAdmin(await CommunityPage());
 
-  expect(screen.getByText("Data source not connected")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Community data is not connected" }))
+    .toBeVisible();
   expect(screen.queryByText("1,248")).not.toBeInTheDocument();
 });

@@ -91,6 +91,8 @@ describe("createVerificationAvailability", () => {
       available: true,
       reason: null,
     });
+    expect(availability.capabilities["read-overview"].available).toBe(true);
+    expect(availability.capabilities["read-community"].available).toBe(true);
     expect(availability.capabilities["mutate-members"].available).toBe(false);
     expect(availability.integrations.discordMemberSync).toEqual({
       status: "connected",
