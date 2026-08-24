@@ -178,6 +178,44 @@ describe("verification service", () => {
     ).toMatchObject({ outcome: "failed" });
   });
 
+  test("keeps rejection durable when the private notification fails", async () => {
+    const roleClient = createRoleClient(
+      { status: "assigned" },
+      {
+        status: "failed",
+        code: "dm_closed",
+        safeMessage: "Member does not accept direct messages",
+      },
+    );
+    const { repository, service } = createHarness(roleClient);
+    const created = await service.submit(submission);
+    if (created.status !== "created") throw new Error("Expected a new request");
+
+    await expect(
+      service.reject(
+        created.requestId,
+        "323456789012345678",
+        "Account details did not match",
+      ),
+    ).resolves.toEqual({ status: "rejected" });
+
+    const snapshot = repository.snapshot();
+    expect(snapshot.requests[0]).toMatchObject({
+      status: "rejected",
+      reviewReason: "Account details did not match",
+    });
+    expect(roleClient.notifyReviewOutcome).toHaveBeenCalledWith({
+      discordUserId: submission.discordUserId,
+      outcome: "rejected",
+      safeReason: "Account details did not match",
+    });
+    expect(
+      snapshot.auditEvents.find(
+        ({ action }) => action === "verification.notification",
+      ),
+    ).toMatchObject({ outcome: "failed" });
+  });
+
   test("requires a trimmed rejection reason and schedules data expiry", async () => {
     const { repository, service } = createHarness();
     const created = await service.submit(submission);

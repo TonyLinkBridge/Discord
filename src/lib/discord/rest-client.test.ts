@@ -94,7 +94,7 @@ describe("Discord REST role client", () => {
     });
   });
 
-  test("sends a private outcome without applicant email or domain data", async () => {
+  test("sends a formatted private approval without applicant email or domain data", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ id: "623456789012345678" }))
@@ -105,9 +105,61 @@ describe("Discord REST role client", () => {
       client.notifyReviewOutcome({ discordUserId, outcome: "approved" }),
     ).resolves.toEqual({ status: "sent" });
 
+    expect(fetchMock.mock.calls[0]).toEqual([
+      "https://discord.com/api/v10/users/@me/channels",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ recipient_id: discordUserId }),
+      }),
+    ]);
+    expect(fetchMock.mock.calls[1]).toEqual([
+      "https://discord.com/api/v10/channels/623456789012345678/messages",
+      expect.objectContaining({ method: "POST" }),
+    ]);
     const serializedCalls = JSON.stringify(fetchMock.mock.calls);
-    expect(serializedCalls).toContain("Your RayName customer verification was approved");
+    expect(serializedCalls).toContain("## ✅ Verification approved");
+    expect(serializedCalls).toContain("**Verified Customer**");
+    expect(serializedCalls).toContain(
+      "[RayName](https://www.rayname.com/)",
+    );
     expect(serializedCalls).not.toContain("@example.com");
     expect(serializedCalls).not.toContain("example.com");
+  });
+
+  test("sends a safe formatted rejection reason by private message", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ id: "623456789012345678" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "723456789012345678" }));
+    const client = createDiscordRoleClient(config, fetchMock);
+
+    await expect(
+      client.notifyReviewOutcome({
+        discordUserId,
+        outcome: "rejected",
+        safeReason: "Account details did not match",
+      }),
+    ).resolves.toEqual({ status: "sent" });
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      "https://discord.com/api/v10/users/@me/channels",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ recipient_id: discordUserId }),
+      }),
+    ]);
+    expect(fetchMock.mock.calls[1]).toEqual([
+      "https://discord.com/api/v10/channels/623456789012345678/messages",
+      expect.objectContaining({ method: "POST" }),
+    ]);
+    const serializedCalls = JSON.stringify(fetchMock.mock.calls);
+    expect(serializedCalls).toContain("## ⚠️ Verification update");
+    expect(serializedCalls).toContain(
+      "**We couldn’t approve your verification request.**",
+    );
+    expect(serializedCalls).toContain("Account details did not match");
+    expect(serializedCalls).toContain(
+      "[RayName](https://www.rayname.com/)",
+    );
   });
 });

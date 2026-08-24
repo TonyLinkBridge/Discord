@@ -115,10 +115,19 @@ export function createDiscordRoleClient(
         }
         const content =
           outcome === "approved"
-            ? "Your RayName customer verification was approved. The Verified Customer role is now active."
-            : `Your RayName customer verification was not approved.${
-                safeReason ? ` Reason: ${safeReason}` : ""
-              }`;
+            ? [
+                "## ✅ Verification approved",
+                "**Your RayName account is verified.** The **Verified Customer** role is now active.",
+                "",
+                "Explore what’s next at [RayName](https://www.rayname.com/).",
+              ].join("\n")
+            : [
+                "## ⚠️ Verification update",
+                "**We couldn’t approve your verification request.**",
+                ...(safeReason ? [`Reason: ${safeReason}`] : []),
+                "",
+                "Need help? Visit [RayName](https://www.rayname.com/).",
+              ].join("\n");
         const messageResponse = await request(`/channels/${channel.id}/messages`, {
           method: "POST",
           headers: { "content-type": "application/json" },

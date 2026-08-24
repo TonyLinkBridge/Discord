@@ -1,4 +1,5 @@
 .worktrees/
+.audit/
 .superpowers/
 node_modules/
 .next/
