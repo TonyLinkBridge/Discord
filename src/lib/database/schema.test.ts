@@ -1,9 +1,13 @@
+import { readFileSync } from "node:fs";
+
 import { getTableConfig } from "drizzle-orm/pg-core";
 import { describe, expect, test } from "vitest";
 
 import {
   adminAuditEvents,
+  discordGuildRoles,
   discordInteractions,
+  discordMemberSyncRuns,
   discordMembers,
   discordRoleOperations,
   roleOperation,
@@ -63,5 +67,31 @@ describe("verification database schema", () => {
   test("keeps verification and role records attached to their parent records", () => {
     expect(getTableConfig(verificationRequests).foreignKeys).toHaveLength(1);
     expect(getTableConfig(discordRoleOperations).foreignKeys).toHaveLength(1);
+  });
+
+  test("exports the persistent Discord member sync tables", () => {
+    expect([
+      getTableConfig(discordMembers).name,
+      getTableConfig(discordGuildRoles).name,
+      getTableConfig(discordMemberSyncRuns).name,
+    ]).toEqual([
+      "discord_members",
+      "discord_guild_roles",
+      "discord_member_sync_runs",
+    ]);
+  });
+
+  test("keeps one running sync per guild and stores only approved member facts", () => {
+    const sql = readFileSync(
+      "drizzle/0001_discord_member_sync.sql",
+      "utf8",
+    );
+
+    expect(sql).toContain("discord_member_sync_runs_one_running_per_guild");
+    expect(sql).toMatch(/WHERE\s+.*"status"\s*=\s*'running'/);
+    expect(sql).toContain("membership_status");
+    expect(sql).toContain("role_ids");
+    expect(sql).not.toContain("message_content");
+    expect(sql).not.toContain("member_email");
   });
 });

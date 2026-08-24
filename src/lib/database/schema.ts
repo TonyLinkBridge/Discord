@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   integer,
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -26,6 +28,22 @@ export const roleOperationStatus = pgEnum("role_operation_status", [
   "failed",
 ]);
 
+export const discordMembershipStatus = pgEnum("discord_membership_status", [
+  "active",
+  "left",
+]);
+
+export const discordSyncTrigger = pgEnum("discord_sync_trigger", [
+  "cron",
+  "manual",
+]);
+
+export const discordSyncStatus = pgEnum("discord_sync_status", [
+  "running",
+  "succeeded",
+  "failed",
+]);
+
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 
@@ -35,12 +53,66 @@ export const discordMembers = pgTable("discord_members", {
   displayName: text("display_name").notNull(),
   discordHandle: text("discord_handle").notNull(),
   avatarUrl: text("avatar_url"),
+  username: text("username"),
+  globalName: text("global_name"),
+  guildDisplayName: text("guild_display_name"),
+  avatarHash: text("avatar_hash"),
+  joinedAt: timestamp("joined_at", { withTimezone: true }),
+  roleIds: jsonb("role_ids").$type<string[]>().default([]).notNull(),
+  isBot: boolean("is_bot").default(false).notNull(),
+  membershipStatus: discordMembershipStatus("membership_status")
+    .default("active")
+    .notNull(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  leftAt: timestamp("left_at", { withTimezone: true }),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });
+
+export const discordGuildRoles = pgTable(
+  "discord_guild_roles",
+  {
+    guildId: text("guild_id").notNull(),
+    roleId: text("role_id").notNull(),
+    name: text("name").notNull(),
+    color: integer("color").default(0).notNull(),
+    position: integer("position").default(0).notNull(),
+    managed: boolean("managed").default(false).notNull(),
+    permissions: text("permissions").default("0").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.roleId] })],
+);
+
+export const discordMemberSyncRuns = pgTable(
+  "discord_member_sync_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    guildId: text("guild_id").notNull(),
+    trigger: discordSyncTrigger("trigger").notNull(),
+    status: discordSyncStatus("status").default("running").notNull(),
+    requestedBy: text("requested_by"),
+    memberCount: integer("member_count"),
+    activeMemberCount: integer("active_member_count"),
+    botCount: integer("bot_count"),
+    safeErrorCode: text("safe_error_code"),
+    safeErrorMessage: text("safe_error_message"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("discord_member_sync_runs_one_running_per_guild")
+      .on(table.guildId)
+      .where(sql`${table.status} = 'running'`),
+  ],
+);
 
 export const verificationRequests = pgTable(
   "verification_requests",
