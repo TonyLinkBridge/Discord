@@ -32,12 +32,13 @@ The Discord OAuth redirect URL is:
 ## Discord verification and member-sync deployment
 
 1. In Discord Developer Portal → RayFox → Bot, enable **Server Members Intent**. Keep the bot role above `Verified Customer`; Administrator permission is not required.
-2. Create a disposable Neon branch named `verification-test` from production and apply checked-in migrations there first with `env DATABASE_URL="$VERIFICATION_TEST_DATABASE_URL" npx drizzle-kit migrate`. This includes `drizzle/0001_discord_member_sync.sql`.
-3. Run repository integration, route, UI, type, lint, build, and browser tests against the disposable branch.
-4. Apply the same checked-in migration to Neon production with `env DATABASE_URL="$DATABASE_URL" npx drizzle-kit migrate`. Never use `drizzle-kit push` on production.
-5. Add every required variable to Vercel as Sensitive for Production and Preview. Do not paste values into source, screenshots, issues, or logs.
-6. Deploy before setting Discord's Interactions Endpoint URL to `https://rayname-admin.vercel.app/api/discord/interactions`.
-7. After Discord accepts the signature challenge, register the guild-scoped `/verify` command.
+2. Create a disposable Neon branch named `verification-test` from production. If the database already has the Discord verification tables but predates Drizzle migration tracking, run `env DATABASE_URL="$VERIFICATION_TEST_DATABASE_URL" npm run db:baseline` once. The command refuses to record the baseline unless the expected enums, tables, indexes, and foreign keys are present, and it is safe to re-run.
+3. Apply checked-in migrations to the disposable branch with `env DATABASE_URL="$VERIFICATION_TEST_DATABASE_URL" npm run db:migrate`. This uses Neon HTTP and includes `drizzle/0001_discord_member_sync.sql`.
+4. Run repository integration, route, UI, type, lint, build, and browser tests against the disposable branch.
+5. If production also predates migration tracking, run the same `npm run db:baseline` command against its `DATABASE_URL`, then apply migrations with `env DATABASE_URL="$DATABASE_URL" npm run db:migrate`. Never use `drizzle-kit push` on production.
+6. Add every required variable to Vercel as Sensitive for Production and Preview. Do not paste values into source, screenshots, issues, or logs.
+7. Deploy before setting Discord's Interactions Endpoint URL to `https://rayname-admin.vercel.app/api/discord/interactions`.
+8. After Discord accepts the signature challenge, register the guild-scoped `/verify` command.
 
 Run the browser verification journey only against the disposable Neon branch:
 

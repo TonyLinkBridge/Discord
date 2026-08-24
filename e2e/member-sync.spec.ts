@@ -53,7 +53,11 @@ test("synchronizes, persists, and updates truthful Discord facts", async ({ page
   await expect(page.getByText("Never synced")).toBeVisible();
 
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.getByRole("status")).toContainText(
+  await expect(
+    page
+      .getByRole("region", { name: "Discord member sync" })
+      .getByRole("status"),
+  ).toContainText(
     "Synced 3 members successfully",
   );
   await page.reload();
@@ -61,7 +65,9 @@ test("synchronizes, persists, and updates truthful Discord facts", async ({ page
     .toBeVisible();
   await expect(page.getByText("Alpha Builder")).toBeVisible();
   await expect(page.getByText("Beta Domains")).toBeVisible();
-  await expect(page.getByText("RayFox", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "RayFox", exact: true }),
+  ).toBeVisible();
 
   await page.reload();
   await expect(page.getByText("Alpha Builder")).toBeVisible();
@@ -69,7 +75,11 @@ test("synchronizes, persists, and updates truthful Discord facts", async ({ page
 
   await control("/__test/member-sync/version", { version: 2 });
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.getByRole("status")).toContainText(
+  await expect(
+    page
+      .getByRole("region", { name: "Discord member sync" })
+      .getByRole("status"),
+  ).toContainText(
     "Synced 3 members successfully",
   );
   await page.reload();
@@ -89,7 +99,9 @@ test("synchronizes, persists, and updates truthful Discord facts", async ({ page
   await page.goto("/community");
   await expect(page.getByRole("heading", { name: "Role distribution" }))
     .toBeVisible();
-  await expect(page.getByText("Admin")).toBeVisible();
+  await expect(
+    page.getByRole("list").getByText("Admin", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Channel activity unavailable" }))
     .toBeVisible();
   await expect(page.getByText(/community-to-customer conversion/)).toHaveCount(0);

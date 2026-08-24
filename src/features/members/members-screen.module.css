@@ -40,7 +40,7 @@
   background: var(--accent);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  color: var(--accent-contrast, white);
+  color: var(--on-accent);
   cursor: pointer;
   display: inline-flex;
   font: inherit;

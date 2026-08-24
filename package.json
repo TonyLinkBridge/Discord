@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "db:baseline": "node scripts/baseline-discord-verification.mjs",
+    "db:migrate": "node scripts/migrate-neon-http.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
