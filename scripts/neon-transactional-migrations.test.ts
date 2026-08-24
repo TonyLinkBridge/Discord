@@ -64,11 +64,11 @@ describe("transactional Neon migrations", () => {
     const table = await client.query<{ name: string | null }>(
       "select to_regclass('public.atomic_probe')::text as name",
     );
-    const tracked = await client.query<{ count: number }>(
-      "select count(*)::int as count from drizzle.__drizzle_migrations",
+    const trackingTable = await client.query<{ name: string | null }>(
+      "select to_regclass('drizzle.__drizzle_migrations')::text as name",
     );
     expect(table.rows[0].name).toBeNull();
-    expect(tracked.rows[0].count).toBe(0);
+    expect(trackingTable.rows[0].name).toBeNull();
   });
 
   test("can retry a corrected migration and records it exactly once", async () => {

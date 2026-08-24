@@ -14,12 +14,13 @@ import {
   recordMigrationBaseline,
   runTransactionalMigrations,
 } from "./neon-transactional-migrations.mjs";
+import { assertVerificationTestEnvironment } from "./verification-e2e-fixtures.mjs";
 
-const databaseUrl = process.env.DATABASE_URL?.trim();
 const enabled =
   process.env.RUN_NEON_MIGRATION_E2E === "1" &&
-  process.env.NEON_BRANCH_KIND === "verification-test" &&
-  Boolean(databaseUrl);
+  Boolean(process.env.VERIFICATION_TEST_DATABASE_URL) &&
+  Boolean(process.env.VERIFICATION_TEST_BRANCH_ID) &&
+  Boolean(process.env.VERIFICATION_PRODUCTION_BRANCH_ID);
 const describeNeon = enabled ? describe : describe.skip;
 
 describeNeon("transactional migration behavior on disposable Neon", () => {
@@ -29,14 +30,16 @@ describeNeon("transactional migration behavior on disposable Neon", () => {
   const rollbackMillis = Date.now() + 10_000_000;
   const concurrentMillis = rollbackMillis + 1;
   let sql: NeonQueryFunction<false, false>;
+  let branchIdentityConfirmed = false;
 
-  beforeAll(() => {
-    if (!databaseUrl) throw new Error("DATABASE_URL is required");
+  beforeAll(async () => {
+    const { databaseUrl } = await assertVerificationTestEnvironment(process.env);
     sql = neon(databaseUrl);
+    branchIdentityConfirmed = true;
   });
 
   afterAll(async () => {
-    if (!sql) return;
+    if (!sql || !branchIdentityConfirmed) return;
     await sql.transaction((transaction) => [
       transaction.query(`drop table if exists public.${rollbackTable}`),
       transaction.query(`drop table if exists public.${concurrentTable}`),

@@ -5,7 +5,6 @@ export type MigrationFile = {
 };
 
 export function buildAtomicMigrationBlock(migration: MigrationFile): string;
-export function ensureMigrationTable(sql: unknown): Promise<void>;
 export function runTransactionalMigrations(
   sql: unknown,
   migrations: readonly MigrationFile[],

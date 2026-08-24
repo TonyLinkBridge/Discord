@@ -87,8 +87,9 @@ ${migrationBlockTag};
 `;
 }
 
-export async function ensureMigrationTable(sql) {
-  await sql.transaction((transaction) => [
+function migrationInfrastructureQueries(transaction) {
+  return [
+    transaction.query("select pg_advisory_xact_lock($1)", [migrationLockId]),
     transaction.query("create schema if not exists drizzle"),
     transaction.query(`
       create table if not exists drizzle.__drizzle_migrations (
@@ -97,16 +98,12 @@ export async function ensureMigrationTable(sql) {
         created_at bigint
       )
     `),
-  ]);
+  ];
 }
 
 export async function runTransactionalMigrations(sql, migrations) {
-  await ensureMigrationTable(sql);
-
-  if (migrations.length === 0) return;
-
   await sql.transaction((transaction) => [
-    transaction.query("select pg_advisory_xact_lock($1)", [migrationLockId]),
+    ...migrationInfrastructureQueries(transaction),
     ...migrations.map((migration) =>
       transaction.query(buildAtomicMigrationBlock(migration)),
     ),
@@ -114,11 +111,10 @@ export async function runTransactionalMigrations(sql, migrations) {
 }
 
 export async function recordMigrationBaseline(sql, migration) {
-  await ensureMigrationTable(sql);
   assertTrustedMigration(migration);
 
   const results = await sql.transaction((transaction) => [
-    transaction.query("select pg_advisory_xact_lock($1)", [migrationLockId]),
+    ...migrationInfrastructureQueries(transaction),
     transaction.query(
       `
         select exists (
@@ -132,5 +128,5 @@ export async function recordMigrationBaseline(sql, migration) {
     transaction.query(buildBaselineRecordBlock(migration)),
   ]);
 
-  return results[1][0]?.already_recorded ? "already-recorded" : "recorded";
+  return results.at(-2)?.[0]?.already_recorded ? "already-recorded" : "recorded";
 }
