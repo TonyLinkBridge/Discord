@@ -33,3 +33,7 @@ export function readVerificationE2eState(
   roleOperationCount: number;
   successAuditCount: number;
 } | null>;
+
+export function resetMemberSyncE2e(
+  env: Record<string, string | undefined>,
+): Promise<void>;

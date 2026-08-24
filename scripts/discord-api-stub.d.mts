@@ -4,6 +4,13 @@ export type DiscordStubFixture = {
   forbiddenUserId: string;
   retryUserId: string;
   roleId: string;
+  adminRoleId: string;
+  vipRoleId: string;
+  botRoleId: string;
+  memberAlphaId: string;
+  memberBetaId: string;
+  botUserId: string;
+  memberGammaId: string;
 };
 
 export const discordStubFixture: Readonly<DiscordStubFixture>;

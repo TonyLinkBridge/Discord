@@ -17,6 +17,7 @@ test("starts Next with only the designated test database and loopback Discord AP
     DISCORD_API_BASE_URL: "http://127.0.0.1:3114",
     DISCORD_GUILD_ID: "900000000000000000",
     DISCORD_VERIFIED_ROLE_ID: "900000000000000010",
+    DISCORD_BOT_TOKEN: "local-e2e-dummy-token-never-production",
     NODE_ENV: "development",
   });
   expect(environment.DEV_OPERATOR_ID).toBe("local-ray");

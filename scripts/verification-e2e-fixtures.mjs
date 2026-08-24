@@ -163,3 +163,30 @@ export async function readVerificationE2eState(env, requestId) {
   `;
   return rows[0] ?? null;
 }
+
+export async function resetMemberSyncE2e(env) {
+  const { databaseUrl } = await assertVerificationTestEnvironment(env);
+  const database = neon(databaseUrl);
+  const guildId = discordStubFixture.guildId;
+  const memberIds = [
+    discordStubFixture.memberAlphaId,
+    discordStubFixture.memberBetaId,
+    discordStubFixture.botUserId,
+    discordStubFixture.memberGammaId,
+  ];
+
+  await database`
+    DELETE FROM admin_audit_events
+    WHERE entity_type = 'discord_member_sync'
+      AND entity_id IN (
+        SELECT id::text FROM discord_member_sync_runs WHERE guild_id = ${guildId}
+      )
+  `;
+  await database`DELETE FROM discord_member_sync_runs WHERE guild_id = ${guildId}`;
+  await database`
+    DELETE FROM discord_members
+    WHERE guild_id = ${guildId}
+      AND discord_user_id = ANY(${memberIds}::text[])
+  `;
+  await database`DELETE FROM discord_guild_roles WHERE guild_id = ${guildId}`;
+}

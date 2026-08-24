@@ -6,7 +6,91 @@ export const discordStubFixture = Object.freeze({
   forbiddenUserId: "900000000000000002",
   retryUserId: "900000000000000003",
   roleId: "900000000000000010",
+  adminRoleId: "900000000000000011",
+  vipRoleId: "900000000000000012",
+  botRoleId: "900000000000000013",
+  memberAlphaId: "900000000000000021",
+  memberBetaId: "900000000000000022",
+  botUserId: "900000000000000023",
+  memberGammaId: "900000000000000024",
 });
+
+const testBotAuthorization = "Bot local-e2e-dummy-token-never-production";
+
+function role(id, name, position, managed = false) {
+  return { id, name, color: 0, position, managed, permissions: "0" };
+}
+
+function member({ id, username, nick, roles, bot = false, joinedAt }) {
+  return {
+    avatar: null,
+    joined_at: joinedAt,
+    nick,
+    roles,
+    user: {
+      id,
+      username,
+      global_name: null,
+      avatar: null,
+      bot,
+    },
+  };
+}
+
+function memberSyncRoles(fixture) {
+  return [
+    role(fixture.guildId, "@everyone", 0),
+    role(fixture.roleId, "Verified Customer", 4),
+    role(fixture.adminRoleId, "Admin", 5),
+    role(fixture.vipRoleId, "VIP", 3),
+    role(fixture.botRoleId, "RayFox", 6, true),
+  ];
+}
+
+function memberSyncSnapshot(fixture, version) {
+  const alpha = member({
+    id: fixture.memberAlphaId,
+    username: version === 1 ? "alpha.builder" : "alpha.renamed",
+    nick: version === 1 ? "Alpha Builder" : "Alpha Renamed",
+    roles:
+      version === 1
+        ? [fixture.roleId, fixture.vipRoleId]
+        : [fixture.roleId, fixture.adminRoleId],
+    joinedAt: "2026-08-20T05:00:00.000Z",
+  });
+  const rayFox = member({
+    id: fixture.botUserId,
+    username: "rayfox",
+    nick: "RayFox",
+    roles: [fixture.botRoleId],
+    bot: true,
+    joinedAt: "2026-08-20T05:00:00.000Z",
+  });
+  if (version === 2) {
+    return [
+      alpha,
+      rayFox,
+      member({
+        id: fixture.memberGammaId,
+        username: "gamma.domains",
+        nick: "Gamma Domains",
+        roles: [fixture.vipRoleId],
+        joinedAt: "2026-08-24T06:00:00.000Z",
+      }),
+    ];
+  }
+  return [
+    alpha,
+    member({
+      id: fixture.memberBetaId,
+      username: "beta.domains",
+      nick: "Beta Domains",
+      roles: [fixture.vipRoleId],
+      joinedAt: "2026-08-21T05:00:00.000Z",
+    }),
+    rayFox,
+  ];
+}
 
 function json(value, status = 200) {
   return Response.json(value, { status });
@@ -16,6 +100,8 @@ export function createDiscordApiStub(fixture = discordStubFixture) {
   const assignedRoles = new Map();
   const retryAttempts = new Map();
   const recordedCalls = [];
+  let memberSyncVersion = 1;
+  let memberSyncMode = "ok";
   const allowedMembers = new Set([
     fixture.successUserId,
     fixture.forbiddenUserId,
@@ -44,13 +130,77 @@ export function createDiscordApiStub(fixture = discordStubFixture) {
       assignedRoles.clear();
       retryAttempts.clear();
       recordedCalls.length = 0;
+      memberSyncVersion = 1;
+      memberSyncMode = "ok";
       return new Response(null, { status: 204 });
     }
-    if (!request.headers.get("authorization")?.startsWith("Bot ")) {
+    if (
+      url.hostname === "127.0.0.1" &&
+      url.pathname === "/__test/member-sync/version" &&
+      request.method === "POST"
+    ) {
+      const body = await request.json().catch(() => null);
+      if (!body || ![1, 2].includes(body.version)) {
+        return json({ error: "Invalid version" }, 400);
+      }
+      memberSyncVersion = body.version;
+      return new Response(null, { status: 204 });
+    }
+    if (
+      url.hostname === "127.0.0.1" &&
+      url.pathname === "/__test/member-sync/mode" &&
+      request.method === "POST"
+    ) {
+      const body = await request.json().catch(() => null);
+      const modes = ["ok", "unauthorized", "forbidden", "rate-limited", "unavailable"];
+      if (!body || !modes.includes(body.mode)) {
+        return json({ error: "Invalid mode" }, 400);
+      }
+      memberSyncMode = body.mode;
+      return new Response(null, { status: 204 });
+    }
+    if (request.headers.get("authorization") !== testBotAuthorization) {
       return finish(request, json({ error: "Unauthorized" }, 401));
     }
 
-    const memberMatch = url.pathname.match(
+    const apiPath = url.pathname.replace(/^\/api\/v10/, "");
+    const snapshotPath = `/guilds/${fixture.guildId}`;
+    if (
+      request.method === "GET" &&
+      (apiPath === `${snapshotPath}/roles` ||
+        apiPath === `${snapshotPath}/members`)
+    ) {
+      const failureStatus = {
+        unauthorized: 401,
+        forbidden: 403,
+        "rate-limited": 429,
+        unavailable: 503,
+      }[memberSyncMode];
+      if (failureStatus) {
+        return finish(
+          request,
+          json(
+            memberSyncMode === "rate-limited"
+              ? { retry_after: 0.01 }
+              : { error: "Test member-sync failure" },
+            failureStatus,
+          ),
+        );
+      }
+      if (apiPath.endsWith("/roles")) {
+        return finish(request, json(memberSyncRoles(fixture)));
+      }
+
+      const snapshot = memberSyncSnapshot(fixture, memberSyncVersion);
+      const limit = Math.max(1, Math.min(1_000, Number(url.searchParams.get("limit")) || 1_000));
+      const after = url.searchParams.get("after");
+      const start = after
+        ? Math.max(0, snapshot.findIndex((item) => item.user.id === after) + 1)
+        : 0;
+      return finish(request, json(snapshot.slice(start, start + limit)));
+    }
+
+    const memberMatch = apiPath.match(
       /^\/guilds\/(\d+)\/members\/(\d+)(?:\/roles\/(\d+))?$/,
     );
     if (memberMatch) {
@@ -105,6 +255,8 @@ export function createDiscordApiStub(fixture = discordStubFixture) {
       assignedRoles.clear();
       retryAttempts.clear();
       recordedCalls.length = 0;
+      memberSyncVersion = 1;
+      memberSyncMode = "ok";
     },
   };
 }
