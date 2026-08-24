@@ -117,7 +117,7 @@ A partial unique index allows only one `running` row per guild. A run older than
 1. Acquire the per-guild synchronization lease before calling Discord.
 2. Fetch roles and all member pages outside the database transaction.
 3. Reject duplicate user IDs, missing user IDs, malformed role arrays, or incomplete pagination.
-4. Start one Neon transaction only after the full snapshot is validated.
+4. Start one atomic PostgreSQL statement only after the full snapshot is validated. The current Neon HTTP driver does not support callback transactions, so role, member, leave-state, run, and audit writes are composed as data-modifying CTEs in one statement.
 5. Upsert roles.
 6. Upsert members and set `active`, `lastSeenAt`, current roles, bot state, identity fields, and join time.
 7. Derive `verifiedAt` only when the configured Verified Customer role is present and no verified timestamp exists. Never clear historical `verifiedAt` during a normal sync.

@@ -4,7 +4,7 @@
 
 **Goal:** Synchronize the real RayName Discord member directory and role state into Neon, run it daily or manually, and expose only provider-backed member facts in the admin console.
 
-**Architecture:** A server-only member-sync service acquires a Neon-backed per-guild lease, fetches all Discord roles and paginated members, validates a complete snapshot, and applies it atomically. Vercel Cron and an allowlisted Server Action share this service; server-rendered read models feed Members, Overview, and Community without enabling Marketing API-dependent data.
+**Architecture:** A server-only member-sync service acquires a Neon-backed per-guild lease, fetches all Discord roles and paginated members, validates a complete snapshot, and applies it with one atomic PostgreSQL statement. Vercel Cron and an allowlisted Server Action share this service; server-rendered read models feed Members, Overview, and Community without enabling Marketing API-dependent data.
 
 **Tech Stack:** Next.js 16.3.2 App Router, React 19.2.8, TypeScript 6.0.3, Neon Postgres, Drizzle ORM/Kit, Discord REST API v10, Zod 4.4.3, Vitest 4.1.11, Testing Library, Playwright 1.62.1.
 
@@ -419,7 +419,7 @@ Write repository tests that assert:
 - a fresh run is claimed;
 - a current running row returns `already-running`;
 - a run older than 15 minutes is failed before a new run is inserted;
-- role and member upserts occur in one transaction;
+- role and member upserts occur in one atomic PostgreSQL statement;
 - current snapshot members become active;
 - missing members become left only in `applySuccessfulSnapshot`;
 - `verifiedAt` uses `COALESCE(existing, completedAt)` when the role is present;
@@ -443,7 +443,7 @@ The stale cutoff passed by the service is exactly `new Date(now.getTime() - 15 *
 
 - [ ] **Step 4: Implement atomic snapshot application**
 
-Use `database.transaction(async (transaction) => { })`. Inside it:
+The current Neon HTTP driver rejects callback transactions. Use one data-modifying CTE statement so PostgreSQL applies every write atomically. Inside that statement:
 
 1. Upsert every role by `(guild_id, role_id)`.
 2. Upsert every member by `discord_user_id` with current identity, roles, `active`, and `last_seen_at`.
@@ -1070,4 +1070,3 @@ git commit -m "test: prove Discord member sync journey"
 - [ ] **Step 9: Prepare deployment handoff**
 
 Report the migration filename, final commit range, exact test counts, intent requirement, first manual-sync procedure, cron schedule, rollback path, and the fact that Marketing API-dependent data remains unavailable.
-
