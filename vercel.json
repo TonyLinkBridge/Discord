@@ -3,6 +3,10 @@
     {
       "path": "/api/internal/verification-retention",
       "schedule": "17 3 * * *"
+    },
+    {
+      "path": "/api/internal/discord-member-sync",
+      "schedule": "47 3 * * *"
     }
   ]
 }
