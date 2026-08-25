@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -205,6 +206,37 @@ export const discordInteractions = pgTable("discord_interactions", {
     .notNull(),
   handledAt: timestamp("handled_at", { withTimezone: true }),
 });
+
+export const domainQueryDailyUsage = pgTable(
+  "domain_query_daily_usage",
+  {
+    guildId: text("guild_id").notNull(),
+    discordUserId: text("discord_user_id").notNull(),
+    usageDay: date("usage_day", { mode: "string" }).notNull(),
+    reservedCount: integer("reserved_count").default(0).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.guildId, table.discordUserId, table.usageDay],
+    }),
+    check(
+      "domain_query_daily_usage_reserved_count_range",
+      sql`${table.reservedCount} between 0 and 3`,
+    ),
+  ],
+);
+
+export const domainQueryInteractionClaims = pgTable(
+  "domain_query_interaction_claims",
+  {
+    interactionId: text("interaction_id").primaryKey(),
+    discordUserId: text("discord_user_id").notNull(),
+    createdAt: createdAt(),
+  },
+);
 
 export const domainQueryRequests = pgTable(
   "domain_query_requests",

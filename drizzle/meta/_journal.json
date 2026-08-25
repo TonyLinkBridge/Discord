@@ -22,6 +22,20 @@
       "when": 1787672326226,
       "tag": "0002_rayfox_domain_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787672578755,
+      "tag": "0003_domain_query_daily_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787672885108,
+      "tag": "0004_bizarre_adam_warlock",
+      "breakpoints": true
     }
   ]
 }

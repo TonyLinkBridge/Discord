@@ -12,6 +12,8 @@ import {
   discordRoleOperations,
   domainConversionAction,
   domainConversionEvents,
+  domainQueryInteractionClaims,
+  domainQueryDailyUsage,
   domainQueryRequests,
   domainQueryStatus,
   domainQueryTier,
@@ -140,6 +142,13 @@ describe("verification database schema", () => {
       ]),
     );
     expect(conversion.foreignKeys).toHaveLength(1);
+    expect(getTableConfig(domainQueryDailyUsage).name).toBe(
+      "domain_query_daily_usage",
+    );
+    expect(getTableConfig(domainQueryDailyUsage).primaryKeys).toHaveLength(1);
+    expect(getTableConfig(domainQueryInteractionClaims).name).toBe(
+      "domain_query_interaction_claims",
+    );
   });
 
   test("makes interactions and conversion actions idempotent and queryable", () => {
