@@ -10,6 +10,11 @@ import {
   discordMemberSyncRuns,
   discordMembers,
   discordRoleOperations,
+  domainConversionAction,
+  domainConversionEvents,
+  domainQueryRequests,
+  domainQueryStatus,
+  domainQueryTier,
   roleOperation,
   roleOperationStatus,
   verificationRequests,
@@ -93,5 +98,89 @@ describe("verification database schema", () => {
     expect(sql).toContain("role_ids");
     expect(sql).not.toContain("message_content");
     expect(sql).not.toContain("member_email");
+  });
+
+  test("defines the domain query lifecycle and conversion actions", () => {
+    expect(domainQueryTier.enumValues).toEqual(["member", "verified"]);
+    expect(domainQueryStatus.enumValues).toEqual([
+      "started",
+      "succeeded",
+      "failed",
+      "quota_rejected",
+    ]);
+    expect(domainConversionAction.enumValues).toEqual([
+      "register",
+      "transfer",
+      "full_intelligence",
+      "continue_on_site",
+    ]);
+  });
+
+  test("stores the safe domain query and conversion record shapes", () => {
+    const query = getTableConfig(domainQueryRequests);
+    const conversion = getTableConfig(domainConversionEvents);
+
+    expect([query.name, conversion.name]).toEqual([
+      "domain_query_requests",
+      "domain_conversion_events",
+    ]);
+    expect(query.columns.map(({ name }) => name)).toEqual(
+      expect.arrayContaining([
+        "interaction_id",
+        "guild_id",
+        "discord_user_id",
+        "normalized_domain",
+        "tier",
+        "status",
+        "usage_day",
+        "charged_at",
+        "safe_error_code",
+        "provider_summary",
+        "result_snapshot",
+      ]),
+    );
+    expect(conversion.foreignKeys).toHaveLength(1);
+  });
+
+  test("makes interactions and conversion actions idempotent and queryable", () => {
+    const queryIndexes = getTableConfig(domainQueryRequests).indexes.map(
+      ({ config }) => ({
+        name: config.name,
+        unique: config.unique,
+        columns: config.columns.length,
+      }),
+    );
+    const conversionIndexes = getTableConfig(domainConversionEvents).indexes.map(
+      ({ config }) => ({
+        name: config.name,
+        unique: config.unique,
+        columns: config.columns.length,
+      }),
+    );
+
+    expect(queryIndexes).toEqual(
+      expect.arrayContaining([
+        {
+          name: "domain_query_requests_interaction_key",
+          unique: true,
+          columns: 1,
+        },
+        {
+          name: "domain_query_requests_usage_lookup",
+          unique: false,
+          columns: 4,
+        },
+        {
+          name: "domain_query_requests_replay_lookup",
+          unique: false,
+          columns: 3,
+        },
+      ]),
+    );
+    expect(conversionIndexes).toContainEqual({
+      name: "domain_conversion_events_request_action_key",
+      unique: true,
+      columns: 2,
+    });
   });
 });

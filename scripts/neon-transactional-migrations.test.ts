@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { PGlite } from "@electric-sql/pglite";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import {
@@ -138,5 +139,36 @@ describe("transactional Neon migrations", () => {
     );
     expect(table.rows[0].name).toBeNull();
     expect(tracked.rows[0].count).toBe(1);
+  });
+
+  test("applies the checked-in domain query migration atomically", async () => {
+    const database = pgliteHttpAdapter(client);
+    const migrations = readMigrationFiles({ migrationsFolder: "./drizzle" });
+
+    await runTransactionalMigrations(database, migrations);
+
+    const tables = await client.query<{ query: string | null; conversion: string | null }>(
+      `select
+        to_regclass('public.domain_query_requests')::text as query,
+        to_regclass('public.domain_conversion_events')::text as conversion`,
+    );
+    const indexes = await client.query<{ indexname: string }>(
+      `select indexname
+       from pg_indexes
+       where indexname in (
+         'domain_query_requests_interaction_key',
+         'domain_conversion_events_request_action_key'
+       )
+       order by indexname`,
+    );
+
+    expect(tables.rows[0]).toEqual({
+      query: "domain_query_requests",
+      conversion: "domain_conversion_events",
+    });
+    expect(indexes.rows.map(({ indexname }) => indexname)).toEqual([
+      "domain_conversion_events_request_action_key",
+      "domain_query_requests_interaction_key",
+    ]);
   });
 });

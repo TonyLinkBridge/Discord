@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -42,6 +44,25 @@ export const discordSyncStatus = pgEnum("discord_sync_status", [
   "running",
   "succeeded",
   "failed",
+]);
+
+export const domainQueryTier = pgEnum("domain_query_tier", [
+  "member",
+  "verified",
+]);
+
+export const domainQueryStatus = pgEnum("domain_query_status", [
+  "started",
+  "succeeded",
+  "failed",
+  "quota_rejected",
+]);
+
+export const domainConversionAction = pgEnum("domain_conversion_action", [
+  "register",
+  "transfer",
+  "full_intelligence",
+  "continue_on_site",
 ]);
 
 const createdAt = () =>
@@ -184,6 +205,71 @@ export const discordInteractions = pgTable("discord_interactions", {
     .notNull(),
   handledAt: timestamp("handled_at", { withTimezone: true }),
 });
+
+export const domainQueryRequests = pgTable(
+  "domain_query_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    interactionId: text("interaction_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    discordUserId: text("discord_user_id").notNull(),
+    normalizedDomain: text("normalized_domain").notNull(),
+    tier: domainQueryTier("tier").notNull(),
+    status: domainQueryStatus("status").default("started").notNull(),
+    usageDay: date("usage_day", { mode: "string" }).notNull(),
+    chargedAt: timestamp("charged_at", { withTimezone: true }),
+    safeErrorCode: text("safe_error_code"),
+    providerSummary: jsonb("provider_summary")
+      .$type<Record<string, string>>()
+      .default({})
+      .notNull(),
+    resultSnapshot: jsonb("result_snapshot").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    createdAt: createdAt(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("domain_query_requests_interaction_key").on(
+      table.interactionId,
+    ),
+    index("domain_query_requests_usage_lookup").on(
+      table.guildId,
+      table.discordUserId,
+      table.usageDay,
+      table.status,
+    ),
+    index("domain_query_requests_replay_lookup").on(
+      table.discordUserId,
+      table.normalizedDomain,
+      table.completedAt,
+    ),
+  ],
+);
+
+export const domainConversionEvents = pgTable(
+  "domain_conversion_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    queryRequestId: uuid("query_request_id")
+      .notNull()
+      .references(() => domainQueryRequests.id, { onDelete: "cascade" }),
+    discordUserId: text("discord_user_id").notNull(),
+    normalizedDomain: text("normalized_domain").notNull(),
+    action: domainConversionAction("action").notNull(),
+    destinationUrl: text("destination_url").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("domain_conversion_events_request_action_key").on(
+      table.queryRequestId,
+      table.action,
+    ),
+  ],
+);
 
 export const adminAuditEvents = pgTable("admin_audit_events", {
   id: uuid("id").defaultRandom().primaryKey(),
