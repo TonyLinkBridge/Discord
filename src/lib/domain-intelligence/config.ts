@@ -9,6 +9,8 @@ export type DomainIntelligenceConfig =
       mode: "internal" | "public";
       testData: boolean;
       betaRoleIds: string[];
+      readonly testerRoleIds: string[];
+      readonly testerUserIds: string[];
       readonly commerceApiBaseUrl: string;
       readonly commerceApiToken: string;
       readonly domainPageBaseUrl: string;
@@ -19,6 +21,8 @@ export type DomainIntelligenceConfig =
         commerceHost: string;
         domainPageHost: string;
         publicHost: string;
+        testerRoleCount: number;
+        testerUserCount: number;
       };
     };
 
@@ -117,7 +121,7 @@ function parsePublicBaseUrl(
   }
 }
 
-function parseBetaRoleIds(raw: string | undefined): string[] | null {
+function parseDiscordIds(raw: string | undefined): string[] | null {
   const values = [...new Set((raw ?? "").split(",").map((value) => value.trim()).filter(Boolean))];
   return values.every((value) => discordIdPattern.test(value)) ? values : null;
 }
@@ -133,9 +137,17 @@ export function getDomainIntelligenceConfig(
     return unavailable("RAYFOX_DOMAIN_INTELLIGENCE_MODE is invalid");
   }
 
-  const betaRoleIds = parseBetaRoleIds(env.RAYFOX_DOMAIN_BETA_ROLE_IDS);
+  const betaRoleIds = parseDiscordIds(env.RAYFOX_DOMAIN_BETA_ROLE_IDS);
   if (!betaRoleIds || (mode === "internal" && betaRoleIds.length === 0)) {
     return unavailable("RAYFOX_DOMAIN_BETA_ROLE_IDS is invalid");
+  }
+  const testerRoleIds = parseDiscordIds(env.RAYFOX_DOMAIN_TESTER_ROLE_IDS);
+  if (!testerRoleIds) {
+    return unavailable("RAYFOX_DOMAIN_TESTER_ROLE_IDS is invalid");
+  }
+  const testerUserIds = parseDiscordIds(env.ADMIN_DISCORD_USER_IDS);
+  if (!testerUserIds) {
+    return unavailable("ADMIN_DISCORD_USER_IDS is invalid");
   }
 
   const testDataSetting = env.RAYFOX_DOMAIN_TEST_DATA?.trim() ?? "disabled";
@@ -203,6 +215,8 @@ export function getDomainIntelligenceConfig(
       commerceHost: commerceUrl?.hostname ?? "internal-test-data",
       domainPageHost: domainPageUrl.hostname,
       publicHost: publicUrl.hostname,
+      testerRoleCount: testerRoleIds.length,
+      testerUserCount: testerUserIds.length,
     },
   } as Extract<DomainIntelligenceConfig, { configured: true }>;
 
@@ -212,6 +226,8 @@ export function getDomainIntelligenceConfig(
     domainPageBaseUrl,
     publicBaseUrl: publicUrl.origin,
     linkSigningKey,
+    testerRoleIds,
+    testerUserIds,
   })) {
     Object.defineProperty(configured, key, {
       configurable: false,

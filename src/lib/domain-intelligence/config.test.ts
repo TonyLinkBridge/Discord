@@ -14,6 +14,35 @@ const validEnv = {
 };
 
 describe("getDomainIntelligenceConfig", () => {
+  test("parses fixture tester roles and admin users without serializing user IDs", () => {
+    const result = getDomainIntelligenceConfig({
+      ...validEnv,
+      RAYFOX_DOMAIN_TESTER_ROLE_IDS:
+        "1541478390924837005,1541478390924837006,1541478390924837005",
+      ADMIN_DISCORD_USER_IDS: "223456789012345678",
+    });
+
+    expect(result).toMatchObject({
+      configured: true,
+      safe: { testerRoleCount: 2, testerUserCount: 1 },
+    });
+    if (!result.configured) throw new Error("Expected configured domain runtime");
+    expect(result.testerRoleIds).toEqual([
+      "1541478390924837005",
+      "1541478390924837006",
+    ]);
+    expect(result.testerUserIds).toEqual(["223456789012345678"]);
+    expect(JSON.stringify(result)).not.toContain("223456789012345678");
+  });
+
+  test.each([
+    { RAYFOX_DOMAIN_TESTER_ROLE_IDS: "not-a-role" },
+    { ADMIN_DISCORD_USER_IDS: "223456789012345678,broken" },
+  ])("fails closed for malformed tester identity configuration %#", (override) => {
+    expect(getDomainIntelligenceConfig({ ...validEnv, ...override }))
+      .toMatchObject({ configured: false, mode: "disabled" });
+  });
+
   test("returns safe integration details without serializing secrets", () => {
     const result = getDomainIntelligenceConfig(validEnv);
 
@@ -26,6 +55,8 @@ describe("getDomainIntelligenceConfig", () => {
         commerceHost: "api.rayname.com",
         domainPageHost: "www.rayname.com",
         publicHost: "bot.rayname.com",
+        testerRoleCount: 0,
+        testerUserCount: 0,
       },
     });
     expect(JSON.stringify(result)).not.toContain("test-token");

@@ -21,6 +21,8 @@ const domainEnv = {
   ...discordEnv,
   RAYFOX_DOMAIN_INTELLIGENCE_MODE: "internal",
   RAYFOX_DOMAIN_BETA_ROLE_IDS: "1541478390924837005",
+  RAYFOX_DOMAIN_TESTER_ROLE_IDS: "1541478390924837006",
+  ADMIN_DISCORD_USER_IDS: "223456789012345678",
   RAYNAME_COMMERCE_API_BASE_URL: "http://127.0.0.1:3115",
   RAYNAME_COMMERCE_API_TOKEN: "test-token-at-least-20-characters",
   RAYNAME_DOMAIN_PAGE_BASE_URL: "https://www.rayname.com/domain/search",
@@ -64,6 +66,8 @@ describe("domain intelligence runtime", () => {
         mode: "internal",
         betaRoleIds: ["1541478390924837005"],
         verifiedRoleId: "1540611679023276114",
+        testerRoleCount: 1,
+        testerUserCount: 1,
       },
     });
     if (runtime.ready) {
@@ -71,6 +75,7 @@ describe("domain intelligence runtime", () => {
       expect(typeof runtime.service.compare).toBe("function");
       expect(JSON.stringify(runtime.config)).not.toContain("test-token");
       expect(JSON.stringify(runtime.config)).not.toContain("postgresql://");
+      expect(JSON.stringify(runtime.config)).not.toContain("223456789012345678");
     }
   });
 

@@ -28,6 +28,8 @@ export type DomainIntelligenceRuntime =
         verifiedRoleId: string;
         commerceHost: string;
         domainPageHost: string;
+        testerRoleCount: number;
+        testerUserCount: number;
       };
       service: ReturnType<typeof createDomainIntelligenceService>;
     };
@@ -87,6 +89,8 @@ export function createDomainIntelligenceRuntime(
       verifiedRoleId,
       commerceHost: domainConfig.safe.commerceHost,
       domainPageHost: domainConfig.safe.domainPageHost,
+      testerRoleCount: domainConfig.safe.testerRoleCount,
+      testerUserCount: domainConfig.safe.testerUserCount,
     },
     service,
   };
