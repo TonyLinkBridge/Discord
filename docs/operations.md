@@ -97,6 +97,7 @@ No Railway service is required. Vercel runs the daily Cron and manual Server Act
 Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled` until every gate below passes. The feature requires these additional sensitive production settings:
 
 - `RAYFOX_DOMAIN_BETA_ROLE_IDS`: comma-separated Discord role IDs used during the internal beta.
+- `RAYFOX_DOMAIN_TESTER_ROLE_IDS`: comma-separated staff role IDs allowed to see clearly labelled fixture commerce in a Vercel Preview. Existing `ADMIN_DISCORD_USER_IDS` are also treated as internal testers.
 - `RAYNAME_COMMERCE_API_BASE_URL`: server-to-server RayName commerce API origin.
 - `RAYNAME_COMMERCE_API_TOKEN`: private bearer token for that API.
 - `RAYNAME_DOMAIN_PAGE_BASE_URL`: stable RayName page used when a member continues on the website.
@@ -110,6 +111,19 @@ derived from `VERCEL_URL`; a manually supplied value must match it exactly.
 Messages and stored provider summaries identify the results as fixture data.
 Production and public mode reject the flag.
 
+In fixture mode, community members who are not internal testers receive only
+live public-domain intelligence returned by RDAP/WHOIS, DNS, and TLS. They do
+not receive fixture prices, fixture availability, fixture Premium decisions,
+or extension comparison. `No registry record found` is not proof that a domain
+can be purchased; the member must use `Check live price on RayName` for current
+commercial information.
+
+Internal testers receive the fixture commerce card only when their Discord user
+ID is in `ADMIN_DISCORD_USER_IDS` or one of their roles is listed in
+`RAYFOX_DOMAIN_TESTER_ROLE_IDS`. Fixture cards remain marked `Internal beta ·
+Test data`. `Compare extensions`, sorting, `Previous`, `Next`, and `Domain
+overview` read the existing query and do not consume another daily search.
+
 Release in this order:
 
 1. Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled`.
@@ -118,7 +132,7 @@ Release in this order:
 4. Point the contract suite at RayName's non-production provider and verify all responses without using production transactions.
 5. Register both guild commands with `npm run discord:register`.
 6. Set the mode to `internal`, provide only the selected beta role IDs, and deploy.
-7. Test one normal account and one Verified Customer account. Confirm 1/day and 3/day limits, private replies, provider latency, signed outbound attribution, and safe provider failure behavior.
+7. Test one normal account without tester access and one internal tester. Confirm the normal account sees only sourced public intelligence, the tester sees labelled fixtures, 1/day and 3/day limits remain correct, comparison can return through `Domain overview`, navigation does not change usage, replies stay private, and provider failures remain safe.
 8. Set the mode to `public` only after RayName supplies and passes all seven dependencies below.
 9. To roll back, set the mode to `disabled` before reverting application code. Retain query, usage, interaction-claim, and conversion audit rows.
 
