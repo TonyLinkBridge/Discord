@@ -93,7 +93,7 @@ describe("getDomainIntelligenceConfig", () => {
       RAYFOX_DOMAIN_TEST_DATA: "enabled",
       RAYNAME_COMMERCE_API_BASE_URL: undefined,
       RAYNAME_COMMERCE_API_TOKEN: undefined,
-      RAYFOX_PUBLIC_BASE_URL: "https://discord-preview-juyu.vercel.app",
+      RAYFOX_PUBLIC_BASE_URL: undefined,
     });
 
     expect(result).toMatchObject({
@@ -110,7 +110,6 @@ describe("getDomainIntelligenceConfig", () => {
   test.each([
     { VERCEL_ENV: "production" },
     { RAYFOX_DOMAIN_INTELLIGENCE_MODE: "public" },
-    { VERCEL_URL: "different-preview.vercel.app" },
     { RAYFOX_PUBLIC_BASE_URL: "https://attacker.example" },
   ])("rejects test data outside its exact internal Preview boundary %#", (override) => {
     expect(getDomainIntelligenceConfig({
@@ -120,7 +119,7 @@ describe("getDomainIntelligenceConfig", () => {
       RAYFOX_DOMAIN_TEST_DATA: "enabled",
       RAYNAME_COMMERCE_API_BASE_URL: undefined,
       RAYNAME_COMMERCE_API_TOKEN: undefined,
-      RAYFOX_PUBLIC_BASE_URL: "https://discord-preview-juyu.vercel.app",
+      RAYFOX_PUBLIC_BASE_URL: undefined,
       ...override,
     })).toMatchObject({ configured: false, mode: "disabled" });
   });

@@ -171,7 +171,10 @@ export function getDomainIntelligenceConfig(
     return unavailable("RAYNAME_DOMAIN_PAGE_BASE_URL is invalid");
   }
 
-  const publicBaseUrl = env.RAYFOX_PUBLIC_BASE_URL?.trim() ?? "";
+  const configuredPublicBaseUrl = env.RAYFOX_PUBLIC_BASE_URL?.trim() ?? "";
+  const publicBaseUrl = testData && !configuredPublicBaseUrl && env.VERCEL_URL
+    ? `https://${env.VERCEL_URL}`
+    : configuredPublicBaseUrl;
   const publicUrl = parsePublicBaseUrl(
     publicBaseUrl,
     env.NODE_ENV,

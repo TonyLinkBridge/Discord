@@ -84,7 +84,7 @@ describe("domain intelligence runtime", () => {
       RAYNAME_COMMERCE_API_BASE_URL: undefined,
       RAYNAME_COMMERCE_API_TOKEN: undefined,
       RAYNAME_DOMAIN_PAGE_BASE_URL: "https://www.rayname.com/en/search",
-      RAYFOX_PUBLIC_BASE_URL: "https://discord-preview-juyu.vercel.app",
+      RAYFOX_PUBLIC_BASE_URL: undefined,
     }, vi.fn());
 
     expect(runtime).toMatchObject({

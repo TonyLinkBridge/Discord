@@ -105,9 +105,10 @@ Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled` until every gate below passes. T
 
 For a Discord-only internal acceptance test, a Vercel Preview may set
 `RAYFOX_DOMAIN_TEST_DATA=enabled`. The application accepts this flag only when
-`VERCEL_ENV=preview`, the public base URL exactly matches `VERCEL_URL`, and the
-feature mode is `internal`. Messages and stored provider summaries identify the
-results as fixture data. Production and public mode reject the flag.
+`VERCEL_ENV=preview` and the feature mode is `internal`. The public base URL is
+derived from `VERCEL_URL`; a manually supplied value must match it exactly.
+Messages and stored provider summaries identify the results as fixture data.
+Production and public mode reject the flag.
 
 Release in this order:
 
