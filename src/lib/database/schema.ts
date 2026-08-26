@@ -249,6 +249,7 @@ export const domainQueryRequests = pgTable(
     tier: domainQueryTier("tier").notNull(),
     status: domainQueryStatus("status").default("started").notNull(),
     usageDay: date("usage_day", { mode: "string" }).notNull(),
+    quotaExempt: boolean("quota_exempt").default(false).notNull(),
     chargedAt: timestamp("charged_at", { withTimezone: true }),
     safeErrorCode: text("safe_error_code"),
     providerSummary: jsonb("provider_summary")

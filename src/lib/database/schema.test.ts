@@ -135,6 +135,7 @@ describe("verification database schema", () => {
         "tier",
         "status",
         "usage_day",
+        "quota_exempt",
         "charged_at",
         "safe_error_code",
         "provider_summary",

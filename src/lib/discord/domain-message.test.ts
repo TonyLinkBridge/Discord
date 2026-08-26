@@ -109,6 +109,19 @@ describe("RayFox domain result messages", () => {
     expect(message.embeds?.[0].footer?.text).toContain("TEST DATA");
   });
 
+  test("labels Discord Administrator searches as unlimited", () => {
+    const message = renderDomainOutcome({
+      ...success(),
+      used: 0,
+      limit: null,
+    }, links);
+
+    expect(message.embeds?.[0].footer?.text).toBe(
+      "ADMIN · Unlimited searches",
+    );
+    expect(JSON.stringify(message)).not.toContain("searches left today");
+  });
+
   test("renders only sourced public intelligence for a community member", () => {
     const checkedAt = "2026-08-26T00:00:00.000Z";
     const message = renderDomainOutcome({

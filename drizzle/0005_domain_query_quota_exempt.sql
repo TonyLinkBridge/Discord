@@ -1,0 +1,1 @@
+ALTER TABLE "domain_query_requests" ADD COLUMN "quota_exempt" boolean DEFAULT false NOT NULL;

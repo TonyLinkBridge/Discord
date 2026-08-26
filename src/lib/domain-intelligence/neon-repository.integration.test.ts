@@ -61,6 +61,7 @@ describe("Neon domain query repository", () => {
     now?: Date;
     replayAfter?: Date;
     staleBefore?: Date;
+    quotaExempt?: boolean;
   }) {
     const now = input.now ?? new Date("2026-08-25T00:00:00.000Z");
     return repository().begin({
@@ -71,6 +72,7 @@ describe("Neon domain query repository", () => {
       tier: input.tier ?? "member",
       usageDay,
       limit: input.tier === "verified" ? 3 : 1,
+      quotaExempt: input.quotaExempt ?? false,
       now,
       replayAfter:
         input.replayAfter ?? new Date(now.getTime() - 5 * 60 * 1_000),
@@ -122,6 +124,58 @@ describe("Neon domain query repository", () => {
     expect(outcomes.map(({ status }) => status).sort()).toEqual([
       "quota-rejected",
       "started",
+    ]);
+  });
+
+  test("lets quota-exempt admin queries bypass the ceiling without changing daily usage", async () => {
+    const limited = await begin({ interactionId: "limited-before-admin" });
+    if (limited.status !== "started") throw new Error("Expected member reservation");
+    await repository().succeed({
+      requestId: limited.requestId,
+      result,
+      providers: { commerce: "rayname" },
+      completedAt: new Date("2026-08-25T00:00:10.000Z"),
+      limit: 1,
+    });
+
+    const admin = await begin({
+      interactionId: "admin-unlimited",
+      domain: "admin-unlimited.com",
+      quotaExempt: true,
+    });
+    expect(admin).toMatchObject({ status: "started" });
+    if (admin.status !== "started") throw new Error("Expected admin query");
+    await expect(repository().succeed({
+      requestId: admin.requestId,
+      result,
+      providers: { commerce: "rayname" },
+      completedAt: new Date("2026-08-25T00:00:20.000Z"),
+      limit: null,
+    })).resolves.toEqual({ used: 0, limit: null });
+
+    const failedAdmin = await begin({
+      interactionId: "admin-unlimited-failure",
+      domain: "admin-failure.com",
+      quotaExempt: true,
+    });
+    if (failedAdmin.status !== "started") throw new Error("Expected admin query");
+    await repository().fail({
+      requestId: failedAdmin.requestId,
+      code: "provider_unavailable",
+      completedAt: new Date("2026-08-25T00:00:30.000Z"),
+    });
+
+    const usage = await client.query<{ reserved_count: number }>(
+      "select reserved_count from domain_query_daily_usage where guild_id = $1 and discord_user_id = $2",
+      [guildId, userId],
+    );
+    expect(usage.rows).toEqual([{ reserved_count: 1 }]);
+    const adminRows = await client.query<{ quota_exempt: boolean }>(
+      "select quota_exempt from domain_query_requests where interaction_id like 'admin-unlimited%' order by interaction_id",
+    );
+    expect(adminRows.rows).toEqual([
+      { quota_exempt: true },
+      { quota_exempt: true },
     ]);
   });
 

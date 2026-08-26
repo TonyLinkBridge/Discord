@@ -20,6 +20,7 @@ function storedQuery(
     discordUserId: "1541000000000000001",
     normalizedDomain: "lucidgrid.ai",
     tier: "member",
+    quotaExempt: false,
     status: "succeeded",
     completedAt: now,
     result: {

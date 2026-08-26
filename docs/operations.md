@@ -124,6 +124,12 @@ ID is in `ADMIN_DISCORD_USER_IDS` or one of their roles is listed in
 Test data`. `Compare extensions`, sorting, `Previous`, `Next`, and `Domain
 overview` read the existing query and do not consume another daily search.
 
+Members whose interaction payload includes Discord's computed
+`Administrator` permission bypass the daily search allowance completely. Their
+query remains auditable with `quota_exempt=true`, does not reserve or release a
+row in `domain_query_daily_usage`, and renders `ADMIN · Unlimited searches`.
+This permission comes from Discord's permission bitfield, not from a role name.
+
 Release in this order:
 
 1. Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled`.
@@ -132,7 +138,7 @@ Release in this order:
 4. Point the contract suite at RayName's non-production provider and verify all responses without using production transactions.
 5. Register both guild commands with `npm run discord:register`.
 6. Set the mode to `internal`, provide only the selected beta role IDs, and deploy.
-7. Test one normal account without tester access and one internal tester. Confirm the normal account sees only sourced public intelligence, the tester sees labelled fixtures, 1/day and 3/day limits remain correct, comparison can return through `Domain overview`, navigation does not change usage, replies stay private, and provider failures remain safe.
+7. Test one normal account without tester access, one Verified member, and one Discord Administrator. Confirm the normal account sees only sourced public intelligence, the tester sees labelled fixtures, 1/day and 3/day limits remain correct, the Administrator sees `Unlimited searches` and does not change daily usage, comparison can return through `Domain overview`, navigation does not change usage, replies stay private, and provider failures remain safe.
 8. Set the mode to `public` only after RayName supplies and passes all seven dependencies below.
 9. To roll back, set the mode to `disabled` before reverting application code. Retain query, usage, interaction-claim, and conversion audit rows.
 

@@ -39,6 +39,7 @@ export type DomainSearchInput = {
   guildId: string;
   discordUserId: string;
   roleIds: string[];
+  isAdministrator: boolean;
   rawDomain: string;
 };
 
@@ -49,7 +50,7 @@ export type DomainSearchOutcome =
       result: DomainIntelligenceResult;
       replayed: boolean;
       used: number;
-      limit: 1 | 3;
+      limit: 1 | 3 | null;
       presentation: DomainPresentation;
       testData?: true;
       restored?: true;
@@ -104,6 +105,7 @@ export interface DomainIntelligenceService {
     requestId: string;
     discordUserId: string;
     roleIds: string[];
+    isAdministrator: boolean;
   }): Promise<DomainOverviewOutcome>;
 }
 
@@ -212,7 +214,8 @@ export function createDomainIntelligenceService(
       const verified = input.roleIds.includes(config.verifiedRoleId);
       const presentation = presentationFor(config, input);
       const tier = verified ? "verified" as const : "member" as const;
-      const limit = verified ? 3 as const : 1 as const;
+      const dailyLimit = verified ? 3 as const : 1 as const;
+      const limit = input.isAdministrator ? null : dailyLimit;
       const startedAt = dependencies.now();
       let reservation: Awaited<ReturnType<DomainQueryRepository["begin"]>>;
       try {
@@ -223,7 +226,8 @@ export function createDomainIntelligenceService(
           normalizedDomain: normalized.domain.ascii,
           tier,
           usageDay: usageDayAt(startedAt),
-          limit,
+          limit: dailyLimit,
+          quotaExempt: input.isAdministrator,
           now: startedAt,
           replayAfter: new Date(startedAt.getTime() - 5 * 60_000),
           staleBefore: new Date(startedAt.getTime() - 2 * 60_000),
@@ -244,7 +248,7 @@ export function createDomainIntelligenceService(
           requestId: reservation.requestId,
           result: reservation.result,
           replayed: true,
-          used: reservation.used,
+          used: input.isAdministrator ? 0 : reservation.used,
           limit,
           presentation,
           ...(dependencies.config.enabled && dependencies.config.testData
@@ -257,8 +261,8 @@ export function createDomainIntelligenceService(
           return {
             status: "quota-rejected",
             requestId: reservation.requestId,
-            used: limit,
-            limit,
+            used: dailyLimit,
+            limit: dailyLimit,
             verifyAvailable: !verified,
           };
         }
@@ -419,6 +423,19 @@ export function createDomainIntelligenceService(
         };
       }
       const limit = owned.tier === "verified" ? 3 as const : 1 as const;
+      if (input.isAdministrator) {
+        return {
+          status: "success",
+          requestId: owned.id,
+          result: owned.result,
+          replayed: false,
+          restored: true,
+          used: 0,
+          limit: null,
+          presentation: presentationFor(config, input),
+          ...(config.testData ? { testData: true as const } : {}),
+        };
+      }
       return {
         status: "success",
         requestId: owned.id,

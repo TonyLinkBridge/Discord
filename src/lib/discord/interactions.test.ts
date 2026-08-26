@@ -270,7 +270,11 @@ describe("handleDiscordInteraction", () => {
         token: "private-interaction-token",
         type: 2,
         guild_id: dependencies.guildId,
-        member: { user, roles: ["1541478390924837005", "1540611679023276114"] },
+        member: {
+          user,
+          roles: ["1541478390924837005", "1540611679023276114"],
+          permissions: "0",
+        },
         data: {
           name: "domain",
           options: [{ type: 3, name: "domain", value: " LucidGrid.AI. " }],
@@ -287,6 +291,7 @@ describe("handleDiscordInteraction", () => {
       guildId: dependencies.guildId,
       discordUserId: user.id,
       roleIds: ["1541478390924837005", "1540611679023276114"],
+      isAdministrator: false,
       rawDomain: "lucidgrid.ai",
     });
     expect(dependencies.interactionClient.editOriginal).toHaveBeenCalledWith({
@@ -295,6 +300,39 @@ describe("handleDiscordInteraction", () => {
       message: expect.objectContaining({
         embeds: [expect.objectContaining({ title: "lucidgrid.ai" })],
       }),
+    });
+  });
+
+  test("passes Discord Administrator permission to the domain service", async () => {
+    const dependencies = createDependencies();
+    const dispatch = await handleDiscordInteraction(
+      {
+        id: "123456789012345699",
+        application_id: dependencies.applicationId,
+        token: "admin-interaction-token",
+        type: 2,
+        guild_id: dependencies.guildId,
+        member: {
+          user,
+          roles: ["1541478390924837005"],
+          permissions: "8",
+        },
+        data: {
+          name: "domain",
+          options: [{ type: 3, name: "domain", value: "example.com" }],
+        },
+      },
+      dependencies,
+    );
+
+    await dispatch.background?.();
+    expect(dependencies.domainService.search).toHaveBeenCalledWith({
+      interactionId: "123456789012345699",
+      guildId: dependencies.guildId,
+      discordUserId: user.id,
+      roleIds: ["1541478390924837005"],
+      isAdministrator: true,
+      rawDomain: "example.com",
     });
   });
 
@@ -388,7 +426,11 @@ describe("handleDiscordInteraction", () => {
         token: "component-token",
         type: 3,
         guild_id: dependencies.guildId,
-        member: { user, roles: ["1541478390924837005"] },
+        member: {
+          user,
+          roles: ["1541478390924837005"],
+          permissions: "0",
+        },
         data: {
           custom_id: `rayfox_domain:overview:${requestId}:${user.id}`,
         },
@@ -402,6 +444,7 @@ describe("handleDiscordInteraction", () => {
       requestId,
       discordUserId: user.id,
       roleIds: ["1541478390924837005"],
+      isAdministrator: false,
     });
     expect(dependencies.domainService.search).not.toHaveBeenCalled();
     expect(dependencies.interactionClient.editOriginal).toHaveBeenCalledWith(

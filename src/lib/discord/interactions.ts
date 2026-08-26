@@ -167,6 +167,13 @@ function string(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function hasAdministratorPermission(value: unknown) {
+  const permissions = string(value);
+  if (!permissions || !/^\d+$/.test(permissions)) return false;
+  const administrator = BigInt(8);
+  return (BigInt(permissions) & administrator) === administrator;
+}
+
 function memberUser(interaction: InteractionRecord) {
   const member = record(interaction.member);
   const user = record(member?.user);
@@ -180,6 +187,7 @@ function memberUser(interaction: InteractionRecord) {
     roleIds: Array.isArray(member?.roles)
       ? member.roles.filter((role): role is string => typeof role === "string")
       : [],
+    isAdministrator: hasAdministratorPermission(member?.permissions),
   };
 }
 
@@ -315,6 +323,7 @@ export async function handleDiscordInteraction(
         guildId: dependencies.guildId,
         discordUserId: user.id,
         roleIds: user.roleIds,
+        isAdministrator: user.isAdministrator,
         rawDomain: normalized.domain.ascii,
       };
       return {
@@ -398,6 +407,7 @@ export async function handleDiscordInteraction(
               requestId: component.requestId,
               discordUserId: user.id,
               roleIds: user.roleIds,
+              isAdministrator: user.isAdministrator,
             });
           } catch {
             outcome = {

@@ -281,6 +281,14 @@ export function renderDomainOutcome(
   links: DomainMessageLinks,
 ): DiscordWebhookMessage {
   if (outcome.status === "success") {
+    const sourcePrefix = outcome.presentation === "fixture-commerce"
+      ? "TEST DATA · "
+      : outcome.presentation === "public-intelligence"
+      ? "PUBLIC DATA · "
+      : "";
+    const usage = outcome.limit === null
+      ? "ADMIN · Unlimited searches"
+      : `${Math.max(0, outcome.limit - outcome.used)} of ${outcome.limit} searches left today`;
     return {
       embeds: [{
         title: clipped(outcome.result.domain.unicode, 256),
@@ -290,7 +298,7 @@ export function renderDomainOutcome(
           ? publicIntelligenceFields(outcome.result)
           : commerceFields(outcome.result),
         footer: {
-          text: `${outcome.presentation === "fixture-commerce" ? "TEST DATA · " : outcome.presentation === "public-intelligence" ? "PUBLIC DATA · " : ""}${Math.max(0, outcome.limit - outcome.used)} of ${outcome.limit} searches left today${outcome.replayed && !outcome.restored ? " · Fresh replay" : ""}`,
+          text: `${sourcePrefix}${usage}${outcome.replayed && !outcome.restored ? " · Fresh replay" : ""}`,
         },
       }],
       components: actionRows(resultButtons(outcome, links)),

@@ -18,6 +18,7 @@ export type StoredDomainQuery = {
   discordUserId: string;
   normalizedDomain: string;
   tier: DomainTier;
+  quotaExempt: boolean;
   status: "started" | "succeeded" | "failed" | "quota_rejected";
   result: DomainIntelligenceResult | null;
   completedAt: Date | null;
@@ -36,6 +37,7 @@ export type DomainQueryRepository = {
     tier: DomainTier;
     usageDay: string;
     limit: 1 | 3;
+    quotaExempt: boolean;
     now: Date;
     replayAfter: Date;
     staleBefore: Date;
@@ -65,8 +67,8 @@ export type DomainQueryRepository = {
     result: DomainIntelligenceResult;
     providers: Record<string, string>;
     completedAt: Date;
-    limit: 1 | 3;
-  }): Promise<{ used: number; limit: 1 | 3 }>;
+    limit: 1 | 3 | null;
+  }): Promise<{ used: number; limit: 1 | 3 | null }>;
   fail(input: {
     requestId: string;
     code: string;
@@ -104,6 +106,7 @@ type StoredQueryRow = {
   discordUserId: string;
   normalizedDomain: string;
   tier: DomainTier;
+  quotaExempt: boolean;
   status: StoredDomainQuery["status"];
   resultSnapshot: DomainIntelligenceResult | null;
   completedAt: Date | string | null;
@@ -119,6 +122,7 @@ function mapStoredQuery(row: StoredQueryRow): StoredDomainQuery {
     discordUserId: row.discordUserId,
     normalizedDomain: row.normalizedDomain,
     tier: row.tier,
+    quotaExempt: row.quotaExempt,
     status: row.status,
     result: row.resultSnapshot,
     completedAt: date(row.completedAt),
@@ -139,6 +143,7 @@ const storedQueryColumns = sql`
   discord_user_id AS "discordUserId",
   normalized_domain AS "normalizedDomain",
   tier,
+  quota_exempt AS "quotaExempt",
   status,
   result_snapshot AS "resultSnapshot",
   completed_at AS "completedAt"
@@ -166,9 +171,10 @@ export function createNeonDomainQueryRepository(
             AND stale.discord_user_id = ${input.discordUserId}
             AND stale.usage_day = ${input.usageDay}::date
             AND stale.status = 'started'
+            AND stale.quota_exempt = ${input.quotaExempt}
             AND stale.created_at < ${input.staleBefore}
             AND EXISTS (SELECT 1 FROM claimed_interaction)
-          RETURNING stale.id
+          RETURNING stale.id, stale.quota_exempt AS "quotaExempt"
         ), replay AS (
           SELECT
             previous.id,
@@ -179,6 +185,7 @@ export function createNeonDomainQueryRepository(
             AND previous.discord_user_id = ${input.discordUserId}
             AND previous.normalized_domain = ${input.normalizedDomain}
             AND previous.status = 'succeeded'
+            AND previous.quota_exempt = ${input.quotaExempt}
             AND previous.completed_at >= ${input.replayAfter}
             AND previous.result_snapshot IS NOT NULL
             AND EXISTS (SELECT 1 FROM claimed_interaction)
@@ -189,7 +196,10 @@ export function createNeonDomainQueryRepository(
           SET reserved_count = greatest(
                 0,
                 daily.reserved_count -
-                  (SELECT count(*)::integer FROM stale_closed)
+                  (
+                    SELECT count(*)::integer FROM stale_closed
+                    WHERE NOT "quotaExempt"
+                  )
               ),
               updated_at = ${input.now}
           WHERE daily.guild_id = ${input.guildId}
@@ -206,25 +216,32 @@ export function createNeonDomainQueryRepository(
             1, ${input.now}
           FROM claimed_interaction
           WHERE NOT EXISTS (SELECT 1 FROM replay)
+            AND NOT ${input.quotaExempt}
           ON CONFLICT (guild_id, discord_user_id, usage_day)
           DO UPDATE SET
             reserved_count = greatest(
               0,
               domain_query_daily_usage.reserved_count -
-                (SELECT count(*)::integer FROM stale_closed)
+                (
+                  SELECT count(*)::integer FROM stale_closed
+                  WHERE NOT "quotaExempt"
+                )
             ) + 1,
             updated_at = EXCLUDED.updated_at
           WHERE greatest(
             0,
             domain_query_daily_usage.reserved_count -
-              (SELECT count(*)::integer FROM stale_closed)
+              (
+                SELECT count(*)::integer FROM stale_closed
+                WHERE NOT "quotaExempt"
+              )
           ) < ${input.limit}
           RETURNING reserved_count AS "reservedCount"
         ), inserted AS (
           INSERT INTO domain_query_requests (
             id, interaction_id, guild_id, discord_user_id,
             normalized_domain, tier, status, usage_day, safe_error_code,
-            created_at, completed_at
+            quota_exempt, created_at, completed_at
           )
           SELECT
             gen_random_uuid(), claimed_interaction.interaction_id,
@@ -232,20 +249,26 @@ export function createNeonDomainQueryRepository(
             ${input.normalizedDomain}, ${input.tier},
             CASE
               WHEN EXISTS (SELECT 1 FROM replay) THEN 'failed'
-              WHEN EXISTS (SELECT 1 FROM usage_reserved) THEN 'started'
+              WHEN ${input.quotaExempt}
+                OR EXISTS (SELECT 1 FROM usage_reserved) THEN 'started'
               ELSE 'quota_rejected'
             END::domain_query_status,
             ${input.usageDay}::date,
             CASE
               WHEN EXISTS (SELECT 1 FROM replay) THEN 'replay_served'
-              WHEN NOT EXISTS (SELECT 1 FROM usage_reserved)
+              WHEN NOT ${input.quotaExempt}
+                AND NOT EXISTS (SELECT 1 FROM usage_reserved)
                 THEN 'daily_limit_reached'
               ELSE NULL
             END,
+            ${input.quotaExempt},
             ${input.now},
             CASE
               WHEN EXISTS (SELECT 1 FROM replay)
-                OR NOT EXISTS (SELECT 1 FROM usage_reserved)
+                OR (
+                  NOT ${input.quotaExempt}
+                  AND NOT EXISTS (SELECT 1 FROM usage_reserved)
+                )
                 THEN ${input.now}::timestamptz
               ELSE NULL
             END
@@ -347,7 +370,10 @@ export function createNeonDomainQueryRepository(
       const completed = await database.execute(sql`
         UPDATE domain_query_requests
         SET status = 'succeeded',
-            charged_at = ${input.completedAt},
+            charged_at = CASE
+              WHEN quota_exempt THEN NULL::timestamptz
+              ELSE ${input.completedAt}::timestamptz
+            END,
             safe_error_code = NULL,
             provider_summary = ${JSON.stringify(input.providers)}::jsonb,
             result_snapshot = ${JSON.stringify(input.result)}::jsonb,
@@ -355,14 +381,20 @@ export function createNeonDomainQueryRepository(
         WHERE id = ${input.requestId}
           AND status = 'started'
         RETURNING guild_id AS "guildId", discord_user_id AS "discordUserId",
-                  usage_day AS "usageDay"
+                  usage_day AS "usageDay", quota_exempt AS "quotaExempt"
       `);
       const row = resultRows<{
         guildId: string;
         discordUserId: string;
         usageDay: Date | string;
+        quotaExempt: boolean;
       }>(completed)[0];
       if (!row) throw new Error("Domain query is no longer active");
+
+      if (row.quotaExempt) return { used: 0, limit: null };
+      if (input.limit === null) {
+        throw new Error("Limited domain query requires a daily limit");
+      }
 
       const counted = await database.execute(sql`
         SELECT count(*)::integer AS used
@@ -387,7 +419,7 @@ export function createNeonDomainQueryRepository(
               completed_at = ${input.completedAt}
           WHERE id = ${input.requestId}
             AND status = 'started'
-          RETURNING guild_id, discord_user_id, usage_day
+          RETURNING guild_id, discord_user_id, usage_day, quota_exempt
         )
         UPDATE domain_query_daily_usage daily
         SET reserved_count = greatest(0, daily.reserved_count - 1),
@@ -396,6 +428,7 @@ export function createNeonDomainQueryRepository(
         WHERE daily.guild_id = failed.guild_id
           AND daily.discord_user_id = failed.discord_user_id
           AND daily.usage_day = failed.usage_day
+          AND NOT failed.quota_exempt
       `);
     },
 
@@ -406,6 +439,7 @@ export function createNeonDomainQueryRepository(
           owned.discord_user_id AS "discordUserId",
           owned.normalized_domain AS "normalizedDomain",
           owned.tier,
+          owned.quota_exempt AS "quotaExempt",
           owned.status,
           owned.result_snapshot AS "resultSnapshot",
           owned.completed_at AS "completedAt",
@@ -416,6 +450,7 @@ export function createNeonDomainQueryRepository(
               AND successful.discord_user_id = owned.discord_user_id
               AND successful.usage_day = owned.usage_day
               AND successful.status = 'succeeded'
+              AND NOT successful.quota_exempt
           ) AS used
         FROM domain_query_requests owned
         WHERE owned.id = ${input.requestId}

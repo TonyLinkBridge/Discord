@@ -140,12 +140,13 @@ function service(input: {
   };
 }
 
-function searchInput(roleIds = [betaRoleId]) {
+function searchInput(roleIds = [betaRoleId], isAdministrator = false) {
   return {
     interactionId: "interaction-1",
     guildId,
     discordUserId,
     roleIds,
+    isAdministrator,
     rawDomain: " Example.COM. ",
   };
 }
@@ -203,6 +204,26 @@ describe("domain intelligence service search", () => {
     expect(verified.data.begin).toHaveBeenCalledWith(expect.objectContaining({
       tier: "verified",
       limit: 3,
+    }));
+  });
+
+  test("returns an unlimited outcome for a Discord Administrator", async () => {
+    const data = repository();
+    vi.mocked(data.succeed).mockResolvedValue({ used: 0, limit: null });
+    const setup = service({ repository: data });
+
+    await expect(
+      setup.service.search(searchInput([betaRoleId], true)),
+    ).resolves.toMatchObject({
+      status: "success",
+      used: 0,
+      limit: null,
+    });
+    expect(data.begin).toHaveBeenCalledWith(expect.objectContaining({
+      quotaExempt: true,
+    }));
+    expect(data.succeed).toHaveBeenCalledWith(expect.objectContaining({
+      limit: null,
     }));
   });
 
@@ -380,6 +401,7 @@ describe("domain intelligence service comparison", () => {
       discordUserId: "223456789012345678",
       normalizedDomain: "example.com",
       tier: "verified",
+      quotaExempt: false,
       status: "succeeded",
       result: {
         domain: { ascii: "example.com", unicode: "example.com", label: "example", tld: "com" },
@@ -437,6 +459,7 @@ describe("domain intelligence service comparison", () => {
       discordUserId: "223456789012345678",
       normalizedDomain: "example.com",
       tier: "member",
+      quotaExempt: false,
       status: "succeeded",
       result: {
         domain: { ascii: "example.com", unicode: "example.com", label: "example", tld: "com" },
@@ -525,6 +548,7 @@ describe("domain intelligence service overview", () => {
       discordUserId,
       normalizedDomain: "example.com",
       tier: "member",
+      quotaExempt: false,
       status: "succeeded",
       result: {
         domain: {
@@ -553,6 +577,7 @@ describe("domain intelligence service overview", () => {
       requestId: "request-1",
       discordUserId,
       roleIds: [],
+      isAdministrator: false,
     })).resolves.toMatchObject({
       status: "success",
       requestId: "request-1",
@@ -563,5 +588,17 @@ describe("domain intelligence service overview", () => {
     });
     expect(data.begin).not.toHaveBeenCalled();
     expect(setup.external.commerce.lookup).not.toHaveBeenCalled();
+
+    await expect(setup.service.overview({
+      requestId: "request-1",
+      discordUserId,
+      roleIds: [],
+      isAdministrator: true,
+    })).resolves.toMatchObject({
+      status: "success",
+      used: 0,
+      limit: null,
+      restored: true,
+    });
   });
 });
