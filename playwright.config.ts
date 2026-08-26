@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = 3113;
+const domainIntelligenceE2e = process.env.DOMAIN_INTELLIGENCE_E2E === "1";
 const verificationE2e = Boolean(
   process.env.VERIFICATION_TEST_DATABASE_URL &&
     process.env.VERIFICATION_TEST_BRANCH_ID &&
@@ -12,7 +13,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI || verificationE2e ? 1 : undefined,
+  workers: process.env.CI || verificationE2e || domainIntelligenceE2e
+    ? 1
+    : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
@@ -27,11 +30,16 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: verificationE2e
-      ? "node scripts/run-verification-e2e.mjs"
-      : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
-    env: verificationE2e
+    command: domainIntelligenceE2e
+      ? "node scripts/run-domain-intelligence-e2e.mjs --serve"
+      : verificationE2e
+        ? "node scripts/run-verification-e2e.mjs"
+        : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    env: domainIntelligenceE2e || verificationE2e
       ? {
+          ...(domainIntelligenceE2e
+            ? { DOMAIN_INTELLIGENCE_E2E: "1" }
+            : {}),
           VERIFICATION_TEST_BRANCH_ID:
             process.env.VERIFICATION_TEST_BRANCH_ID!,
           VERIFICATION_TEST_DATABASE_URL:

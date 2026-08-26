@@ -18,6 +18,12 @@ export const discordStubFixture: Readonly<DiscordStubFixture>;
 export function createDiscordApiStub(fixture?: DiscordStubFixture): {
   handle(request: Request): Promise<Response>;
   calls(): Array<{ method: string; path: string; status: number }>;
+  webhookEdits(): Array<{
+    interactionAlias: string;
+    applicationId: string;
+    message: unknown;
+    status: number;
+  }>;
   reset(): void;
 };
 

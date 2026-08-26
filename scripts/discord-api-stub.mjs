@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 
 export const discordStubFixture = Object.freeze({
   guildId: "900000000000000000",
@@ -100,18 +101,21 @@ export function createDiscordApiStub(fixture = discordStubFixture) {
   const assignedRoles = new Map();
   const retryAttempts = new Map();
   const recordedCalls = [];
+  const recordedWebhookEdits = [];
+  const interactionAliases = new Map();
   let memberSyncVersion = 1;
   let memberSyncMode = "ok";
+  let webhookMode = "ok";
   const allowedMembers = new Set([
     fixture.successUserId,
     fixture.forbiddenUserId,
     fixture.retryUserId,
   ]);
 
-  function finish(request, response) {
+  function finish(request, response, safePath) {
     recordedCalls.push({
       method: request.method,
-      path: new URL(request.url).pathname,
+      path: safePath ?? new URL(request.url).pathname,
       status: response.status,
     });
     return response;
@@ -130,10 +134,73 @@ export function createDiscordApiStub(fixture = discordStubFixture) {
       assignedRoles.clear();
       retryAttempts.clear();
       recordedCalls.length = 0;
+      recordedWebhookEdits.length = 0;
+      interactionAliases.clear();
       memberSyncVersion = 1;
       memberSyncMode = "ok";
+      webhookMode = "ok";
       return new Response(null, { status: 204 });
     }
+    if (
+      url.hostname === "127.0.0.1" &&
+      url.pathname === "/__test/webhook-edits" &&
+      request.method === "GET"
+    ) {
+      return json({ edits: structuredClone(recordedWebhookEdits) });
+    }
+    if (
+      url.hostname === "127.0.0.1" &&
+      url.pathname === "/__test/webhook-mode" &&
+      request.method === "POST"
+    ) {
+      const body = await request.json().catch(() => null);
+      if (!body || !["ok", "rate-limited", "unavailable"].includes(body.mode)) {
+        return json({ error: "Invalid mode" }, 400);
+      }
+      webhookMode = body.mode;
+      return new Response(null, { status: 204 });
+    }
+
+    const webhookMatch = url.pathname.match(
+      /^\/webhooks\/(\d{17,20})\/([^/]+)\/messages\/@original$/,
+    );
+    if (request.method === "PATCH" && webhookMatch) {
+      const [, applicationId, interactionToken] = webhookMatch;
+      if (applicationId !== "900000000000000099") {
+        return json({ error: "Not found" }, 404);
+      }
+      const tokenDigest = createHash("sha256")
+        .update(interactionToken)
+        .digest("hex");
+      let interactionAlias = interactionAliases.get(tokenDigest);
+      if (!interactionAlias) {
+        interactionAlias = `interaction-${interactionAliases.size + 1}`;
+        interactionAliases.set(tokenDigest, interactionAlias);
+      }
+      const message = await request.json().catch(() => null);
+      const status = webhookMode === "rate-limited"
+        ? 429
+        : webhookMode === "unavailable"
+          ? 503
+          : 200;
+      recordedWebhookEdits.push({
+        interactionAlias,
+        applicationId,
+        message,
+        status,
+      });
+      const response = status === 429
+        ? json({ retry_after: 0.01 }, status)
+        : status === 503
+          ? json({ error: "Test webhook unavailable" }, status)
+          : json(message);
+      return finish(
+        request,
+        response,
+        `/webhooks/${applicationId}/${interactionAlias}/messages/@original`,
+      );
+    }
+
     if (
       url.hostname === "127.0.0.1" &&
       url.pathname === "/__test/member-sync/version" &&
@@ -251,12 +318,16 @@ export function createDiscordApiStub(fixture = discordStubFixture) {
   return {
     handle,
     calls: () => structuredClone(recordedCalls),
+    webhookEdits: () => structuredClone(recordedWebhookEdits),
     reset() {
       assignedRoles.clear();
       retryAttempts.clear();
       recordedCalls.length = 0;
+      recordedWebhookEdits.length = 0;
+      interactionAliases.clear();
       memberSyncVersion = 1;
       memberSyncMode = "ok";
+      webhookMode = "ok";
     },
   };
 }
