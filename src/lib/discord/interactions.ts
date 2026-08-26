@@ -2,6 +2,7 @@ import { normalizeDomain } from "@/lib/domain-intelligence/input";
 import type {
   DomainComparisonOutcome,
   DomainIntelligenceService,
+  DomainOverviewOutcome,
   DomainSearchOutcome,
 } from "@/lib/domain-intelligence/service";
 import type { VerificationSubmission } from "@/lib/verification/input";
@@ -80,7 +81,10 @@ export type DiscordInteractionDependencies = {
       | "verified";
   }>;
   submit(input: VerificationSubmission): Promise<SubmitVerificationResult>;
-  domainService: Pick<DomainIntelligenceService, "search" | "compare"> | null;
+  domainService: Pick<
+    DomainIntelligenceService,
+    "search" | "compare" | "overview"
+  > | null;
   interactionClient: DiscordInteractionClient;
   buildLinks(input: {
     outcome: DomainSearchOutcome;
@@ -199,6 +203,7 @@ type DomainComponent =
       sort: "registration" | "renewal" | "transfer";
       page: number;
     }
+  | { kind: "overview"; requestId: string; ownerId: string }
   | { kind: "verify"; requestId: string; ownerId: string };
 
 function domainComponent(customId: string): DomainComponent | null {
@@ -222,6 +227,9 @@ function domainComponent(customId: string): DomainComponent | null {
   }
   if (parts[1] === "verify" && parts.length === 4) {
     return { kind: "verify", requestId: parts[2], ownerId: parts[3] };
+  }
+  if (parts[1] === "overview" && parts.length === 4) {
+    return { kind: "overview", requestId: parts[2], ownerId: parts[3] };
   }
   return null;
 }
@@ -383,6 +391,42 @@ export async function handleDiscordInteraction(
     return {
       response: { type: responseType.deferredUpdate },
       async background() {
+        if (component.kind === "overview") {
+          let outcome: DomainOverviewOutcome;
+          try {
+            outcome = await dependencies.domainService!.overview({
+              requestId: component.requestId,
+              discordUserId: user.id,
+              roleIds: user.roleIds,
+            });
+          } catch {
+            outcome = {
+              status: "unavailable",
+              safeMessage: "RayFox couldn't restore this lookup. Try again in a moment.",
+            };
+          }
+          if (outcome.status !== "success") {
+            await dependencies.interactionClient.sendPrivateFollowup({
+              applicationId: dependencies.applicationId,
+              interactionToken: token,
+              content: outcome.safeMessage,
+            }).catch(() => undefined);
+            return;
+          }
+          const links = dependencies.buildLinks({
+            outcome,
+            discordUserId: user.id,
+          });
+          await dependencies.interactionClient.editOriginal({
+            applicationId: dependencies.applicationId,
+            interactionToken: token,
+            message: renderDomainOutcome(outcome, {
+              ...links,
+              componentOwnerId: user.id,
+            }),
+          }).catch(() => undefined);
+          return;
+        }
         let outcome: DomainComparisonOutcome;
         try {
           outcome = await dependencies.domainService!.compare({
@@ -397,6 +441,14 @@ export async function handleDiscordInteraction(
             status: "unavailable",
             safeMessage: "RayName pricing is temporarily unavailable",
           };
+        }
+        if (outcome.status !== "success") {
+          await dependencies.interactionClient.sendPrivateFollowup({
+            applicationId: dependencies.applicationId,
+            interactionToken: token,
+            content: outcome.safeMessage,
+          }).catch(() => undefined);
+          return;
         }
         await dependencies.interactionClient.editOriginal({
           applicationId: dependencies.applicationId,

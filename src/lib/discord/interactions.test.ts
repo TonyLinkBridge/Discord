@@ -51,6 +51,7 @@ function createDependencies(
         replayed: false,
         used: 1,
         limit: 3,
+        presentation: "live-commerce",
       }),
       compare: vi.fn().mockResolvedValue({
         status: "success",
@@ -59,10 +60,44 @@ function createDependencies(
         page: 1,
         pageCount: 1,
         rows: [],
+        presentation: "live-commerce",
+      }),
+      overview: vi.fn().mockResolvedValue({
+        status: "success",
+        requestId: "72345678-1234-4234-8234-123456789012",
+        result: {
+          domain: {
+            ascii: "lucidgrid.ai",
+            unicode: "lucidgrid.ai",
+            label: "lucidgrid",
+            tld: "ai",
+          },
+          commercial: {
+            availability: "available",
+            premium: false,
+            premiumRenewal: null,
+            registrationPrice: { amount: "79.00", currency: "USD" },
+            renewalPrice: { amount: "89.00", currency: "USD" },
+            transferPrice: { amount: "74.00", currency: "USD" },
+            transferEligible: null,
+            destination: "https://www.rayname.com/domain/search?domain=lucidgrid.ai",
+            checkedAt: "2026-08-26T00:00:00.000Z",
+          },
+          registration: null,
+          dns: null,
+          certificate: null,
+          checkedAt: "2026-08-26T00:00:00.000Z",
+        },
+        replayed: false,
+        restored: true,
+        used: 1,
+        limit: 3,
+        presentation: "live-commerce",
       }),
     },
     interactionClient: {
       editOriginal: vi.fn().mockResolvedValue({ status: "edited" }),
+      sendPrivateFollowup: vi.fn().mockResolvedValue({ status: "sent" }),
     },
     buildLinks: vi.fn().mockReturnValue({
       primary: "https://rayname.local/outbound/register",
@@ -342,6 +377,103 @@ describe("handleDiscordInteraction", () => {
       },
     });
     expect(dependencies.domainService.compare).not.toHaveBeenCalled();
+  });
+
+  test("restores the owner's stored overview without another search", async () => {
+    const dependencies = createDependencies();
+    const requestId = "72345678-1234-4234-8234-123456789012";
+    const dispatch = await handleDiscordInteraction(
+      {
+        id: "123456789012345686",
+        token: "component-token",
+        type: 3,
+        guild_id: dependencies.guildId,
+        member: { user, roles: ["1541478390924837005"] },
+        data: {
+          custom_id: `rayfox_domain:overview:${requestId}:${user.id}`,
+        },
+      },
+      dependencies,
+    );
+
+    expect(dispatch.response).toEqual({ type: 6 });
+    await dispatch.background?.();
+    expect(dependencies.domainService.overview).toHaveBeenCalledWith({
+      requestId,
+      discordUserId: user.id,
+      roleIds: ["1541478390924837005"],
+    });
+    expect(dependencies.domainService.search).not.toHaveBeenCalled();
+    expect(dependencies.interactionClient.editOriginal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        interactionToken: "component-token",
+        message: expect.objectContaining({
+          embeds: [expect.objectContaining({ title: "lucidgrid.ai" })],
+        }),
+      }),
+    );
+  });
+
+  test("keeps the comparison card when a member requests fixture prices", async () => {
+    const dependencies = createDependencies();
+    dependencies.domainService.compare.mockResolvedValue({
+      status: "forbidden",
+      safeMessage: "Test pricing is available only to RayFox internal testers",
+    });
+    const dispatch = await handleDiscordInteraction(
+      {
+        id: "123456789012345687",
+        token: "component-token",
+        type: 3,
+        guild_id: dependencies.guildId,
+        member: { user, roles: [] },
+        data: {
+          custom_id:
+            `rayfox_domain:compare:72345678-1234-4234-8234-123456789012:${user.id}:registration:1`,
+        },
+      },
+      dependencies,
+    );
+
+    expect(dispatch.response).toEqual({ type: 6 });
+    await dispatch.background?.();
+    expect(dependencies.interactionClient.sendPrivateFollowup).toHaveBeenCalledWith({
+      applicationId: dependencies.applicationId,
+      interactionToken: "component-token",
+      content: "Test pricing is available only to RayFox internal testers",
+    });
+    expect(dependencies.interactionClient.editOriginal).not.toHaveBeenCalled();
+  });
+
+  test("keeps the comparison card when its overview has expired", async () => {
+    const dependencies = createDependencies();
+    dependencies.domainService.overview.mockResolvedValue({
+      status: "not-owned",
+      safeMessage: "This result belongs to another member or has expired",
+    });
+    const requestId = "72345678-1234-4234-8234-123456789012";
+    const dispatch = await handleDiscordInteraction(
+      {
+        id: "123456789012345688",
+        token: "component-token",
+        type: 3,
+        guild_id: dependencies.guildId,
+        member: { user, roles: [] },
+        data: {
+          custom_id: `rayfox_domain:overview:${requestId}:${user.id}`,
+        },
+      },
+      dependencies,
+    );
+
+    expect(dispatch.response).toEqual({ type: 6 });
+    await dispatch.background?.();
+    expect(dependencies.interactionClient.sendPrivateFollowup).toHaveBeenCalledWith({
+      applicationId: dependencies.applicationId,
+      interactionToken: "component-token",
+      content: "This result belongs to another member or has expired",
+    });
+    expect(dependencies.interactionClient.editOriginal).not.toHaveBeenCalled();
   });
 
   test("opens the existing verification modal from an owned exhausted card", async () => {

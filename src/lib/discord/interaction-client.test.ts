@@ -12,6 +12,33 @@ const message: DiscordWebhookMessage = {
 };
 
 describe("Discord original-response client", () => {
+  test("sends a private follow-up without bot authorization", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    const client = createDiscordInteractionClient(
+      { apiBaseUrl: "https://discord.com/api/v10" },
+      fetchImpl,
+    );
+
+    await expect(client.sendPrivateFollowup({
+      applicationId,
+      interactionToken,
+      content: "Test pricing is available only to RayFox internal testers.",
+    })).resolves.toEqual({ status: "sent" });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content: "Test pricing is available only to RayFox internal testers.",
+          flags: 64,
+        }),
+        signal: expect.any(AbortSignal),
+      },
+    );
+  });
+
   test("edits the original interaction response without bot authorization", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     const client = createDiscordInteractionClient(
