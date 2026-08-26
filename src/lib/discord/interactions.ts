@@ -388,6 +388,7 @@ export async function handleDiscordInteraction(
           outcome = await dependencies.domainService!.compare({
             requestId: component.requestId,
             discordUserId: user.id,
+            roleIds: user.roleIds,
             sort: component.sort,
             page: component.page,
           });

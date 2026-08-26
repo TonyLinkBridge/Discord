@@ -53,6 +53,7 @@ function success(
     replayed: false,
     used: 1,
     limit: 3,
+    presentation: "live-commerce",
   };
 }
 
@@ -226,6 +227,7 @@ describe("RayFox extension comparison messages", () => {
       page: 2,
       pageCount: 3,
       rows: [],
+      presentation: "live-commerce",
     }, ownerId);
 
     const customIds = message.components
@@ -245,6 +247,7 @@ describe("RayFox extension comparison messages", () => {
       sort: "registration",
       page: 2,
       pageCount: 3,
+      presentation: "live-commerce",
       rows: ["com", "ai", "io", "net", "org"].map((tld, index) => ({
         tld: `.${tld}`,
         availability: "available" as const,
@@ -278,6 +281,7 @@ describe("RayFox extension comparison messages", () => {
       pageCount: 1,
       rows: [],
       testData: true,
+      presentation: "fixture-commerce",
     }, "223456789012345678");
 
     expect(JSON.stringify(message)).toContain("not live RayName quotes");

@@ -15,6 +15,7 @@ function success(availability: "available" | "registered"): DomainSearchOutcome 
     replayed: false,
     used: 1,
     limit: 3,
+    presentation: "live-commerce",
     result: {
       domain: {
         ascii: "lucidgrid.ai",

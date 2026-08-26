@@ -17,8 +17,11 @@ import type {
 } from "./types";
 
 const now = new Date("2026-08-26T00:00:00.000Z");
+const guildId = "1540610722281824336";
 const verifiedRoleId = "1540611679023276114";
 const betaRoleId = "1541478390924837005";
+const testerRoleId = "1541478390924837006";
+const discordUserId = "223456789012345678";
 
 const commercial: RayNameCommercialResult = {
   availability: "available",
@@ -105,6 +108,8 @@ function service(input: {
   enabled?: boolean;
   testData?: boolean;
   betaRoleIds?: string[];
+  testerRoleIds?: string[];
+  testerUserIds?: string[];
   repository?: DomainQueryRepository;
   providers?: ReturnType<typeof providers>;
 }) {
@@ -120,6 +125,8 @@ function service(input: {
             enabled: true,
             mode: input.mode ?? "internal",
             betaRoleIds: input.betaRoleIds ?? [betaRoleId],
+            testerRoleIds: input.testerRoleIds ?? [],
+            testerUserIds: input.testerUserIds ?? [],
             verifiedRoleId,
             ...(input.testData ? { testData: true as const } : {}),
           },
@@ -136,8 +143,8 @@ function service(input: {
 function searchInput(roleIds = [betaRoleId]) {
   return {
     interactionId: "interaction-1",
-    guildId: "1540610722281824336",
-    discordUserId: "223456789012345678",
+    guildId,
+    discordUserId,
     roleIds,
     rawDomain: " Example.COM. ",
   };
@@ -165,7 +172,6 @@ describe("domain intelligence service search", () => {
   });
 
   test("treats the guild @everyone role as an internal beta audience", async () => {
-    const guildId = "1540610722281824336";
     const internal = service({ betaRoleIds: [guildId] });
 
     await expect(
@@ -280,12 +286,51 @@ describe("domain intelligence service search", () => {
     }));
   });
 
-  test("marks fixture outcomes and records the provider as fixture data", async () => {
-    const setup = service({ testData: true });
+  test("hides fixture commerce from a community member", async () => {
+    const setup = service({
+      testData: true,
+      betaRoleIds: [guildId],
+      testerRoleIds: [testerRoleId],
+    });
 
-    await expect(setup.service.search(searchInput())).resolves.toMatchObject({
+    await expect(setup.service.search(searchInput([]))).resolves.toMatchObject({
+      status: "success",
+      presentation: "public-intelligence",
+    });
+  });
+
+  test("shows fixtures only to an explicit tester role or user", async () => {
+    const roleTester = service({ testData: true, testerRoleIds: [testerRoleId] });
+    await expect(
+      roleTester.service.search(searchInput([betaRoleId, testerRoleId])),
+    ).resolves.toMatchObject({
+      status: "success",
+      presentation: "fixture-commerce",
+    });
+
+    const userTester = service({ testData: true, testerUserIds: [discordUserId] });
+    await expect(userTester.service.search(searchInput())).resolves.toMatchObject({
+      status: "success",
+      presentation: "fixture-commerce",
+    });
+  });
+
+  test("marks configured RayName results as live commerce", async () => {
+    await expect(service({}).service.search(searchInput())).resolves.toMatchObject({
+      status: "success",
+      presentation: "live-commerce",
+    });
+  });
+
+  test("marks fixture outcomes and records the provider as fixture data", async () => {
+    const setup = service({ testData: true, testerRoleIds: [testerRoleId] });
+
+    await expect(
+      setup.service.search(searchInput([betaRoleId, testerRoleId])),
+    ).resolves.toMatchObject({
       status: "success",
       testData: true,
+      presentation: "fixture-commerce",
     });
     expect(setup.data.succeed).toHaveBeenCalledWith(expect.objectContaining({
       providers: expect.objectContaining({
@@ -320,6 +365,7 @@ describe("domain intelligence service search", () => {
         replayed: true,
         used: 2,
         limit: 3,
+        presentation: "live-commerce",
       });
     expect(setup.external.commerce.lookup).not.toHaveBeenCalled();
     expect(setup.data.succeed).not.toHaveBeenCalled();
@@ -363,7 +409,8 @@ describe("domain intelligence service comparison", () => {
 
     await expect(setup.service.compare({
       requestId: "request-1",
-      discordUserId: "223456789012345678",
+      discordUserId,
+      roleIds: [],
       sort: "renewal",
       page: 1,
     })).resolves.toMatchObject({
@@ -372,6 +419,7 @@ describe("domain intelligence service comparison", () => {
       sort: "renewal",
       page: 1,
       pageCount: 2,
+      presentation: "live-commerce",
       rows: [
         expect.objectContaining({ tld: ".com" }),
         expect.objectContaining({ tld: ".ai" }),
@@ -412,14 +460,45 @@ describe("domain intelligence service comparison", () => {
       destination: "https://www.rayname.com/en/search?q=example.com",
       checkedAt: commercial.checkedAt,
     }]);
-    const setup = service({ testData: true, repository: data, providers: external });
+    const setup = service({
+      testData: true,
+      testerRoleIds: [testerRoleId],
+      repository: data,
+      providers: external,
+    });
 
     await expect(setup.service.compare({
       requestId: "request-1",
-      discordUserId: "223456789012345678",
+      discordUserId,
+      roleIds: [testerRoleId],
       sort: "registration",
       page: 1,
-    })).resolves.toMatchObject({ status: "success", testData: true });
+    })).resolves.toMatchObject({
+      status: "success",
+      testData: true,
+      presentation: "fixture-commerce",
+    });
+  });
+
+  test("rejects fixture comparison for a community member before provider access", async () => {
+    const setup = service({
+      testData: true,
+      betaRoleIds: [guildId],
+      testerRoleIds: [testerRoleId],
+    });
+
+    await expect(setup.service.compare({
+      requestId: "request-1",
+      discordUserId,
+      roleIds: [],
+      sort: "registration",
+      page: 1,
+    })).resolves.toEqual({
+      status: "forbidden",
+      safeMessage: "Test pricing is available only to RayFox internal testers",
+    });
+    expect(setup.data.getOwnedQuery).not.toHaveBeenCalled();
+    expect(setup.external.commerce.listTldPrices).not.toHaveBeenCalled();
   });
 
   test("does not expose another member's query or call the provider", async () => {
@@ -427,6 +506,7 @@ describe("domain intelligence service comparison", () => {
     await expect(setup.service.compare({
       requestId: "request-private",
       discordUserId: "different-user",
+      roleIds: [],
       sort: "registration",
       page: 1,
     })).resolves.toEqual({
@@ -434,5 +514,54 @@ describe("domain intelligence service comparison", () => {
       safeMessage: "This result belongs to another member or has expired",
     });
     expect(setup.external.commerce.listTldPrices).not.toHaveBeenCalled();
+  });
+});
+
+describe("domain intelligence service overview", () => {
+  test("restores an owned result without reserving another query", async () => {
+    const data = repository();
+    vi.mocked(data.getOwnedQuery).mockResolvedValue({
+      id: "request-1",
+      discordUserId,
+      normalizedDomain: "example.com",
+      tier: "member",
+      status: "succeeded",
+      result: {
+        domain: {
+          ascii: "example.com",
+          unicode: "example.com",
+          label: "example",
+          tld: "com",
+        },
+        commercial,
+        registration,
+        dns,
+        certificate,
+        checkedAt: now.toISOString(),
+      },
+      completedAt: now,
+      used: 1,
+    });
+    const setup = service({
+      testData: true,
+      betaRoleIds: [guildId],
+      testerRoleIds: [testerRoleId],
+      repository: data,
+    });
+
+    await expect(setup.service.overview({
+      requestId: "request-1",
+      discordUserId,
+      roleIds: [],
+    })).resolves.toMatchObject({
+      status: "success",
+      requestId: "request-1",
+      used: 1,
+      limit: 1,
+      restored: true,
+      presentation: "public-intelligence",
+    });
+    expect(data.begin).not.toHaveBeenCalled();
+    expect(setup.external.commerce.lookup).not.toHaveBeenCalled();
   });
 });

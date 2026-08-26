@@ -61,6 +61,8 @@ export function createDomainIntelligenceRuntime(
       enabled: true,
       mode: domainConfig.mode,
       betaRoleIds: domainConfig.betaRoleIds,
+      testerRoleIds: domainConfig.testerRoleIds,
+      testerUserIds: domainConfig.testerUserIds,
       verifiedRoleId,
       ...(domainConfig.testData ? { testData: true as const } : {}),
     },

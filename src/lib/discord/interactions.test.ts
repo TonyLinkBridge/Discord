@@ -308,6 +308,7 @@ describe("handleDiscordInteraction", () => {
     expect(dependencies.domainService.compare).toHaveBeenCalledWith({
       requestId,
       discordUserId: user.id,
+      roleIds: [],
       sort: "renewal",
       page: 2,
     });

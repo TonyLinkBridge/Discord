@@ -23,9 +23,16 @@ export type DomainIntelligenceServiceConfig =
       enabled: true;
       mode: "internal" | "public";
       betaRoleIds: string[];
+      testerRoleIds: string[];
+      testerUserIds: string[];
       verifiedRoleId: string;
       testData?: true;
     };
+
+export type DomainPresentation =
+  | "public-intelligence"
+  | "fixture-commerce"
+  | "live-commerce";
 
 export type DomainSearchInput = {
   interactionId: string;
@@ -43,7 +50,9 @@ export type DomainSearchOutcome =
       replayed: boolean;
       used: number;
       limit: 1 | 3;
+      presentation: DomainPresentation;
       testData?: true;
+      restored?: true;
     }
   | {
       status: "quota-rejected";
@@ -66,8 +75,17 @@ export type DomainComparisonOutcome =
       page: number;
       pageCount: number;
       rows: RayNameTldPrice[];
+      presentation: "fixture-commerce" | "live-commerce";
       testData?: true;
     }
+  | {
+      status: "not-owned" | "unavailable" | "not-enabled";
+      safeMessage: string;
+    }
+  | { status: "forbidden"; safeMessage: string };
+
+export type DomainOverviewOutcome =
+  | Extract<DomainSearchOutcome, { status: "success" }>
   | {
       status: "not-owned" | "unavailable" | "not-enabled";
       safeMessage: string;
@@ -78,9 +96,15 @@ export interface DomainIntelligenceService {
   compare(input: {
     requestId: string;
     discordUserId: string;
+    roleIds: string[];
     sort: DomainCompareSort;
     page: number;
   }): Promise<DomainComparisonOutcome>;
+  overview(input: {
+    requestId: string;
+    discordUserId: string;
+    roleIds: string[];
+  }): Promise<DomainOverviewOutcome>;
 }
 
 export type DomainIntelligenceServiceDependencies = {
@@ -149,6 +173,16 @@ function sortPrices(rows: RayNameTldPrice[], sort: DomainCompareSort) {
   });
 }
 
+function presentationFor(
+  config: Extract<DomainIntelligenceServiceConfig, { enabled: true }>,
+  viewer: { discordUserId: string; roleIds: string[] },
+): DomainPresentation {
+  if (!config.testData) return "live-commerce";
+  const tester = config.testerUserIds.includes(viewer.discordUserId) ||
+    viewer.roleIds.some((roleId) => config.testerRoleIds.includes(roleId));
+  return tester ? "fixture-commerce" : "public-intelligence";
+}
+
 const databaseUnavailable: DomainSearchOutcome = {
   status: "unavailable",
   safeMessage: "RayFox couldn't start this lookup. Try again in a moment.",
@@ -176,6 +210,7 @@ export function createDomainIntelligenceService(
       if (!normalized.valid) return { status: "invalid" };
 
       const verified = input.roleIds.includes(config.verifiedRoleId);
+      const presentation = presentationFor(config, input);
       const tier = verified ? "verified" as const : "member" as const;
       const limit = verified ? 3 as const : 1 as const;
       const startedAt = dependencies.now();
@@ -211,6 +246,7 @@ export function createDomainIntelligenceService(
           replayed: true,
           used: reservation.used,
           limit,
+          presentation,
           ...(dependencies.config.enabled && dependencies.config.testData
             ? { testData: true as const }
             : {}),
@@ -295,6 +331,7 @@ export function createDomainIntelligenceService(
           replayed: false,
           used: allowance.used,
           limit: allowance.limit,
+          presentation,
           ...(dependencies.config.enabled && dependencies.config.testData
             ? { testData: true as const }
             : {}),
@@ -310,10 +347,18 @@ export function createDomainIntelligenceService(
     },
 
     async compare(input) {
-      if (!dependencies.config.enabled) {
+      const config = dependencies.config;
+      if (!config.enabled) {
         return {
           status: "not-enabled",
           safeMessage: "RayFox Domain Intelligence isn't enabled here yet.",
+        };
+      }
+      const presentation = presentationFor(config, input);
+      if (presentation === "public-intelligence") {
+        return {
+          status: "forbidden",
+          safeMessage: "Test pricing is available only to RayFox internal testers",
         };
       }
       const owned = await dependencies.repository.getOwnedQuery({
@@ -348,9 +393,42 @@ export function createDomainIntelligenceService(
         page,
         pageCount,
         rows: sorted.slice((page - 1) * 5, page * 5),
-        ...(dependencies.config.enabled && dependencies.config.testData
+        presentation,
+        ...(config.testData
           ? { testData: true as const }
           : {}),
+      };
+    },
+
+    async overview(input) {
+      const config = dependencies.config;
+      if (!config.enabled) {
+        return {
+          status: "not-enabled",
+          safeMessage: "RayFox Domain Intelligence isn't enabled here yet.",
+        };
+      }
+      const owned = await dependencies.repository.getOwnedQuery({
+        requestId: input.requestId,
+        discordUserId: input.discordUserId,
+      }).catch(() => null);
+      if (!owned || owned.status !== "succeeded" || !owned.result) {
+        return {
+          status: "not-owned",
+          safeMessage: "This result belongs to another member or has expired",
+        };
+      }
+      const limit = owned.tier === "verified" ? 3 as const : 1 as const;
+      return {
+        status: "success",
+        requestId: owned.id,
+        result: owned.result,
+        replayed: false,
+        restored: true,
+        used: Math.min(owned.used, limit),
+        limit,
+        presentation: presentationFor(config, input),
+        ...(config.testData ? { testData: true as const } : {}),
       };
     },
   };
