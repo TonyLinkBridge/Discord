@@ -1,6 +1,7 @@
 import type {
   DomainComparisonOutcome,
   DomainCompareSort,
+  DomainPresentation,
   DomainSearchOutcome,
 } from "@/lib/domain-intelligence/service";
 import type {
@@ -93,7 +94,22 @@ function actionRows(buttons: Button[]): DiscordWebhookMessage["components"] {
   ];
 }
 
-function statusCopy(result: DomainIntelligenceResult, testData: boolean) {
+function statusCopy(
+  result: DomainIntelligenceResult,
+  presentation: DomainPresentation,
+) {
+  if (presentation === "public-intelligence") {
+    const registry = result.registration?.state === "found"
+      ? "**Registry record found**"
+      : result.registration?.state === "not-found"
+        ? "**No registry record found**\nThis is not a purchase guarantee."
+        : "**Registry status unavailable**";
+    return [
+      "🛰️ **Live public-domain intelligence**",
+      registry,
+      "Commercial availability and pricing are confirmed on RayName.",
+    ].join("\n");
+  }
   const status = result.commercial.availability;
   const label = status === "available"
     ? "Available"
@@ -103,7 +119,7 @@ function statusCopy(result: DomainIntelligenceResult, testData: boolean) {
         ? "Reserved"
         : "Status unavailable";
   return [
-    ...(testData
+    ...(presentation === "fixture-commerce"
       ? ["🧪 **Internal beta · Test data**", "Prices below are fixtures—not live RayName quotes."]
       : []),
     `**${label}**`,
@@ -112,7 +128,7 @@ function statusCopy(result: DomainIntelligenceResult, testData: boolean) {
   ].join("\n");
 }
 
-function intelligenceFields(result: DomainIntelligenceResult): Field[] {
+function commerceFields(result: DomainIntelligenceResult): Field[] {
   const fields: Field[] = [
     field("Register", money(result.commercial.registrationPrice), true),
     field("Renew", money(result.commercial.renewalPrice), true),
@@ -170,6 +186,62 @@ function intelligenceFields(result: DomainIntelligenceResult): Field[] {
   return fields.slice(0, 7);
 }
 
+function checked(value: string) {
+  return value.slice(0, 16).replace("T", " ") + " UTC";
+}
+
+function publicIntelligenceFields(result: DomainIntelligenceResult): Field[] {
+  const fields: Field[] = [];
+  if (result.registration?.state === "found") {
+    const record = result.registration;
+    const source = record.source?.kind.toUpperCase() ?? "Registry";
+    fields.push(field(`Registry · ${source}`, [
+      `Registrar: ${record.registrar ?? "Not published"}`,
+      `Created: ${date(record.createdAt)} · Expires: ${date(record.expiresAt)}`,
+      ...(record.statuses.length
+        ? [`Status: ${record.statuses.slice(0, 4).join(" · ")}`]
+        : []),
+      ...(record.nameservers.length
+        ? [`NS: ${record.nameservers.slice(0, 3).join(" · ")}`]
+        : []),
+      ...(record.dnssec === null
+        ? []
+        : [record.dnssec ? "DNSSEC signed" : "DNSSEC not signed"]),
+      ...(record.source
+        ? [`Checked ${checked(record.source.checkedAt)}`]
+        : []),
+    ].join("\n")));
+  }
+  if (result.dns) {
+    const dnsFacts = [
+      ...(result.dns.ns.length
+        ? [`NS: ${result.dns.ns.slice(0, 4).join(" · ")}`]
+        : []),
+      ...(result.dns.mx.length
+        ? [`MX: ${result.dns.mx.slice(0, 3).map(({ exchange }) => exchange).join(" · ")}`]
+        : []),
+      ...(result.dns.a.length
+        ? [`A: ${result.dns.a.slice(0, 3).join(" · ")}`]
+        : []),
+    ];
+    if (dnsFacts.length) {
+      fields.push(field(
+        "DNS · Live lookup",
+        [...dnsFacts, `Checked ${checked(result.dns.checkedAt)}`].join("\n"),
+      ));
+    }
+  }
+  if (result.certificate) {
+    fields.push(field("Certificate · Live TLS lookup", [
+      result.certificate.issuerCommonName ?? "Issuer not published",
+      `Valid until ${date(result.certificate.validTo)}`,
+      result.certificate.protocol ?? "Protocol not published",
+      `Checked ${checked(result.certificate.checkedAt)}`,
+    ].join(" · ")));
+  }
+  return fields.slice(0, 7);
+}
+
 function resultButtons(
   outcome: Extract<DomainSearchOutcome, { status: "success" }>,
   links: DomainMessageLinks,
@@ -177,25 +249,30 @@ function resultButtons(
   const buttons: Button[] = [];
   if (links.primary) {
     buttons.push(linkButton(
-      outcome.result.commercial.availability === "registered"
+      outcome.presentation === "public-intelligence"
+        ? "Check live price on RayName"
+        : outcome.result.commercial.availability === "registered"
         ? "Transfer to RayName"
         : "Register on RayName",
       links.primary,
     ));
   }
   if (
+    outcome.presentation !== "public-intelligence" &&
     links.fullIntelligence &&
     outcome.result.commercial.availability === "registered"
   ) {
     buttons.push(linkButton("View full intelligence", links.fullIntelligence));
   }
-  buttons.push(customButton(
-    "Compare extensions",
-    links.componentOwnerId
-      ? `rayfox_domain:compare:${outcome.requestId}:${links.componentOwnerId}:registration:1`
-      : `rayfox_domain:compare:${outcome.requestId}:registration:1`,
-    1,
-  ));
+  if (outcome.presentation !== "public-intelligence") {
+    buttons.push(customButton(
+      "Compare extensions",
+      links.componentOwnerId
+        ? `rayfox_domain:compare:${outcome.requestId}:${links.componentOwnerId}:registration:1`
+        : `rayfox_domain:compare:${outcome.requestId}:registration:1`,
+      1,
+    ));
+  }
   return buttons;
 }
 
@@ -207,11 +284,13 @@ export function renderDomainOutcome(
     return {
       embeds: [{
         title: clipped(outcome.result.domain.unicode, 256),
-        description: statusCopy(outcome.result, outcome.testData === true),
+        description: statusCopy(outcome.result, outcome.presentation),
         color: rayNamePurple,
-        fields: intelligenceFields(outcome.result),
+        fields: outcome.presentation === "public-intelligence"
+          ? publicIntelligenceFields(outcome.result)
+          : commerceFields(outcome.result),
         footer: {
-          text: `${outcome.testData ? "TEST DATA · " : ""}${Math.max(0, outcome.limit - outcome.used)} of ${outcome.limit} searches left today${outcome.replayed ? " · Fresh replay" : ""}`,
+          text: `${outcome.presentation === "fixture-commerce" ? "TEST DATA · " : outcome.presentation === "public-intelligence" ? "PUBLIC DATA · " : ""}${Math.max(0, outcome.limit - outcome.used)} of ${outcome.limit} searches left today${outcome.replayed && !outcome.restored ? " · Fresh replay" : ""}`,
         },
       }],
       components: actionRows(resultButtons(outcome, links)),
@@ -323,6 +402,10 @@ export function renderDomainComparison(
       compareId(outcome.requestId, ownerId, outcome.sort, outcome.page + 1),
       1,
       outcome.page >= outcome.pageCount,
+    ),
+    customButton(
+      "← Domain overview",
+      `rayfox_domain:overview:${outcome.requestId}:${ownerId}`,
     ),
   );
 

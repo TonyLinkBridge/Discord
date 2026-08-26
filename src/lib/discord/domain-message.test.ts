@@ -97,12 +97,115 @@ describe("RayFox domain result messages", () => {
   });
 
   test("labels fixture prices as internal test data, never live RayName quotes", () => {
-    const message = renderDomainOutcome({ ...success(), testData: true }, links);
+    const message = renderDomainOutcome({
+      ...success(),
+      presentation: "fixture-commerce",
+      testData: true,
+    }, links);
     const serialized = JSON.stringify(message);
 
     expect(serialized).toContain("Internal beta · Test data");
     expect(serialized).toContain("not live RayName quotes");
     expect(message.embeds?.[0].footer?.text).toContain("TEST DATA");
+  });
+
+  test("renders only sourced public intelligence for a community member", () => {
+    const checkedAt = "2026-08-26T00:00:00.000Z";
+    const message = renderDomainOutcome({
+      ...success({
+        ...baseResult,
+        registration: {
+          state: "found",
+          registrar: "Example Registrar",
+          registrarUrl: "https://registrar.example/",
+          createdAt: "2020-01-02T00:00:00.000Z",
+          updatedAt: null,
+          expiresAt: "2027-01-02T00:00:00.000Z",
+          statuses: ["active"],
+          nameservers: ["ns1.example.net"],
+          dnssec: true,
+          source: {
+            kind: "rdap",
+            name: "rdap.registry.example",
+            checkedAt,
+          },
+        },
+        dns: {
+          a: ["93.184.216.34"],
+          aaaa: [],
+          mx: [{ exchange: "mail.example.net", priority: 10 }],
+          txt: [],
+          ns: ["ns1.example.net"],
+          checkedAt,
+        },
+        certificate: {
+          issuerCommonName: "Example Trust CA",
+          subjectCommonName: "lucidgrid.ai",
+          validFrom: "2026-08-01T00:00:00.000Z",
+          validTo: "2026-10-30T23:59:59.000Z",
+          protocol: "TLSv1.3",
+          checkedAt,
+        },
+      }),
+      presentation: "public-intelligence",
+      testData: true,
+    }, links);
+    const serialized = JSON.stringify(message);
+
+    expect(serialized).toContain("Live public-domain intelligence");
+    expect(serialized).toContain("Registry record found");
+    expect(serialized).toContain("Registry · RDAP");
+    expect(serialized).toContain("DNS · Live lookup");
+    expect(serialized).toContain("Certificate · Live TLS lookup");
+    expect(serialized).toContain("Check live price on RayName");
+    expect(serialized).not.toContain("USD 79.00");
+    expect(serialized).not.toContain("RayName pricing · checked");
+    expect(serialized).not.toContain("Premium domain");
+    expect(serialized).not.toContain("Compare extensions");
+    expectWithinDiscordLimits(message);
+  });
+
+  test("does not turn an absent registry record into an availability claim", () => {
+    const message = renderDomainOutcome({
+      ...success({
+        ...baseResult,
+        registration: {
+          state: "not-found",
+          registrar: null,
+          registrarUrl: null,
+          createdAt: null,
+          updatedAt: null,
+          expiresAt: null,
+          statuses: [],
+          nameservers: [],
+          dnssec: null,
+          source: {
+            kind: "rdap",
+            name: "rdap.registry.example",
+            checkedAt: baseResult.checkedAt,
+          },
+        },
+      }),
+      presentation: "public-intelligence",
+      testData: true,
+    }, links);
+    const description = message.embeds?.[0].description ?? "";
+
+    expect(description).toContain("No registry record found");
+    expect(description).toContain("not a purchase guarantee");
+    expect(description).not.toContain("Available");
+  });
+
+  test("labels a missing registry result as unavailable", () => {
+    const message = renderDomainOutcome({
+      ...success(),
+      presentation: "public-intelligence",
+      testData: true,
+    }, links);
+
+    expect(message.embeds?.[0].description).toContain(
+      "Registry status unavailable",
+    );
   });
 
   test("renders registered intelligence and a transfer CTA", () => {
@@ -236,7 +339,10 @@ describe("RayFox extension comparison messages", () => {
     expect(customIds).toContain(
       `rayfox_domain:compare:${requestId}:${ownerId}:registration:3`,
     );
-    expect(customIds.every((customId) => customId.includes(`:${ownerId}:`)))
+    expect(customIds).toContain(
+      `rayfox_domain:overview:${requestId}:${ownerId}`,
+    );
+    expect(customIds.every((customId) => customId.includes(`:${ownerId}`)))
       .toBe(true);
   });
 

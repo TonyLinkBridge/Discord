@@ -53,6 +53,17 @@ export function createDomainOutcomeLinks(input: {
     };
   }
 
+  if (input.outcome.presentation === "public-intelligence") {
+    return {
+      primary: outboundUrl({
+        ...input,
+        requestId,
+        action: "continue_on_site",
+      }),
+      fullIntelligence: null,
+    };
+  }
+
   const registered =
     input.outcome.result.commercial.availability === "registered";
   return {

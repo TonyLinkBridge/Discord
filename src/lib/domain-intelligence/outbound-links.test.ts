@@ -97,6 +97,25 @@ describe("Discord domain outcome links", () => {
     expect(links.fullIntelligence).toBeNull();
   });
 
+  test("uses a neutral RayName continuation for public intelligence", () => {
+    const outcome = {
+      ...success("available"),
+      presentation: "public-intelligence" as const,
+    };
+    const links = createDomainOutcomeLinks({
+      outcome,
+      publicBaseUrl: "https://bot.rayname.com",
+      signingKey,
+      now,
+    });
+
+    expect(payload(links.primary!)).toMatchObject({
+      action: "continue_on_site",
+      requestId,
+    });
+    expect(links.fullIntelligence).toBeNull();
+  });
+
   test("does not create links for unsuccessful provider states", () => {
     expect(createDomainOutcomeLinks({
       outcome: {
