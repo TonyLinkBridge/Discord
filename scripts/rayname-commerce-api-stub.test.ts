@@ -45,7 +45,7 @@ describe("RayName commerce loopback stub", () => {
         registrationPrice,
         currency: "USD",
         destination:
-          "https://www.rayname.com/domain/search?domain=lucidgrid.ai",
+          "https://www.rayname.com/en/search?q=lucidgrid.ai",
         checkedAt: "2026-08-26T00:00:00.000Z",
       });
     },
@@ -75,6 +75,7 @@ describe("RayName commerce loopback stub", () => {
       tld: ".com",
       currency: "USD",
       registrationPrice: "12.99",
+      destination: "https://www.rayname.com/en/search?q=lucidgrid.com",
     });
   });
 

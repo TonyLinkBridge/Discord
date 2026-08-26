@@ -20,7 +20,7 @@ function json(value, status = 200) {
 function lookupPayload(domain, mode) {
   const shared = {
     currency: "USD",
-    destination: `https://www.rayname.com/domain/search?domain=${encodeURIComponent(domain)}`,
+    destination: `https://www.rayname.com/en/search?q=${encodeURIComponent(domain)}`,
     checkedAt,
   };
   if (mode === "registered") {
@@ -81,7 +81,7 @@ function pricePayload(label) {
         renewalPrice,
         transferPrice,
         destination:
-          `https://www.rayname.com/domain/search?domain=${encodeURIComponent(label + tld)}`,
+          `https://www.rayname.com/en/search?q=${encodeURIComponent(label + tld)}`,
         checkedAt,
       }),
     ),

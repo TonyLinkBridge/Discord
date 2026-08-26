@@ -55,7 +55,7 @@ function setup(query: StoredDomainQuery | null = storedQuery()) {
   };
   const get = createRayfoxOutboundGet({
     signingKey,
-    domainPageBaseUrl: "https://www.rayname.com/domain/intelligence/",
+    domainPageBaseUrl: "https://www.rayname.com/en/search",
     repository,
     now: () => now,
   });
@@ -126,7 +126,7 @@ describe("RayFox outbound route", () => {
 
     expect(response.status).toBe(302);
     expect(location).toContain(
-      "https://www.rayname.com/domain/intelligence/lucidgrid.ai?",
+      "https://www.rayname.com/en/search?q=lucidgrid.ai&",
     );
     expect(location).toContain("utm_content=limit");
     expect(repository.recordConversion).toHaveBeenCalledOnce();

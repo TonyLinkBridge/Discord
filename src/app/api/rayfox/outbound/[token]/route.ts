@@ -29,7 +29,7 @@ function notFound() {
 
 function continueDestination(baseUrl: string, normalizedDomain: string) {
   const url = new URL(baseUrl);
-  url.pathname = `${url.pathname.replace(/\/+$/, "")}/${encodeURIComponent(normalizedDomain)}`;
+  url.searchParams.set("q", normalizedDomain);
   return url.toString();
 }
 
