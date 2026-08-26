@@ -400,7 +400,7 @@ export async function handleDiscordInteraction(
         await dependencies.interactionClient.editOriginal({
           applicationId: dependencies.applicationId,
           interactionToken: token,
-          message: renderDomainComparison(outcome),
+          message: renderDomainComparison(outcome, component.ownerId),
         }).catch(() => undefined);
       },
     };

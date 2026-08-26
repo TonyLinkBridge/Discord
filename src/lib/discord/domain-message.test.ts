@@ -216,6 +216,28 @@ describe("RayFox domain result messages", () => {
 });
 
 describe("RayFox extension comparison messages", () => {
+  test("binds every comparison control to the original member", () => {
+    const requestId = "72345678-1234-4234-8234-123456789012";
+    const ownerId = "223456789012345678";
+    const message = renderDomainComparison({
+      status: "success",
+      requestId,
+      sort: "registration",
+      page: 2,
+      pageCount: 3,
+      rows: [],
+    }, ownerId);
+
+    const customIds = message.components
+      ?.flatMap((row) => row.components)
+      .flatMap((component) => component.custom_id ?? []) ?? [];
+    expect(customIds).toContain(
+      `rayfox_domain:compare:${requestId}:${ownerId}:registration:3`,
+    );
+    expect(customIds.every((customId) => customId.includes(`:${ownerId}:`)))
+      .toBe(true);
+  });
+
   test("renders five rows with sort and pagination controls", () => {
     const outcome: DomainComparisonOutcome = {
       status: "success",
@@ -234,7 +256,7 @@ describe("RayFox extension comparison messages", () => {
         checkedAt: baseResult.checkedAt,
       })),
     };
-    const message = renderDomainComparison(outcome);
+    const message = renderDomainComparison(outcome, "223456789012345678");
     expect(message.embeds?.[0]).toMatchObject({
       title: "Extension price board",
       footer: { text: "Page 2 of 3 · Sorted by registration" },
@@ -256,7 +278,7 @@ describe("RayFox extension comparison messages", () => {
       pageCount: 1,
       rows: [],
       testData: true,
-    });
+    }, "223456789012345678");
 
     expect(JSON.stringify(message)).toContain("not live RayName quotes");
     expect(message.embeds?.[0].footer?.text).toContain("TEST DATA");

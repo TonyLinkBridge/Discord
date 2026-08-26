@@ -283,14 +283,16 @@ function comparisonField(row: RayNameTldPrice): Field {
 
 function compareId(
   requestId: string,
+  ownerId: string,
   sort: DomainCompareSort,
   page: number,
 ) {
-  return `rayfox_domain:compare:${requestId}:${sort}:${page}`;
+  return `rayfox_domain:compare:${requestId}:${ownerId}:${sort}:${page}`;
 }
 
 export function renderDomainComparison(
   outcome: DomainComparisonOutcome,
+  ownerId: string,
 ): DiscordWebhookMessage {
   if (outcome.status !== "success") {
     return {
@@ -307,18 +309,18 @@ export function renderDomainComparison(
     .filter((sort) => sort !== outcome.sort)
     .map((sort) => customButton(
       `Sort: ${sort}`,
-      compareId(outcome.requestId, sort, 1),
+      compareId(outcome.requestId, ownerId, sort, 1),
     ));
   controls.push(
     customButton(
       "Previous",
-      compareId(outcome.requestId, outcome.sort, outcome.page - 1),
+      compareId(outcome.requestId, ownerId, outcome.sort, outcome.page - 1),
       2,
       outcome.page <= 1,
     ),
     customButton(
       "Next",
-      compareId(outcome.requestId, outcome.sort, outcome.page + 1),
+      compareId(outcome.requestId, ownerId, outcome.sort, outcome.page + 1),
       1,
       outcome.page >= outcome.pageCount,
     ),
