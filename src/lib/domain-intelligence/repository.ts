@@ -42,6 +42,7 @@ export type DomainQueryRepository = {
         requestId: string;
         result: DomainIntelligenceResult;
         completedAt: Date;
+        used: number;
       }
     | {
         status: "quota-rejected";
@@ -239,22 +240,33 @@ export function createNeonDomainQueryRepository(
           existing_request.id AS "requestId",
           existing_request.status::text AS state,
           NULL::jsonb AS result,
-          NULL::timestamptz AS "completedAt"
+          NULL::timestamptz AS "completedAt",
+          NULL::integer AS used
         FROM domain_query_requests existing_request
         WHERE existing_request.interaction_id = ${input.interactionId}
           AND NOT EXISTS (SELECT 1 FROM claimed_interaction)
         UNION ALL
         SELECT
-          'replay', replay.id, NULL, replay."resultSnapshot", replay."completedAt"
+          'replay', replay.id, NULL, replay."resultSnapshot", replay."completedAt",
+          (
+            SELECT count(*)::integer
+            FROM domain_query_requests successful
+            WHERE successful.guild_id = ${input.guildId}
+              AND successful.discord_user_id = ${input.discordUserId}
+              AND successful.usage_day = ${input.usageDay}::date
+              AND successful.status = 'succeeded'
+          )
         FROM replay
         UNION ALL
         SELECT
-          'started', inserted.id, NULL, NULL::jsonb, NULL::timestamptz
+          'started', inserted.id, NULL, NULL::jsonb, NULL::timestamptz,
+          NULL::integer
         FROM inserted
         WHERE inserted.status = 'started'
         UNION ALL
         SELECT
-          'quota-rejected', inserted.id, NULL, NULL::jsonb, NULL::timestamptz
+          'quota-rejected', inserted.id, NULL, NULL::jsonb, NULL::timestamptz,
+          ${input.limit}::integer
         FROM inserted
         WHERE inserted.status = 'quota_rejected'
       `);
@@ -265,6 +277,7 @@ export function createNeonDomainQueryRepository(
         state: StoredDomainQuery["status"] | null;
         result: DomainIntelligenceResult | null;
         completedAt: Date | string | null;
+        used: number | string | null;
       };
       let row = resultRows<BeginRow>(result)[0];
       if (!row) {
@@ -274,7 +287,8 @@ export function createNeonDomainQueryRepository(
             id AS "requestId",
             status::text AS state,
             NULL::jsonb AS result,
-            NULL::timestamptz AS "completedAt"
+            NULL::timestamptz AS "completedAt",
+            NULL::integer AS used
           FROM domain_query_requests
           WHERE interaction_id = ${input.interactionId}
         `);
@@ -302,6 +316,7 @@ export function createNeonDomainQueryRepository(
           requestId: row.requestId,
           result: row.result,
           completedAt: date(row.completedAt)!,
+          used: Math.min(Number(row.used ?? 0), input.limit),
         };
       }
       return {

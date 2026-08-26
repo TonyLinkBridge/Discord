@@ -161,6 +161,7 @@ describe("Neon domain query repository", () => {
       status: "replay",
       requestId: first.requestId,
       result,
+      used: 1,
     });
 
     await expect(
