@@ -23,6 +23,10 @@ export type StoredDomainQuery = {
   completedAt: Date | null;
 };
 
+export type StoredOwnedDomainQuery = StoredDomainQuery & {
+  used: number;
+};
+
 export type DomainQueryRepository = {
   begin(input: {
     interactionId: string;
@@ -71,7 +75,7 @@ export type DomainQueryRepository = {
   getOwnedQuery(input: {
     requestId: string;
     discordUserId: string;
-  }): Promise<StoredDomainQuery | null>;
+  }): Promise<StoredOwnedDomainQuery | null>;
   getQueryForOutbound(requestId: string): Promise<StoredDomainQuery | null>;
   recordConversion(input: {
     requestId: string;
@@ -105,6 +109,10 @@ type StoredQueryRow = {
   completedAt: Date | string | null;
 };
 
+type StoredOwnedQueryRow = StoredQueryRow & {
+  used: number | string;
+};
+
 function mapStoredQuery(row: StoredQueryRow): StoredDomainQuery {
   return {
     id: row.id,
@@ -114,6 +122,15 @@ function mapStoredQuery(row: StoredQueryRow): StoredDomainQuery {
     status: row.status,
     result: row.resultSnapshot,
     completedAt: date(row.completedAt),
+  };
+}
+
+function mapStoredOwnedQuery(row: StoredOwnedQueryRow): StoredOwnedDomainQuery {
+  const stored = mapStoredQuery(row);
+  const limit = stored.tier === "verified" ? 3 : 1;
+  return {
+    ...stored,
+    used: Math.min(Math.max(0, Number(row.used)), limit),
   };
 }
 
@@ -384,13 +401,28 @@ export function createNeonDomainQueryRepository(
 
     async getOwnedQuery(input) {
       const result = await database.execute(sql`
-        SELECT ${storedQueryColumns}
-        FROM domain_query_requests
-        WHERE id = ${input.requestId}
-          AND discord_user_id = ${input.discordUserId}
+        SELECT
+          owned.id,
+          owned.discord_user_id AS "discordUserId",
+          owned.normalized_domain AS "normalizedDomain",
+          owned.tier,
+          owned.status,
+          owned.result_snapshot AS "resultSnapshot",
+          owned.completed_at AS "completedAt",
+          (
+            SELECT count(*)::integer
+            FROM domain_query_requests successful
+            WHERE successful.guild_id = owned.guild_id
+              AND successful.discord_user_id = owned.discord_user_id
+              AND successful.usage_day = owned.usage_day
+              AND successful.status = 'succeeded'
+          ) AS used
+        FROM domain_query_requests owned
+        WHERE owned.id = ${input.requestId}
+          AND owned.discord_user_id = ${input.discordUserId}
       `);
-      const row = resultRows<StoredQueryRow>(result)[0];
-      return row ? mapStoredQuery(row) : null;
+      const row = resultRows<StoredOwnedQueryRow>(result)[0];
+      return row ? mapStoredOwnedQuery(row) : null;
     },
 
     async getQueryForOutbound(requestId) {

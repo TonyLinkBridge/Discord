@@ -344,6 +344,7 @@ describe("domain intelligence service comparison", () => {
         checkedAt: commercial.checkedAt,
       },
       completedAt: now,
+      used: 1,
     });
     const external = providers();
     vi.mocked(external.commerce.listTldPrices).mockResolvedValue(
@@ -398,6 +399,7 @@ describe("domain intelligence service comparison", () => {
         checkedAt: commercial.checkedAt,
       },
       completedAt: now,
+      used: 1,
     });
     const external = providers();
     vi.mocked(external.commerce.listTldPrices).mockResolvedValue([{

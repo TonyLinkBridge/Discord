@@ -245,6 +245,51 @@ describe("Neon domain query repository", () => {
     ]);
   });
 
+  test("reads accurate owned usage without changing the daily allowance", async () => {
+    const first = await begin({
+      interactionId: "overview-usage-1",
+      domain: "first.com",
+      tier: "verified",
+    });
+    if (first.status !== "started") throw new Error("Expected first reservation");
+    await repository().succeed({
+      requestId: first.requestId,
+      result,
+      providers: { commerce: "rayname" },
+      completedAt: new Date("2026-08-25T00:00:10.000Z"),
+      limit: 3,
+    });
+
+    const second = await begin({
+      interactionId: "overview-usage-2",
+      domain: "second.com",
+      tier: "verified",
+    });
+    if (second.status !== "started") throw new Error("Expected second reservation");
+    await repository().succeed({
+      requestId: second.requestId,
+      result,
+      providers: { commerce: "rayname" },
+      completedAt: new Date("2026-08-25T00:00:20.000Z"),
+      limit: 3,
+    });
+
+    const before = await client.query<{ reserved_count: number }>(
+      "select reserved_count from domain_query_daily_usage where guild_id = $1 and discord_user_id = $2",
+      [guildId, userId],
+    );
+    await expect(repository().getOwnedQuery({
+      requestId: first.requestId,
+      discordUserId: userId,
+    })).resolves.toMatchObject({ id: first.requestId, used: 2 });
+    const after = await client.query<{ reserved_count: number }>(
+      "select reserved_count from domain_query_daily_usage where guild_id = $1 and discord_user_id = $2",
+      [guildId, userId],
+    );
+
+    expect(after.rows).toEqual(before.rows);
+  });
+
   test("stores only the normalized result rather than raw registration data", async () => {
     const started = await begin({ interactionId: "safe-snapshot" });
     if (started.status !== "started") throw new Error("Expected reservation");
