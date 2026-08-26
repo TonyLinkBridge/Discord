@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   createRayfoxSetupPost,
+  getRayfoxSetupConfig,
   runRayfoxSetup,
   updateDiscordInteractionEndpoint,
 } from "./route";
@@ -21,6 +22,21 @@ function request(authorization = `Bearer ${setupSecret}`): Request {
 }
 
 describe("RayFox preview setup route", () => {
+  test("uses the stable Vercel branch URL for the Discord callback", () => {
+    expect(getRayfoxSetupConfig({
+      VERCEL_ENV: "preview",
+      VERCEL_URL: "discord-deployment-juyu.vercel.app",
+      VERCEL_BRANCH_URL: "discord-git-domain-preview-juyu.vercel.app",
+      RAYFOX_DOMAIN_INTELLIGENCE_MODE: "internal",
+      RAYFOX_DOMAIN_TEST_DATA: "enabled",
+      RAYFOX_SETUP_KEY: setupSecret,
+    })).toEqual({
+      configured: true,
+      setupSecret,
+      previewHost: "discord-git-domain-preview-juyu.vercel.app",
+    });
+  });
+
   test("fails closed outside an internal Vercel Preview", async () => {
     const run = vi.fn();
     const post = createRayfoxSetupPost({

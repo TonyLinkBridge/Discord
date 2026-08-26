@@ -43,7 +43,8 @@ export function getRayfoxSetupConfig(
   env: Record<string, string | undefined>,
 ): SetupConfig {
   const setupSecret = env.RAYFOX_SETUP_KEY ?? "";
-  const previewHost = env.VERCEL_URL?.trim() ?? "";
+  const previewHost =
+    env.VERCEL_BRANCH_URL?.trim() || env.VERCEL_URL?.trim() || "";
   if (
     env.VERCEL_ENV !== "preview" ||
     env.RAYFOX_DOMAIN_INTELLIGENCE_MODE !== "internal" ||
