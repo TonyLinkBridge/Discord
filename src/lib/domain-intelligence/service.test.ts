@@ -104,6 +104,7 @@ function service(input: {
   mode?: "internal" | "public";
   enabled?: boolean;
   testData?: boolean;
+  betaRoleIds?: string[];
   repository?: DomainQueryRepository;
   providers?: ReturnType<typeof providers>;
 }) {
@@ -118,7 +119,7 @@ function service(input: {
         : {
             enabled: true,
             mode: input.mode ?? "internal",
-            betaRoleIds: [betaRoleId],
+            betaRoleIds: input.betaRoleIds ?? [betaRoleId],
             verifiedRoleId,
             ...(input.testData ? { testData: true as const } : {}),
           },
@@ -161,6 +162,15 @@ describe("domain intelligence service search", () => {
     await expect(publicService.service.search(searchInput([]))).resolves.toMatchObject({
       status: "success",
     });
+  });
+
+  test("treats the guild @everyone role as an internal beta audience", async () => {
+    const guildId = "1540610722281824336";
+    const internal = service({ betaRoleIds: [guildId] });
+
+    await expect(
+      internal.service.search({ ...searchInput([]), guildId }),
+    ).resolves.toMatchObject({ status: "success" });
   });
 
   test("rejects invalid input before reserving allowance", async () => {

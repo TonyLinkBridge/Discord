@@ -160,12 +160,13 @@ export function createDomainIntelligenceService(
 ): DomainIntelligenceService {
   return {
     async search(input) {
-      if (!dependencies.config.enabled) return { status: "not-enabled" };
+      const config = dependencies.config;
+      if (!config.enabled) return { status: "not-enabled" };
       if (
-        dependencies.config.mode === "internal" &&
+        config.mode === "internal" &&
+        !config.betaRoleIds.includes(input.guildId) &&
         !input.roleIds.some((roleId) =>
-          dependencies.config.enabled &&
-          dependencies.config.betaRoleIds.includes(roleId),
+          config.betaRoleIds.includes(roleId)
         )
       ) {
         return { status: "not-enabled" };
@@ -174,7 +175,7 @@ export function createDomainIntelligenceService(
       const normalized = normalizeDomain(input.rawDomain);
       if (!normalized.valid) return { status: "invalid" };
 
-      const verified = input.roleIds.includes(dependencies.config.verifiedRoleId);
+      const verified = input.roleIds.includes(config.verifiedRoleId);
       const tier = verified ? "verified" as const : "member" as const;
       const limit = verified ? 3 as const : 1 as const;
       const startedAt = dependencies.now();
