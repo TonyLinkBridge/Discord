@@ -11,11 +11,13 @@ export type DomainIntelligenceConfig =
       readonly commerceApiBaseUrl: string;
       readonly commerceApiToken: string;
       readonly domainPageBaseUrl: string;
+      readonly publicBaseUrl: string;
       readonly linkSigningKey: string;
       safe: {
         mode: "internal" | "public";
         commerceHost: string;
         domainPageHost: string;
+        publicHost: string;
       };
     };
 
@@ -74,6 +76,36 @@ function parseDomainPageBaseUrl(raw: string): URL | null {
   }
 }
 
+function parsePublicBaseUrl(
+  raw: string,
+  nodeEnv: string | undefined,
+): URL | null {
+  try {
+    const url = new URL(raw);
+    if (
+      url.pathname !== "/" ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      return null;
+    }
+    if (nodeEnv === "production") {
+      return url.protocol === "https:" && isRayNameHost(url.hostname)
+        ? url
+        : null;
+    }
+    return url.protocol === "http:" &&
+      url.hostname === "127.0.0.1" &&
+      url.port.length > 0
+      ? url
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseBetaRoleIds(raw: string | undefined): string[] | null {
   const values = [...new Set((raw ?? "").split(",").map((value) => value.trim()).filter(Boolean))];
   return values.every((value) => discordIdPattern.test(value)) ? values : null;
@@ -112,6 +144,12 @@ export function getDomainIntelligenceConfig(
     return unavailable("RAYNAME_DOMAIN_PAGE_BASE_URL is invalid");
   }
 
+  const publicBaseUrl = env.RAYFOX_PUBLIC_BASE_URL?.trim() ?? "";
+  const publicUrl = parsePublicBaseUrl(publicBaseUrl, env.NODE_ENV);
+  if (!publicUrl) {
+    return unavailable("RAYFOX_PUBLIC_BASE_URL is invalid");
+  }
+
   const linkSigningKey = env.RAYFOX_LINK_SIGNING_KEY?.trim() ?? "";
   if (Buffer.from(linkSigningKey, "base64").length !== 32) {
     return unavailable("RAYFOX_LINK_SIGNING_KEY is invalid");
@@ -125,6 +163,7 @@ export function getDomainIntelligenceConfig(
       mode,
       commerceHost: commerceUrl.hostname,
       domainPageHost: domainPageUrl.hostname,
+      publicHost: publicUrl.hostname,
     },
   } as Extract<DomainIntelligenceConfig, { configured: true }>;
 
@@ -132,6 +171,7 @@ export function getDomainIntelligenceConfig(
     commerceApiBaseUrl,
     commerceApiToken,
     domainPageBaseUrl,
+    publicBaseUrl: publicUrl.origin,
     linkSigningKey,
   })) {
     Object.defineProperty(configured, key, {

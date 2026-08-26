@@ -29,7 +29,9 @@ export function rayNameDestinationError(destination: string): string | null {
   return null;
 }
 
-export function buildTrackedRayNameUrl(input: TrackingInput): string {
+export function buildTrackedRayNameUrl(
+  input: TrackingInput & { attributionId?: string },
+): string {
   const { failure, url } = inspectRayNameDestination(input.destination);
 
   if (failure || !url) {
@@ -38,6 +40,12 @@ export function buildTrackedRayNameUrl(input: TrackingInput): string {
   }
 
   const parameters = new URLSearchParams(url.search);
+  if (input.attributionId) {
+    if (!/^[0-9a-f-]{36}$/i.test(input.attributionId)) {
+      throw new Error("Tracking attribution identifiers must be safe UUIDs.");
+    }
+    parameters.set("rayfox_id", input.attributionId);
+  }
   parameters.set("utm_campaign", input.campaign);
   parameters.set("utm_content", input.content);
   parameters.set("utm_medium", input.medium);

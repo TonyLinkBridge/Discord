@@ -1,5 +1,7 @@
 import { after } from "next/server";
 
+import { getDomainIntelligenceConfig } from "@/lib/domain-intelligence/config";
+import { createDomainOutcomeLinks } from "@/lib/domain-intelligence/outbound-links";
 import { createDomainIntelligenceRuntime } from "@/lib/domain-intelligence/runtime";
 import { getDiscordRuntimeConfig } from "@/lib/discord/config";
 import type { DiscordRuntimeConfig } from "@/lib/discord/config";
@@ -74,6 +76,7 @@ export const POST = createDiscordInteractionsPost({
       };
     }
     const domainIntelligence = createDomainIntelligenceRuntime();
+    const domainConfig = getDomainIntelligenceConfig(process.env);
     return handleDiscordInteraction(interaction, {
       guildId: verification.config.guildId,
       applicationId: verification.config.applicationId,
@@ -87,7 +90,14 @@ export const POST = createDiscordInteractionsPost({
       interactionClient: createDiscordInteractionClient({
         apiBaseUrl: verification.config.apiBaseUrl,
       }),
-      buildLinks: () => ({ primary: null, fullIntelligence: null }),
+      buildLinks: ({ outcome }) => domainConfig.configured
+        ? createDomainOutcomeLinks({
+            outcome,
+            publicBaseUrl: domainConfig.publicBaseUrl,
+            signingKey: domainConfig.linkSigningKey,
+            now: new Date(),
+          })
+        : { primary: null, fullIntelligence: null },
     });
   },
 });

@@ -24,6 +24,7 @@ const domainEnv = {
   RAYNAME_COMMERCE_API_BASE_URL: "http://127.0.0.1:3115",
   RAYNAME_COMMERCE_API_TOKEN: "test-token-at-least-20-characters",
   RAYNAME_DOMAIN_PAGE_BASE_URL: "https://www.rayname.com/domain/search",
+  RAYFOX_PUBLIC_BASE_URL: "http://127.0.0.1:3000",
   RAYFOX_LINK_SIGNING_KEY: Buffer.alloc(32, 9).toString("base64"),
 };
 

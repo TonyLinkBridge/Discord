@@ -9,6 +9,7 @@ const validEnv = {
   RAYNAME_COMMERCE_API_BASE_URL: "https://api.rayname.com",
   RAYNAME_COMMERCE_API_TOKEN: "test-token-at-least-20-characters",
   RAYNAME_DOMAIN_PAGE_BASE_URL: "https://www.rayname.com/domain/search",
+  RAYFOX_PUBLIC_BASE_URL: "https://bot.rayname.com",
   RAYFOX_LINK_SIGNING_KEY: Buffer.alloc(32, 9).toString("base64"),
 };
 
@@ -24,6 +25,7 @@ describe("getDomainIntelligenceConfig", () => {
         mode: "internal",
         commerceHost: "api.rayname.com",
         domainPageHost: "www.rayname.com",
+        publicHost: "bot.rayname.com",
       },
     });
     expect(JSON.stringify(result)).not.toContain("test-token");
@@ -58,6 +60,8 @@ describe("getDomainIntelligenceConfig", () => {
     { RAYNAME_COMMERCE_API_BASE_URL: "https://api.rayname.com/v1" },
     { RAYNAME_DOMAIN_PAGE_BASE_URL: "https://example.com/domain/search" },
     { RAYNAME_DOMAIN_PAGE_BASE_URL: "http://www.rayname.com/domain/search" },
+    { RAYFOX_PUBLIC_BASE_URL: "https://example.com" },
+    { RAYFOX_PUBLIC_BASE_URL: "https://bot.rayname.com/path" },
     { RAYNAME_COMMERCE_API_TOKEN: "short" },
     { RAYFOX_LINK_SIGNING_KEY: Buffer.alloc(31, 9).toString("base64") },
   ])("fails closed for invalid production configuration %#", (override) => {
@@ -72,11 +76,12 @@ describe("getDomainIntelligenceConfig", () => {
       ...validEnv,
       NODE_ENV: "development",
       RAYNAME_COMMERCE_API_BASE_URL: "http://127.0.0.1:3115",
+      RAYFOX_PUBLIC_BASE_URL: "http://127.0.0.1:3000",
     });
 
     expect(result).toMatchObject({
       configured: true,
-      safe: { commerceHost: "127.0.0.1" },
+      safe: { commerceHost: "127.0.0.1", publicHost: "127.0.0.1" },
     });
   });
 
