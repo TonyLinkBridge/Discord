@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:domain-intelligence:e2e": "node scripts/run-domain-intelligence-e2e.mjs",
     "discord:register": "node scripts/register-discord-commands.mjs"
   },
   "keywords": [],

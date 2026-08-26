@@ -92,6 +92,96 @@ To pause automatic sync without deleting member data, remove only the member-syn
 
 No Railway service is required. Vercel runs the daily Cron and manual Server Action, while Neon stores snapshots. This design is appropriate for a daily job, not a permanently connected Discord gateway bot.
 
+## RayFox Domain Intelligence release
+
+Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled` until every gate below passes. The feature requires these additional sensitive production settings:
+
+- `RAYFOX_DOMAIN_BETA_ROLE_IDS`: comma-separated Discord role IDs used during the internal beta.
+- `RAYNAME_COMMERCE_API_BASE_URL`: server-to-server RayName commerce API origin.
+- `RAYNAME_COMMERCE_API_TOKEN`: private bearer token for that API.
+- `RAYNAME_DOMAIN_PAGE_BASE_URL`: stable RayName page used when a member continues on the website.
+- `RAYFOX_PUBLIC_BASE_URL`: HTTPS RayName origin serving `/api/rayfox/outbound`; for example `https://bot.rayname.com`.
+- `RAYFOX_LINK_SIGNING_KEY`: independent base64-encoded random 32-byte key for 24-hour outbound link signatures.
+
+Release in this order:
+
+1. Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled`.
+2. Create a disposable Neon branch, verify its branch ID differs from production, and apply `npm run db:migrate` to that branch.
+3. Run unit, integration, type, lint, production-build, and domain E2E gates against the disposable branch.
+4. Point the contract suite at RayName's non-production provider and verify all responses without using production transactions.
+5. Register both guild commands with `npm run discord:register`.
+6. Set the mode to `internal`, provide only the selected beta role IDs, and deploy.
+7. Test one normal account and one Verified Customer account. Confirm 1/day and 3/day limits, private replies, provider latency, signed outbound attribution, and safe provider failure behavior.
+8. Set the mode to `public` only after RayName supplies and passes all seven dependencies below.
+9. To roll back, set the mode to `disabled` before reverting application code. Retain query, usage, interaction-claim, and conversion audit rows.
+
+Run the controlled journey only against the disposable Neon branch:
+
+```bash
+VERIFICATION_TEST_DATABASE_URL="<temporary Neon branch URL>" \
+VERIFICATION_TEST_BRANCH_ID="<temporary Neon branch ID>" \
+VERIFICATION_PRODUCTION_BRANCH_ID="<production Neon branch ID>" \
+npm run test:domain-intelligence:e2e
+```
+
+The runner asks Neon for the actual branch ID before cleanup. It refuses the production branch, fixed production connection configuration, non-Neon databases, or a branch-ID mismatch. RayName and Discord are replaced by deterministic services bound only to `127.0.0.1`; no real purchase, transfer, Discord message, or role mutation occurs.
+
+Public release remains blocked until RayName provides:
+
+1. server-authenticated availability and Premium lookup;
+2. registration, renewal, and transfer prices with currency;
+3. Premium registration and renewal pricing semantics;
+4. transfer eligibility or an explicit `unknown` result;
+5. a stable prefilled domain-page URL contract;
+6. a non-production environment or deterministic fixture;
+7. documented timeout, rate-limit, error, and freshness behavior.
+
+Click events are not registrations, transfers, or revenue.
+
+Read-only monitoring queries must aggregate away Discord identity and full domain labels:
+
+```sql
+-- Search outcomes by member tier.
+SELECT tier, status, count(*)::bigint AS searches
+FROM domain_query_requests
+GROUP BY tier, status
+ORDER BY tier, status;
+
+-- Unique querying members; identity values are not returned.
+SELECT count(DISTINCT discord_user_id)::bigint AS unique_querying_members
+FROM domain_query_requests;
+
+-- Top suffixes only; never return a complete domain label.
+SELECT lower(regexp_replace(normalized_domain, '^.*\.', '')) AS tld,
+       count(*)::bigint AS searches
+FROM domain_query_requests
+GROUP BY tld
+ORDER BY searches DESC, tld
+LIMIT 25;
+
+-- Outbound intent only, not completed commerce.
+SELECT action, count(*)::bigint AS outbound_clicks
+FROM domain_conversion_events
+GROUP BY action
+ORDER BY action;
+
+-- Safe fixed provider failure codes.
+SELECT safe_error_code, count(*)::bigint AS failures
+FROM domain_query_requests
+WHERE status = 'failed' AND safe_error_code IS NOT NULL
+GROUP BY safe_error_code
+ORDER BY failures DESC, safe_error_code;
+
+-- Latest recorded provider freshness without result snapshots or destinations.
+SELECT provider.key AS provider,
+       max(provider.value) AS latest_freshness
+FROM domain_query_requests request
+CROSS JOIN LATERAL jsonb_each_text(request.provider_summary) AS provider(key, value)
+WHERE request.status = 'succeeded'
+GROUP BY provider.key
+ORDER BY provider.key;
+```
+
 ## Rotation and recovery
 
 - Rotate a Discord bot token in Discord first, replace `DISCORD_BOT_TOKEN` in Vercel, redeploy, then revoke the old token. A token shown in any output is compromised.
