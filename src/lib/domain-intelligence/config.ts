@@ -7,6 +7,7 @@ export type DomainIntelligenceConfig =
   | {
       configured: true;
       mode: "internal" | "public";
+      testData: boolean;
       betaRoleIds: string[];
       readonly commerceApiBaseUrl: string;
       readonly commerceApiToken: string;
@@ -79,6 +80,8 @@ function parseDomainPageBaseUrl(raw: string): URL | null {
 function parsePublicBaseUrl(
   raw: string,
   nodeEnv: string | undefined,
+  vercelEnv: string | undefined,
+  vercelUrl: string | undefined,
 ): URL | null {
   try {
     const url = new URL(raw);
@@ -92,9 +95,17 @@ function parsePublicBaseUrl(
       return null;
     }
     if (nodeEnv === "production") {
-      return url.protocol === "https:" && isRayNameHost(url.hostname)
-        ? url
-        : null;
+      if (url.protocol !== "https:") return null;
+      if (isRayNameHost(url.hostname)) return url;
+      if (
+        vercelEnv === "preview" &&
+        vercelUrl &&
+        url.hostname === vercelUrl &&
+        url.hostname.endsWith(".vercel.app")
+      ) {
+        return url;
+      }
+      return null;
     }
     return url.protocol === "http:" &&
       url.hostname === "127.0.0.1" &&
@@ -127,14 +138,30 @@ export function getDomainIntelligenceConfig(
     return unavailable("RAYFOX_DOMAIN_BETA_ROLE_IDS is invalid");
   }
 
+  const testDataSetting = env.RAYFOX_DOMAIN_TEST_DATA?.trim() ?? "disabled";
+  if (testDataSetting !== "disabled" && testDataSetting !== "enabled") {
+    return unavailable("RAYFOX_DOMAIN_TEST_DATA is invalid");
+  }
+  const testData = testDataSetting === "enabled";
+  if (
+    testData &&
+    (mode !== "internal" ||
+      env.VERCEL_ENV !== "preview" ||
+      !env.VERCEL_URL?.endsWith(".vercel.app"))
+  ) {
+    return unavailable("RAYFOX_DOMAIN_TEST_DATA is allowed only in an internal Vercel Preview");
+  }
+
   const commerceApiBaseUrl = env.RAYNAME_COMMERCE_API_BASE_URL?.trim() ?? "";
-  const commerceUrl = parseCommerceBaseUrl(commerceApiBaseUrl, env.NODE_ENV);
-  if (!commerceUrl) {
+  const commerceUrl = testData
+    ? null
+    : parseCommerceBaseUrl(commerceApiBaseUrl, env.NODE_ENV);
+  if (!testData && !commerceUrl) {
     return unavailable("RAYNAME_COMMERCE_API_BASE_URL is invalid");
   }
 
   const commerceApiToken = env.RAYNAME_COMMERCE_API_TOKEN?.trim() ?? "";
-  if (commerceApiToken.length < 20) {
+  if (!testData && commerceApiToken.length < 20) {
     return unavailable("RAYNAME_COMMERCE_API_TOKEN is invalid");
   }
 
@@ -145,9 +172,17 @@ export function getDomainIntelligenceConfig(
   }
 
   const publicBaseUrl = env.RAYFOX_PUBLIC_BASE_URL?.trim() ?? "";
-  const publicUrl = parsePublicBaseUrl(publicBaseUrl, env.NODE_ENV);
+  const publicUrl = parsePublicBaseUrl(
+    publicBaseUrl,
+    env.NODE_ENV,
+    env.VERCEL_ENV,
+    env.VERCEL_URL,
+  );
   if (!publicUrl) {
     return unavailable("RAYFOX_PUBLIC_BASE_URL is invalid");
+  }
+  if (testData && publicUrl.hostname !== env.VERCEL_URL) {
+    return unavailable("RAYFOX_PUBLIC_BASE_URL must match the Vercel Preview");
   }
 
   const linkSigningKey = env.RAYFOX_LINK_SIGNING_KEY?.trim() ?? "";
@@ -158,10 +193,11 @@ export function getDomainIntelligenceConfig(
   const configured = {
     configured: true as const,
     mode,
+    testData,
     betaRoleIds,
     safe: {
       mode,
-      commerceHost: commerceUrl.hostname,
+      commerceHost: commerceUrl?.hostname ?? "internal-test-data",
       domainPageHost: domainPageUrl.hostname,
       publicHost: publicUrl.hostname,
     },

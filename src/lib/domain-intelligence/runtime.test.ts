@@ -73,4 +73,27 @@ describe("domain intelligence runtime", () => {
       expect(JSON.stringify(runtime.config)).not.toContain("postgresql://");
     }
   });
+
+  test("composes the isolated fixture provider only for an explicit Preview", () => {
+    const runtime = createDomainIntelligenceRuntime({
+      ...domainEnv,
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+      VERCEL_URL: "discord-preview-juyu.vercel.app",
+      RAYFOX_DOMAIN_TEST_DATA: "enabled",
+      RAYNAME_COMMERCE_API_BASE_URL: undefined,
+      RAYNAME_COMMERCE_API_TOKEN: undefined,
+      RAYNAME_DOMAIN_PAGE_BASE_URL: "https://www.rayname.com/en/search",
+      RAYFOX_PUBLIC_BASE_URL: "https://discord-preview-juyu.vercel.app",
+    }, vi.fn());
+
+    expect(runtime).toMatchObject({
+      ready: true,
+      config: {
+        mode: "internal",
+        testData: true,
+        commerceHost: "internal-test-data",
+      },
+    });
+  });
 });

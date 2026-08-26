@@ -103,6 +103,12 @@ Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled` until every gate below passes. T
 - `RAYFOX_PUBLIC_BASE_URL`: HTTPS RayName origin serving `/api/rayfox/outbound`; for example `https://bot.rayname.com`.
 - `RAYFOX_LINK_SIGNING_KEY`: independent base64-encoded random 32-byte key for 24-hour outbound link signatures.
 
+For a Discord-only internal acceptance test, a Vercel Preview may set
+`RAYFOX_DOMAIN_TEST_DATA=enabled`. The application accepts this flag only when
+`VERCEL_ENV=preview`, the public base URL exactly matches `VERCEL_URL`, and the
+feature mode is `internal`. Messages and stored provider summaries identify the
+results as fixture data. Production and public mode reject the flag.
+
 Release in this order:
 
 1. Keep `RAYFOX_DOMAIN_INTELLIGENCE_MODE=disabled`.

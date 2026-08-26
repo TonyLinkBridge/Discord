@@ -103,6 +103,7 @@ function providers() {
 function service(input: {
   mode?: "internal" | "public";
   enabled?: boolean;
+  testData?: boolean;
   repository?: DomainQueryRepository;
   providers?: ReturnType<typeof providers>;
 }) {
@@ -119,6 +120,7 @@ function service(input: {
             mode: input.mode ?? "internal",
             betaRoleIds: [betaRoleId],
             verifiedRoleId,
+            ...(input.testData ? { testData: true as const } : {}),
           },
       repository: data,
       commerce: external.commerce,
@@ -268,6 +270,20 @@ describe("domain intelligence service search", () => {
     }));
   });
 
+  test("marks fixture outcomes and records the provider as fixture data", async () => {
+    const setup = service({ testData: true });
+
+    await expect(setup.service.search(searchInput())).resolves.toMatchObject({
+      status: "success",
+      testData: true,
+    });
+    expect(setup.data.succeed).toHaveBeenCalledWith(expect.objectContaining({
+      providers: expect.objectContaining({
+        commerce: "fixture:2026-08-26T00:00:00.000Z",
+      }),
+    }));
+  });
+
   test("replays a stored result without calling any provider or consuming allowance", async () => {
     const stored: DomainIntelligenceResult = {
       domain: { ascii: "example.com", unicode: "example.com", label: "example", tld: "com" },
@@ -353,6 +369,45 @@ describe("domain intelligence service comparison", () => {
         expect.objectContaining({ tld: ".io" }),
       ],
     });
+  });
+
+  test("marks fixture comparison rows as test data", async () => {
+    const data = repository();
+    vi.mocked(data.getOwnedQuery).mockResolvedValue({
+      id: "request-1",
+      discordUserId: "223456789012345678",
+      normalizedDomain: "example.com",
+      tier: "member",
+      status: "succeeded",
+      result: {
+        domain: { ascii: "example.com", unicode: "example.com", label: "example", tld: "com" },
+        commercial,
+        registration: null,
+        dns: null,
+        certificate: null,
+        checkedAt: commercial.checkedAt,
+      },
+      completedAt: now,
+    });
+    const external = providers();
+    vi.mocked(external.commerce.listTldPrices).mockResolvedValue([{
+      tld: ".com",
+      availability: "available",
+      premium: false,
+      registrationPrice: { amount: "12.99", currency: "USD" },
+      renewalPrice: { amount: "14.99", currency: "USD" },
+      transferPrice: { amount: "11.99", currency: "USD" },
+      destination: "https://www.rayname.com/en/search?q=example.com",
+      checkedAt: commercial.checkedAt,
+    }]);
+    const setup = service({ testData: true, repository: data, providers: external });
+
+    await expect(setup.service.compare({
+      requestId: "request-1",
+      discordUserId: "223456789012345678",
+      sort: "registration",
+      page: 1,
+    })).resolves.toMatchObject({ status: "success", testData: true });
   });
 
   test("does not expose another member's query or call the provider", async () => {

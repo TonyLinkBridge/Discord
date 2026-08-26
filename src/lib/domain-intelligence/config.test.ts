@@ -85,6 +85,46 @@ describe("getDomainIntelligenceConfig", () => {
     });
   });
 
+  test("accepts explicit test data only on the matching Vercel preview", () => {
+    const result = getDomainIntelligenceConfig({
+      ...validEnv,
+      VERCEL_ENV: "preview",
+      VERCEL_URL: "discord-preview-juyu.vercel.app",
+      RAYFOX_DOMAIN_TEST_DATA: "enabled",
+      RAYNAME_COMMERCE_API_BASE_URL: undefined,
+      RAYNAME_COMMERCE_API_TOKEN: undefined,
+      RAYFOX_PUBLIC_BASE_URL: "https://discord-preview-juyu.vercel.app",
+    });
+
+    expect(result).toMatchObject({
+      configured: true,
+      mode: "internal",
+      testData: true,
+      safe: {
+        commerceHost: "internal-test-data",
+        publicHost: "discord-preview-juyu.vercel.app",
+      },
+    });
+  });
+
+  test.each([
+    { VERCEL_ENV: "production" },
+    { RAYFOX_DOMAIN_INTELLIGENCE_MODE: "public" },
+    { VERCEL_URL: "different-preview.vercel.app" },
+    { RAYFOX_PUBLIC_BASE_URL: "https://attacker.example" },
+  ])("rejects test data outside its exact internal Preview boundary %#", (override) => {
+    expect(getDomainIntelligenceConfig({
+      ...validEnv,
+      VERCEL_ENV: "preview",
+      VERCEL_URL: "discord-preview-juyu.vercel.app",
+      RAYFOX_DOMAIN_TEST_DATA: "enabled",
+      RAYNAME_COMMERCE_API_BASE_URL: undefined,
+      RAYNAME_COMMERCE_API_TOKEN: undefined,
+      RAYFOX_PUBLIC_BASE_URL: "https://discord-preview-juyu.vercel.app",
+      ...override,
+    })).toMatchObject({ configured: false, mode: "disabled" });
+  });
+
   test.each([
     "http://localhost:3115",
     "http://0.0.0.0:3115",

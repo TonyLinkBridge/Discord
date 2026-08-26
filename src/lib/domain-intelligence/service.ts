@@ -24,6 +24,7 @@ export type DomainIntelligenceServiceConfig =
       mode: "internal" | "public";
       betaRoleIds: string[];
       verifiedRoleId: string;
+      testData?: true;
     };
 
 export type DomainSearchInput = {
@@ -42,6 +43,7 @@ export type DomainSearchOutcome =
       replayed: boolean;
       used: number;
       limit: 1 | 3;
+      testData?: true;
     }
   | {
       status: "quota-rejected";
@@ -64,6 +66,7 @@ export type DomainComparisonOutcome =
       page: number;
       pageCount: number;
       rows: RayNameTldPrice[];
+      testData?: true;
     }
   | {
       status: "not-owned" | "unavailable" | "not-enabled";
@@ -106,9 +109,10 @@ function providerSummary(input: {
   registration: RegistrationFacts | null;
   dns: DnsSummary | null;
   certificate: CertificateSummary | null;
+  testData: boolean;
 }) {
   const summary: Record<string, string> = {
-    commerce: `rayname:${input.commercial.checkedAt}`,
+    commerce: `${input.testData ? "fixture" : "rayname"}:${input.commercial.checkedAt}`,
   };
   if (input.registration?.source) {
     summary.registration =
@@ -206,6 +210,9 @@ export function createDomainIntelligenceService(
           replayed: true,
           used: reservation.used,
           limit,
+          ...(dependencies.config.enabled && dependencies.config.testData
+            ? { testData: true as const }
+            : {}),
         };
       }
       if (reservation.status === "duplicate") {
@@ -274,6 +281,8 @@ export function createDomainIntelligenceService(
             registration: registrationFacts,
             dns: dnsSummary,
             certificate: certificateSummary,
+            testData: dependencies.config.enabled &&
+              dependencies.config.testData === true,
           }),
           completedAt: dependencies.now(),
           limit,
@@ -285,6 +294,9 @@ export function createDomainIntelligenceService(
           replayed: false,
           used: allowance.used,
           limit: allowance.limit,
+          ...(dependencies.config.enabled && dependencies.config.testData
+            ? { testData: true as const }
+            : {}),
         };
       } catch {
         await dependencies.repository.fail({
@@ -335,6 +347,9 @@ export function createDomainIntelligenceService(
         page,
         pageCount,
         rows: sorted.slice((page - 1) * 5, page * 5),
+        ...(dependencies.config.enabled && dependencies.config.testData
+          ? { testData: true as const }
+          : {}),
       };
     },
   };

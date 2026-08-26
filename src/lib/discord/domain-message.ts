@@ -93,7 +93,7 @@ function actionRows(buttons: Button[]): DiscordWebhookMessage["components"] {
   ];
 }
 
-function statusCopy(result: DomainIntelligenceResult) {
+function statusCopy(result: DomainIntelligenceResult, testData: boolean) {
   const status = result.commercial.availability;
   const label = status === "available"
     ? "Available"
@@ -103,6 +103,9 @@ function statusCopy(result: DomainIntelligenceResult) {
         ? "Reserved"
         : "Status unavailable";
   return [
+    ...(testData
+      ? ["🧪 **Internal beta · Test data**", "Prices below are fixtures—not live RayName quotes."]
+      : []),
     `**${label}**`,
     ...(result.commercial.premium ? ["✨ **Premium domain**"] : []),
     `RayName pricing · checked ${result.commercial.checkedAt.slice(0, 16).replace("T", " ")} UTC`,
@@ -204,11 +207,11 @@ export function renderDomainOutcome(
     return {
       embeds: [{
         title: clipped(outcome.result.domain.unicode, 256),
-        description: statusCopy(outcome.result),
+        description: statusCopy(outcome.result, outcome.testData === true),
         color: rayNamePurple,
         fields: intelligenceFields(outcome.result),
         footer: {
-          text: `${Math.max(0, outcome.limit - outcome.used)} of ${outcome.limit} searches left today${outcome.replayed ? " · Fresh replay" : ""}`,
+          text: `${outcome.testData ? "TEST DATA · " : ""}${Math.max(0, outcome.limit - outcome.used)} of ${outcome.limit} searches left today${outcome.replayed ? " · Fresh replay" : ""}`,
         },
       }],
       components: actionRows(resultButtons(outcome, links)),
@@ -324,11 +327,13 @@ export function renderDomainComparison(
   return {
     embeds: [{
       title: "Extension price board",
-      description: "Live RayName prices for the same name across supported extensions.",
+      description: outcome.testData
+        ? "🧪 **Internal beta · Test data**\nThese are fixtures—not live RayName quotes."
+        : "Live RayName prices for the same name across supported extensions.",
       color: rayNamePurple,
       fields: outcome.rows.slice(0, 5).map(comparisonField),
       footer: {
-        text: `Page ${outcome.page} of ${outcome.pageCount} · Sorted by ${outcome.sort}`,
+        text: `${outcome.testData ? "TEST DATA · " : ""}Page ${outcome.page} of ${outcome.pageCount} · Sorted by ${outcome.sort}`,
       },
     }],
     components: actionRows(controls),

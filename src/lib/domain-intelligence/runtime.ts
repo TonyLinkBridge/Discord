@@ -7,6 +7,7 @@ import { createCertificateClient } from "./certificate-client";
 import { getDomainIntelligenceConfig } from "./config";
 import { createDnsClient } from "./dns-client";
 import { createRayNameCommerceClient } from "./rayname-client";
+import { createRayNameFixtureProvider } from "./rayname-fixture-provider";
 import {
   createNeonDomainQueryRepository,
   type DomainQueryDatabase,
@@ -22,6 +23,7 @@ export type DomainIntelligenceRuntime =
       ready: true;
       config: {
         mode: "internal" | "public";
+        testData: boolean;
         betaRoleIds: string[];
         verifiedRoleId: string;
         commerceHost: string;
@@ -58,15 +60,18 @@ export function createDomainIntelligenceRuntime(
       mode: domainConfig.mode,
       betaRoleIds: domainConfig.betaRoleIds,
       verifiedRoleId,
+      ...(domainConfig.testData ? { testData: true as const } : {}),
     },
     repository,
-    commerce: createRayNameCommerceClient(
-      {
-        apiBaseUrl: domainConfig.commerceApiBaseUrl,
-        apiToken: domainConfig.commerceApiToken,
-      },
-      fetchImpl,
-    ),
+    commerce: domainConfig.testData
+      ? createRayNameFixtureProvider()
+      : createRayNameCommerceClient(
+          {
+            apiBaseUrl: domainConfig.commerceApiBaseUrl,
+            apiToken: domainConfig.commerceApiToken,
+          },
+          fetchImpl,
+        ),
     registration: createRegistrationClient({ fetchImpl }),
     dns: createDnsClient(),
     certificate: createCertificateClient(),
@@ -77,6 +82,7 @@ export function createDomainIntelligenceRuntime(
     ready: true,
     config: {
       mode: domainConfig.mode,
+      testData: domainConfig.testData,
       betaRoleIds: domainConfig.betaRoleIds,
       verifiedRoleId,
       commerceHost: domainConfig.safe.commerceHost,

@@ -95,6 +95,15 @@ describe("RayFox domain result messages", () => {
     expectWithinDiscordLimits(message);
   });
 
+  test("labels fixture prices as internal test data, never live RayName quotes", () => {
+    const message = renderDomainOutcome({ ...success(), testData: true }, links);
+    const serialized = JSON.stringify(message);
+
+    expect(serialized).toContain("Internal beta · Test data");
+    expect(serialized).toContain("not live RayName quotes");
+    expect(message.embeds?.[0].footer?.text).toContain("TEST DATA");
+  });
+
   test("renders registered intelligence and a transfer CTA", () => {
     const result: DomainIntelligenceResult = {
       ...baseResult,
@@ -236,5 +245,20 @@ describe("RayFox extension comparison messages", () => {
     expect(serialized).toContain("Previous");
     expect(serialized).toContain("Next");
     expectWithinDiscordLimits(message);
+  });
+
+  test("labels the fixture comparison board as test data", () => {
+    const message = renderDomainComparison({
+      status: "success",
+      requestId: "72345678-1234-4234-8234-123456789012",
+      sort: "registration",
+      page: 1,
+      pageCount: 1,
+      rows: [],
+      testData: true,
+    });
+
+    expect(JSON.stringify(message)).toContain("not live RayName quotes");
+    expect(message.embeds?.[0].footer?.text).toContain("TEST DATA");
   });
 });
