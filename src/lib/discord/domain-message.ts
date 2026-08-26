@@ -34,6 +34,7 @@ export type DiscordWebhookMessage = {
 export type DomainMessageLinks = {
   primary: string | null;
   fullIntelligence: string | null;
+  componentOwnerId?: string;
 };
 
 type Button = NonNullable<DiscordWebhookMessage["components"]>[number]["components"][number];
@@ -187,7 +188,9 @@ function resultButtons(
   }
   buttons.push(customButton(
     "Compare extensions",
-    `rayfox_domain:compare:${outcome.requestId}:registration:1`,
+    links.componentOwnerId
+      ? `rayfox_domain:compare:${outcome.requestId}:${links.componentOwnerId}:registration:1`
+      : `rayfox_domain:compare:${outcome.requestId}:registration:1`,
     1,
   ));
   return buttons;
@@ -220,7 +223,9 @@ export function renderDomainOutcome(
     if (outcome.verifyAvailable) {
       buttons.push(customButton(
         "Verify your RayName account",
-        `rayfox_domain:verify:${outcome.requestId}`,
+        links.componentOwnerId
+          ? `rayfox_domain:verify:${outcome.requestId}:${links.componentOwnerId}`
+          : `rayfox_domain:verify:${outcome.requestId}`,
         1,
       ));
     }

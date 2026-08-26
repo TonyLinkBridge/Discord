@@ -8,6 +8,22 @@ export function buildGuildCommands() {
       type: 1,
       dm_permission: false,
     },
+    {
+      name: "domain",
+      description: "Check a domain with RayName Intelligence",
+      type: 1,
+      dm_permission: false,
+      options: [
+        {
+          type: 3,
+          name: "domain",
+          description: "Domain name, for example lucidgrid.ai",
+          required: true,
+          min_length: 3,
+          max_length: 253,
+        },
+      ],
+    },
   ];
 }
 

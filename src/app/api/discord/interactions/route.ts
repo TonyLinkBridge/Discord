@@ -1,14 +1,28 @@
+import { after } from "next/server";
+
+import { createDomainIntelligenceRuntime } from "@/lib/domain-intelligence/runtime";
 import { getDiscordRuntimeConfig } from "@/lib/discord/config";
 import type { DiscordRuntimeConfig } from "@/lib/discord/config";
-import { handleDiscordInteraction } from "@/lib/discord/interactions";
+import {
+  handleDiscordInteraction,
+  type DiscordInteractionDispatch,
+} from "@/lib/discord/interactions";
+import { createDiscordInteractionClient } from "@/lib/discord/interaction-client";
 import { verifyDiscordSignature } from "@/lib/discord/signature";
 import { createVerificationRuntime } from "@/lib/verification/runtime";
 
 type ConfiguredRoute = Extract<DiscordRuntimeConfig, { configured: true }>;
+type SignatureConfig = { configured: true; publicKey: string };
+
+export const maxDuration = 30;
 
 export function createDiscordInteractionsPost(dependencies: {
-  getConfig(): DiscordRuntimeConfig | { configured: true; publicKey: string };
-  handle(interaction: unknown, config: ConfiguredRoute | { configured: true; publicKey: string }): Promise<unknown>;
+  getConfig(): DiscordRuntimeConfig | SignatureConfig;
+  handle(
+    interaction: unknown,
+    config: ConfiguredRoute | SignatureConfig,
+  ): Promise<DiscordInteractionDispatch>;
+  schedule(task: () => Promise<void>): void;
 }) {
   return async function POST(request: Request): Promise<Response> {
     const config = dependencies.getConfig();
@@ -37,28 +51,43 @@ export function createDiscordInteractionsPost(dependencies: {
       return Response.json({ error: "Malformed interaction" }, { status: 400 });
     }
 
-    return Response.json(await dependencies.handle(interaction, config));
+    const dispatch = await dependencies.handle(interaction, config);
+    if (dispatch.background) dependencies.schedule(dispatch.background);
+    return Response.json(dispatch.response);
   };
 }
 
 export const POST = createDiscordInteractionsPost({
   getConfig: () => getDiscordRuntimeConfig(process.env),
+  schedule: (task) => after(task),
   async handle(interaction) {
-    const runtime = createVerificationRuntime();
-    if (!runtime.ready) {
+    const verification = createVerificationRuntime();
+    if (!verification.ready) {
       return {
-        type: 4,
-        data: {
-          flags: 64,
-          content: "RayName verification is temporarily unavailable.",
+        response: {
+          type: 4,
+          data: {
+            flags: 64,
+            content: "RayName verification is temporarily unavailable.",
+          },
         },
       };
     }
+    const domainIntelligence = createDomainIntelligenceRuntime();
     return handleDiscordInteraction(interaction, {
-      guildId: runtime.config.guildId,
-      claimInteraction: runtime.service.claimInteraction,
-      getMemberVerificationState: runtime.service.getMemberVerificationState,
-      submit: runtime.service.submit,
+      guildId: verification.config.guildId,
+      applicationId: verification.config.applicationId,
+      claimInteraction: verification.service.claimInteraction,
+      getMemberVerificationState:
+        verification.service.getMemberVerificationState,
+      submit: verification.service.submit,
+      domainService: domainIntelligence.ready
+        ? domainIntelligence.service
+        : null,
+      interactionClient: createDiscordInteractionClient({
+        apiBaseUrl: verification.config.apiBaseUrl,
+      }),
+      buildLinks: () => ({ primary: null, fullIntelligence: null }),
     });
   },
 });

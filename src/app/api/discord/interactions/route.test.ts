@@ -32,9 +32,11 @@ function signedRequest(body: string) {
 describe("Discord interactions route", () => {
   test("rejects an unsigned request before parsing or business handling", async () => {
     const handle = vi.fn();
+    const schedule = vi.fn();
     const post = createDiscordInteractionsPost({
       getConfig: () => configured,
       handle,
+      schedule,
     });
 
     const response = await post(
@@ -46,13 +48,16 @@ describe("Discord interactions route", () => {
 
     expect(response.status).toBe(401);
     expect(handle).not.toHaveBeenCalled();
+    expect(schedule).not.toHaveBeenCalled();
   });
 
   test("returns 400 for signed malformed JSON without echoing input", async () => {
     const handle = vi.fn();
+    const schedule = vi.fn();
     const post = createDiscordInteractionsPost({
       getConfig: () => configured,
       handle,
+      schedule,
     });
 
     const response = await post(signedRequest("secret-not-json"));
@@ -60,14 +65,17 @@ describe("Discord interactions route", () => {
     expect(response.status).toBe(400);
     expect(await response.text()).not.toContain("secret-not-json");
     expect(handle).not.toHaveBeenCalled();
+    expect(schedule).not.toHaveBeenCalled();
   });
 
   test("passes a verified interaction to the handler", async () => {
     const interaction = { id: "123456789012345678", type: 1 };
-    const handle = vi.fn().mockResolvedValue({ type: 1 });
+    const handle = vi.fn().mockResolvedValue({ response: { type: 1 } });
+    const schedule = vi.fn();
     const post = createDiscordInteractionsPost({
       getConfig: () => configured,
       handle,
+      schedule,
     });
 
     const response = await post(signedRequest(JSON.stringify(interaction)));
@@ -75,13 +83,41 @@ describe("Discord interactions route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ type: 1 });
     expect(handle).toHaveBeenCalledWith(interaction, configured);
+    expect(schedule).not.toHaveBeenCalled();
+  });
+
+  test("schedules deferred work after returning the Discord response", async () => {
+    const background = vi.fn().mockResolvedValue(undefined);
+    const handle = vi.fn().mockResolvedValue({
+      response: { type: 5, data: { flags: 64 } },
+      background,
+    });
+    const schedule = vi.fn();
+    const post = createDiscordInteractionsPost({
+      getConfig: () => configured,
+      handle,
+      schedule,
+    });
+
+    const interaction = { id: "123456789012345678", type: 2 };
+    const response = await post(signedRequest(JSON.stringify(interaction)));
+
+    await expect(response.json()).resolves.toEqual({
+      type: 5,
+      data: { flags: 64 },
+    });
+    expect(schedule).toHaveBeenCalledOnce();
+    expect(schedule).toHaveBeenCalledWith(background);
+    expect(background).not.toHaveBeenCalled();
   });
 
   test("returns a safe unavailable response when runtime config is missing", async () => {
     const handle = vi.fn();
+    const schedule = vi.fn();
     const post = createDiscordInteractionsPost({
       getConfig: () => ({ configured: false as const, reason: "secret detail" }),
       handle,
+      schedule,
     });
 
     const response = await post(
@@ -93,5 +129,6 @@ describe("Discord interactions route", () => {
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("secret detail");
     expect(handle).not.toHaveBeenCalled();
+    expect(schedule).not.toHaveBeenCalled();
   });
 });

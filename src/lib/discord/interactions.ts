@@ -1,16 +1,32 @@
+import { normalizeDomain } from "@/lib/domain-intelligence/input";
+import type {
+  DomainComparisonOutcome,
+  DomainIntelligenceService,
+  DomainSearchOutcome,
+} from "@/lib/domain-intelligence/service";
 import type { VerificationSubmission } from "@/lib/verification/input";
 import { verificationSubmissionSchema } from "@/lib/verification/input";
 import type { SubmitVerificationResult } from "@/lib/verification/types";
 
+import {
+  renderDomainComparison,
+  renderDomainOutcome,
+  type DomainMessageLinks,
+} from "./domain-message";
+import type { DiscordInteractionClient } from "./interaction-client";
+
 const interactionType = {
   ping: 1,
   applicationCommand: 2,
+  messageComponent: 3,
   modalSubmit: 5,
 } as const;
 
 const responseType = {
   pong: 1,
   channelMessage: 4,
+  deferredChannelMessage: 5,
+  deferredUpdate: 6,
   modal: 9,
 } as const;
 
@@ -31,6 +47,8 @@ type TextInput = {
 export type DiscordInteractionResponse =
   | { type: 1 }
   | { type: 4; data: { content: string; flags: 64 } }
+  | { type: 5; data: { flags: 64 } }
+  | { type: 6 }
   | {
       type: 9;
       data: {
@@ -40,8 +58,14 @@ export type DiscordInteractionResponse =
       };
     };
 
+export type DiscordInteractionDispatch = {
+  response: DiscordInteractionResponse;
+  background?: () => Promise<void>;
+};
+
 export type DiscordInteractionDependencies = {
   guildId: string;
+  applicationId: string;
   claimInteraction(input: {
     interactionId: string;
     interactionType: number;
@@ -56,6 +80,12 @@ export type DiscordInteractionDependencies = {
       | "verified";
   }>;
   submit(input: VerificationSubmission): Promise<SubmitVerificationResult>;
+  domainService: Pick<DomainIntelligenceService, "search" | "compare"> | null;
+  interactionClient: DiscordInteractionClient;
+  buildLinks(input: {
+    outcome: DomainSearchOutcome;
+    discordUserId: string;
+  }): DomainMessageLinks;
 };
 
 function privateMessage(
@@ -65,6 +95,12 @@ function privateMessage(
     type: responseType.channelMessage,
     data: { content, flags: ephemeralFlag },
   };
+}
+
+function immediate(
+  response: DiscordInteractionResponse,
+): DiscordInteractionDispatch {
+  return { response };
 }
 
 function textInput(
@@ -137,7 +173,57 @@ function memberUser(interaction: InteractionRecord) {
     id,
     username,
     displayName: string(user?.global_name) || username,
+    roleIds: Array.isArray(member?.roles)
+      ? member.roles.filter((role): role is string => typeof role === "string")
+      : [],
   };
+}
+
+function domainOption(data: InteractionRecord) {
+  if (!Array.isArray(data.options)) return null;
+  const option = data.options
+    .map(record)
+    .find((candidate) =>
+      candidate?.name === "domain" &&
+      candidate.type === 3 &&
+      typeof candidate.value === "string",
+    );
+  return option && typeof option.value === "string" ? option.value : null;
+}
+
+type DomainComponent =
+  | {
+      kind: "compare";
+      requestId: string;
+      ownerId: string;
+      sort: "registration" | "renewal" | "transfer";
+      page: number;
+    }
+  | { kind: "verify"; requestId: string; ownerId: string };
+
+function domainComponent(customId: string): DomainComponent | null {
+  const parts = customId.split(":");
+  if (parts[0] !== "rayfox_domain") return null;
+  if (
+    parts[1] === "compare" &&
+    parts.length === 6 &&
+    /^(registration|renewal|transfer)$/.test(parts[4] ?? "") &&
+    /^\d{1,3}$/.test(parts[5] ?? "")
+  ) {
+    const page = Number(parts[5]);
+    if (page < 1 || page > 100) return null;
+    return {
+      kind: "compare",
+      requestId: parts[2],
+      ownerId: parts[3],
+      sort: parts[4] as "registration" | "renewal" | "transfer",
+      page,
+    };
+  }
+  if (parts[1] === "verify" && parts.length === 4) {
+    return { kind: "verify", requestId: parts[2], ownerId: parts[3] };
+  }
+  return null;
 }
 
 function modalFields(data: InteractionRecord): Record<string, string> {
@@ -172,38 +258,152 @@ function statusMessage(status: string) {
 export async function handleDiscordInteraction(
   value: unknown,
   dependencies: DiscordInteractionDependencies,
-): Promise<DiscordInteractionResponse> {
+): Promise<DiscordInteractionDispatch> {
   const interaction = record(value);
-  if (!interaction) return privateMessage("This interaction is not supported.");
+  if (!interaction) return immediate(privateMessage("This interaction is not supported."));
   const type = interaction.type;
-  if (type === interactionType.ping) return { type: responseType.pong };
+  if (type === interactionType.ping) {
+    return immediate({ type: responseType.pong });
+  }
 
   const id = string(interaction.id);
   const user = memberUser(interaction);
-  if (!id) return privateMessage("This interaction is not supported.");
+  if (!id) return immediate(privateMessage("This interaction is not supported."));
   const claimed = await dependencies.claimInteraction({
     interactionId: id,
     interactionType: typeof type === "number" ? type : 0,
     discordUserId: user?.id ?? null,
   });
   if (claimed === "duplicate") {
-    return privateMessage("This interaction was already handled.");
+    return immediate(privateMessage("This interaction was already handled."));
   }
 
   if (interaction.guild_id !== dependencies.guildId || !user) {
-    return privateMessage("Verification is available only in RayName Domain Club.");
+    return immediate(
+      privateMessage("Verification is available only in RayName Domain Club."),
+    );
   }
   const data = record(interaction.data);
-  if (!data) return privateMessage("This interaction is not supported.");
+  if (!data) return immediate(privateMessage("This interaction is not supported."));
 
   if (type === interactionType.applicationCommand) {
+    if (data.name === "domain") {
+      const rawDomain = domainOption(data);
+      const normalized = rawDomain ? normalizeDomain(rawDomain) : null;
+      const token = string(interaction.token);
+      if (!normalized?.valid || !token) {
+        return immediate(privateMessage(
+          "Try a domain like `lucidgrid.ai` — no protocol, path, or spaces.",
+        ));
+      }
+      if (!dependencies.domainService) {
+        return immediate(privateMessage(
+          "RayFox Domain Intelligence isn’t available here yet.",
+        ));
+      }
+
+      const searchInput = {
+        interactionId: id,
+        guildId: dependencies.guildId,
+        discordUserId: user.id,
+        roleIds: user.roleIds,
+        rawDomain: normalized.domain.ascii,
+      };
+      return {
+        response: {
+          type: responseType.deferredChannelMessage,
+          data: { flags: ephemeralFlag },
+        },
+        async background() {
+          try {
+            const outcome = await dependencies.domainService!.search(searchInput);
+            const links = dependencies.buildLinks({
+              outcome,
+              discordUserId: user.id,
+            });
+            await dependencies.interactionClient.editOriginal({
+              applicationId: dependencies.applicationId,
+              interactionToken: token,
+              message: renderDomainOutcome(outcome, {
+                ...links,
+                componentOwnerId: user.id,
+              }),
+            });
+          } catch {
+            const unavailable: DomainSearchOutcome = {
+              status: "unavailable",
+              safeMessage: "RayName pricing is temporarily unavailable",
+              retryable: true,
+            };
+            await dependencies.interactionClient.editOriginal({
+              applicationId: dependencies.applicationId,
+              interactionToken: token,
+              message: renderDomainOutcome(unavailable, {
+                primary: null,
+                fullIntelligence: null,
+              }),
+            }).catch(() => undefined);
+          }
+        },
+      };
+    }
+
     if (data.name !== "verify") {
-      return privateMessage("This command is not supported.");
+      return immediate(privateMessage("This command is not supported."));
     }
     const state = await dependencies.getMemberVerificationState(user.id);
-    return state.status === "none"
-      ? verificationModal()
-      : privateMessage(statusMessage(state.status));
+    return immediate(
+      state.status === "none"
+        ? verificationModal()
+        : privateMessage(statusMessage(state.status)),
+    );
+  }
+
+  if (type === interactionType.messageComponent) {
+    const component = domainComponent(string(data.custom_id) ?? "");
+    if (!component) {
+      return immediate(privateMessage("This control is no longer available."));
+    }
+    if (component.ownerId !== user.id) {
+      return immediate(privateMessage("That control belongs to another member."));
+    }
+    if (component.kind === "verify") {
+      const state = await dependencies.getMemberVerificationState(user.id);
+      return immediate(
+        state.status === "none"
+          ? verificationModal()
+          : privateMessage(statusMessage(state.status)),
+      );
+    }
+
+    const token = string(interaction.token);
+    if (!token || !dependencies.domainService) {
+      return immediate(privateMessage("This control is no longer available."));
+    }
+    return {
+      response: { type: responseType.deferredUpdate },
+      async background() {
+        let outcome: DomainComparisonOutcome;
+        try {
+          outcome = await dependencies.domainService!.compare({
+            requestId: component.requestId,
+            discordUserId: user.id,
+            sort: component.sort,
+            page: component.page,
+          });
+        } catch {
+          outcome = {
+            status: "unavailable",
+            safeMessage: "RayName pricing is temporarily unavailable",
+          };
+        }
+        await dependencies.interactionClient.editOriginal({
+          applicationId: dependencies.applicationId,
+          interactionToken: token,
+          message: renderDomainComparison(outcome),
+        }).catch(() => undefined);
+      },
+    };
   }
 
   if (type === interactionType.modalSubmit && data.custom_id === verifyModalId) {
@@ -217,16 +417,16 @@ export async function handleDiscordInteraction(
       domain: fields.rayname_domain ?? "",
     });
     if (!parsed.success) {
-      return privateMessage(
+      return immediate(privateMessage(
         "Please enter a valid RayName email and optional domain, then try again.",
-      );
+      ));
     }
     const submitted = await dependencies.submit(parsed.data);
     if (submitted.status === "already-verified") {
-      return privateMessage(statusMessage("verified"));
+      return immediate(privateMessage(statusMessage("verified")));
     }
-    return privateMessage(statusMessage(submitted.requestStatus));
+    return immediate(privateMessage(statusMessage(submitted.requestStatus)));
   }
 
-  return privateMessage("This interaction is not supported.");
+  return immediate(privateMessage("This interaction is not supported."));
 }
